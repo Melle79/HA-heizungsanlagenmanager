@@ -118,7 +118,9 @@ def _lesen(auswahl=None, nummern=None) -> dict:
         if nummern is None:
             state["letzter_lauf"] = jetzt
         gelesen = len(roh)
-        store.save_state(state)
+        # Ebenso hier: nur die Felder, die dieser Weg verantwortet.
+        store.merke_state(werte=state["werte"],
+                          letzter_lauf=state["letzter_lauf"])
 
     # Auf Zuruf gelesene Werte gehen nicht nach MQTT – nur die Auswahl.
     if nummern is None and _publisher is not None:
@@ -204,10 +206,12 @@ def _discovery_auffrischen() -> None:
 
         aktuell = _publisher.discovery(auswahl, katalog,
                                        state.get("veroeffentlicht") or [])
-        state["veroeffentlicht"] = aktuell
-        state["geraet"] = mqtt_publisher.DEVICE_ID
-        state["praefix"] = _publisher.praefix
-        store.save_state(state)
+        # Nur diese drei Felder fortschreiben. Der Takt hält zur selben Zeit
+        # seine eigene Kopie des Zustands; wer die ganze Datei schreibt,
+        # macht die Änderung des anderen zunichte.
+        store.merke_state(veroeffentlicht=aktuell,
+                          geraet=mqtt_publisher.DEVICE_ID,
+                          praefix=_publisher.praefix)
         _publisher.werte(auswahl, state.get("werte") or {})
         _LOGGER.info("Discovery veröffentlicht (%d Parameter)", len(aktuell))
     except Exception as err:  # noqa: BLE001

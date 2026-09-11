@@ -250,6 +250,27 @@ def save_state(state: dict) -> None:
         _write(STATE_FILE, state)
 
 
+def merke_state(**felder) -> None:
+    """Einzelne Felder im Zustand fortschreiben – lesen, ändern, schreiben.
+
+    ``save_state`` schreibt die ganze Datei aus einer Kopie, die der Aufrufer
+    vorher geladen hat. Wer sie lange hält, macht dazwischen jede fremde
+    Änderung rückgängig: Der Takt las beim Start den Zustand, brauchte vier
+    Sekunden für 126 Werte über den Bus – und schrieb hinterher den Merker
+    wieder weg, mit dem sich das Add-on gerade die neue Kennung notiert hatte.
+    Das Abräumen der alten Entitäten lief deshalb bei **jedem** Start erneut.
+
+    Hier wird innerhalb der Sperre gelesen und geschrieben, und nur die
+    genannten Felder werden angefasst.
+    """
+    with _lock:
+        state = _read(STATE_FILE, {})
+        if not isinstance(state, dict):
+            state = {}
+        state.update(felder)
+        _write(STATE_FILE, state)
+
+
 # ───────────────────────────────────────── Übernahme durch andere Add-ons ────
 #
 # Der Heizungsplaner soll Sollwerte und Schaltzeiten übernehmen können. Damit

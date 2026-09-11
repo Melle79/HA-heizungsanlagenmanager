@@ -311,6 +311,23 @@ aus_yaml = re.search(r'^version:\s*"?([^"\s]+)"?', kopf.read_text(encoding="utf-
 pruefe(aus_yaml is not None and version.VERSION == aus_yaml.group(1),
        f"version.py und config.yaml sagen dasselbe ({version.VERSION})")
 
+print("\n=== Zwei Schreiber, eine Datei ===")
+# Der Fehler, der das ausgeloest hat: Der Takt laedt den Zustand, liest vier
+# Sekunden lang ueber den Bus und schreibt dann seine Kopie zurueck - mitsamt
+# allem, was inzwischen jemand anderes eingetragen hatte. Der Merker fuer die
+# Geraetekennung ging so bei jedem Start verloren, und das Abraeumen der alten
+# Entitaeten lief immer wieder von vorn.
+store.save_state({"werte": {"50": {"value": "21"}}, "letzter_lauf": "frueher",
+                  "veroeffentlicht": [], "geraet": "", "praefix": ""})
+alte_kopie = store.load_state()          # was der Takt in der Hand haelt
+store.merke_state(geraet="heizungsanlage", praefix="heizungsanlage")
+# ... und jetzt schreibt der Takt, wie er es tut: nur seine eigenen Felder.
+store.merke_state(werte=alte_kopie["werte"], letzter_lauf="jetzt")
+danach = store.load_state()
+pruefe(danach["geraet"] == "heizungsanlage",
+       "der Merker ueberlebt den Takt, der gleichzeitig schreibt")
+pruefe(danach["letzter_lauf"] == "jetzt", "und der Takt schreibt trotzdem sein Feld")
+
 print("\n=== Eine Umbenennung räumt hinter sich auf ===")
 # Discovery-Nachrichten sind "retained": Sie liegen im Broker, bis jemand sie
 # ueberschreibt. Ohne Abraeumen stuenden nach einer Umbenennung zwei Geraete in

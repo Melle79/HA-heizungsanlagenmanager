@@ -1,5 +1,15 @@
 # Änderungen
 
+## 1.6.1
+
+- **Behoben: Das Add-on räumte bei jedem Start die alten Entitäten erneut ab.**
+  Der Merker, unter welcher Kennung zuletzt veröffentlicht wurde, kam nie auf
+  die Platte: Der Lesetakt lädt den Zustand, braucht ein paar Sekunden für
+  seine Runde über den Bus und schrieb danach seine inzwischen veraltete
+  Kopie zurück – samt allem, was in der Zwischenzeit jemand anderes
+  eingetragen hatte. Jetzt schreibt jeder Weg nur die Felder fort, für die er
+  zuständig ist.
+
 ## 1.6.0
 
 - **Andere Add-ons können Parameter übernehmen.** Gedacht für den
