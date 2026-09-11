@@ -296,6 +296,11 @@ def api_einstellungen():
         return jsonify({"fehler": str(err)}), 400
     config["einstellungen"] = neu
     store.save_config(config)
+    # Wer hier umschaltet, wer melden soll, erwartet es sofort: Beim Wechsel
+    # auf BSB-LAN werden die eigenen Entitäten abgeräumt, beim Wechsel zurück
+    # wieder angemeldet. Ohne das bliebe der alte Zustand bis zum nächsten
+    # Verbindungsaufbau stehen – und in Home Assistant stünde beides.
+    _discovery_auffrischen()
     _sofort_lesen()
     return jsonify(neu)
 

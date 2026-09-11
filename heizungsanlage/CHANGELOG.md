@@ -1,5 +1,12 @@
 # Änderungen
 
+## 1.12.1
+
+- **Behoben: Das Umschalten wirkte erst beim nächsten Verbindungsaufbau.** Wer
+  auf „BSB-LAN meldet“ stellte, sah seine alten Entitäten noch stehen – und
+  damit genau die Doppelung, die er gerade abstellen wollte. Jetzt wird beim
+  Speichern der Einstellungen sofort abgeräumt beziehungsweise angemeldet.
+
 ## 1.12.0
 
 - **Neu: BSB-LAN kann das Melden übernehmen, der Manager richtet es ein.**
