@@ -1,5 +1,19 @@
 # Änderungen
 
+## 1.6.2
+
+- **„Kein Wert“ heißt jetzt, warum.** Eine Regelung antwortet auf drei Arten
+  mit nichts, und das bedeutet Verschiedenes: `error 7` heißt „diesen
+  Parameter kennt die Anlage nicht“ – der Vorlauffühler einer Anlage, die
+  keinen hat. `---` heißt „Parameter vorhanden, Klemme leer“. Beides stand
+  vorher als blasser Strich da, nicht von „noch nicht gelesen“ zu
+  unterscheiden. Übersicht, Werte und Regler schreiben den Grund jetzt
+  daneben.
+- **Behoben: `---` wäre als Text nach Home Assistant gegangen.** Ein Sensor
+  mit Geräteklasse `temperature` kann damit nichts anfangen und fällt auf
+  „nicht verfügbar“. Jetzt wird daraus, wie bei jedem fehlenden Wert, ein
+  sauberes „unbekannt“.
+
 ## 1.6.1
 
 - **Behoben: Das Add-on räumte bei jedem Start die alten Entitäten erneut ab.**

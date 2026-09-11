@@ -311,6 +311,35 @@ aus_yaml = re.search(r'^version:\s*"?([^"\s]+)"?', kopf.read_text(encoding="utf-
 pruefe(aus_yaml is not None and version.VERSION == aus_yaml.group(1),
        f"version.py und config.yaml sagen dasselbe ({version.VERSION})")
 
+print("\n=== Was die Anlage nicht liefert ===")
+# An Svens Kessel gefunden: Parameter 116 "Vorlauftemperatur" antwortet mit
+# error 7 ("parameter not supported") - die Anlage hat keinen Vorlauffuehler.
+# 117 "Ruecklauftemperatur" antwortet mit "---": Parameter da, Klemme leer.
+# Beides als Zeichenkette an Home Assistant zu melden, macht aus einem
+# Temperatursensor eine kaputte Entitaet.
+import mqtt_publisher as mq
+pruefe(mq.ohne_wert({"value": "", "error": 7}), "error 7 heisst: kennt die Anlage nicht")
+pruefe(mq.ohne_wert({"value": "---", "error": 0}), "--- heisst: keine Klemme belegt")
+pruefe(mq.ohne_wert({}), "und gar keine Antwort erst recht")
+pruefe(not mq.ohne_wert({"value": "52.7", "error": 0}), "eine Zahl ist eine Zahl")
+pruefe(not mq.ohne_wert({"value": "0", "error": 0}), "die Null auch - sie ist kein Nichts")
+
+class Sammler(mq.Publisher):
+    def __init__(self):
+        self.gesendet = {}
+        self.praefix = self.basis = "heizungsanlage"
+        self.verfuegbarkeit = "heizungsanlage/availability"
+    def _publish(self, topic, payload):
+        self.gesendet[topic] = payload
+
+sam = Sammler()
+sam.werte([{"nr": "116"}, {"nr": "115"}],
+          {"116": {"value": "", "error": 7}, "115": {"value": "52.7", "error": 0}})
+pruefe(sam.gesendet["heizungsanlage/p116/state"] == "None",
+       "der fehlende Vorlauf wird zu None und damit zu 'unbekannt'")
+pruefe(sam.gesendet["heizungsanlage/p115/state"] == "52.7",
+       "der Kessel meldet seinen Wert")
+
 print("\n=== Zwei Schreiber, eine Datei ===")
 # Der Fehler, der das ausgeloest hat: Der Takt laedt den Zustand, liest vier
 # Sekunden lang ueber den Bus und schreibt dann seine Kopie zurueck - mitsamt

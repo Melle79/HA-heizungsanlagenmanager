@@ -58,6 +58,10 @@
     margin-top:var(--l1)}
   .kachel .wert small{font-size:.8rem; color:var(--leise); font-weight:400}
   .kachel .zusatz{font-size:.72rem; color:var(--sehr-leise); margin-top:var(--l1)}
+  /* Eine Kachel ohne Wert ist nicht kaputt – die Anlage hat den Fühler nicht.
+     Die Zahl tritt zurück, der Grund dafür bleibt lesbar. */
+  .kachel.ohnewert .wert{color:var(--sehr-leise); font-weight:400}
+  .kachel.ohnewert .zusatz{color:var(--leise)}
 
   .felder{display:grid; gap:var(--l3);
     grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}
@@ -435,13 +439,17 @@ function uebersichtZeichnen() {
     const w = werte[def.nr];
     const el = document.createElement('div');
     el.className = 'kachel';
-    const roh = w && w.value !== null && w.value !== '' ? w.value : null;
+    const leer = ohneWert(w);
+    const grund = wertErklaerung(w);
+    const erklaert = leer && grund && grund !== 'noch nicht gelesen';
+    if (erklaert) el.className = 'kachel ohnewert';
     el.innerHTML = `<div class="titel">${def.titel}</div>
-      <div class="wert">${roh === null ? '–' : roh}
-        <small>${(w && w.unit) || def.einheit || ''}</small></div>
+      <div class="wert">${leer ? '–' : w.value}
+        <small>${leer ? '' : ((w && w.unit) || def.einheit || '')}</small></div>
       <div class="zusatz" title="${def.name || ''}">${
-        auswahlNr.has(def.nr) ? 'Parameter ' + def.nr
-                              : 'Parameter ' + def.nr + ' – nicht ausgewählt'}</div>`;
+        leer && grund ? grund
+        : (auswahlNr.has(def.nr) ? 'Parameter ' + def.nr
+                                 : 'Parameter ' + def.nr + ' – nicht ausgewählt')}</div>`;
     k.appendChild(el);
   });
 
@@ -469,12 +477,12 @@ function werteZeichnen() {
   auswahl.forEach(e => {
     const w = werte[e.nr] || {};
     const zeile = document.createElement('tr');
-    const roh = w.value !== undefined && w.value !== null && w.value !== ''
-      ? w.value : '–';
+    const leer = ohneWert(w);
+    if (leer) zeile.className = 'gefuehrt';
     zeile.innerHTML = `<td class="nr">${e.nr}</td>
       <td>${e.anzeige || e.name}</td>
-      <td class="kat">${w.desc || ''}</td>
-      <td class="wert">${roh} ${e.einheit || w.unit || ''}</td>`;
+      <td class="kat">${leer ? wertErklaerung(w) : (w.desc || '')}</td>
+      <td class="wert">${leer ? '–' : w.value + ' ' + (e.einheit || w.unit || '')}</td>`;
     koerper.appendChild(zeile);
   });
   if (!koerper.children.length) {
@@ -606,6 +614,21 @@ $('btn-speichern-auswahl').onclick = async () => {
 //     {"1": {name: "Zeitschaltprogramm 1", tage: ["11", "11.1", …]}}
 // Wer welche Parameter führt. Kommt beim Statusabruf mit; ist es leer – und
 // ab Werk ist es leer –, merkt man von der ganzen Mechanik nichts.
+// Drei Arten von „kein Wert“ kommen vom Bus, und sie bedeuten Verschiedenes:
+// „error 7“ heißt, die Regelung kennt die Größe nicht (ein Vorlauffühler, den
+// die Anlage nicht hat); „---“ heißt, der Parameter ist da, die Klemme leer.
+// Beides als Zahl zu behandeln wäre falsch, beides als Fehler zu zeigen auch.
+function ohneWert(w) {
+  if (!w) return true;
+  if (w.error) return true;
+  const v = w.value;
+  return v === null || v === undefined || v === '' || String(v).trim() === '---';
+}
+const wertErklaerung = (w) => !w ? 'noch nicht gelesen'
+  : (w.error === 7 ? 'liefert diese Anlage nicht'
+  : (String(w.value).trim() === '---' ? 'kein Fühler angeschlossen'
+  : (w.error ? 'Regelung meldet Fehler ' + w.error : '')));
+
 const gefuehrtVon = (nr) => (status.uebernahme || {})[String(nr)] || null;
 
 // Das Band über einer Tafel: Es nennt die Quelle, sagt warum, und trägt den
@@ -716,8 +739,8 @@ async function reglerZeichnen() {
 
   (d.parameter || []).forEach(p => {
     const w = werte[p.nr] || {};
-    const roh = w.value === undefined || w.value === null || w.value === ''
-      ? '' : String(w.value);
+    const leerwert = ohneWert(w);
+    const roh = leerwert ? '' : String(w.value);
     const zeile = document.createElement('tr');
     const fremd = gefuehrtVon(p.nr);
     let bedienung = '<span class="notiz">nur lesen</span>';
@@ -744,8 +767,9 @@ async function reglerZeichnen() {
     zeile.innerHTML = `<td class="nr">${p.nr}</td>
       <td>${p.name}${p.unit ? ` <span class="notiz">(${p.unit})</span>` : ''}${
         fremd ? `<span class="marke-fremd">${fremd.name}</span>` : ''}</td>
-      <td class="wert">${roh === '' ? '–' : (w.desc || roh)} ${
-        w.desc ? '' : (p.unit || '')}</td>
+      <td class="wert">${leerwert
+        ? `–<div class="notiz">${wertErklaerung(w)}</div>`
+        : `${w.desc || roh} ${w.desc ? '' : (p.unit || '')}`}</td>
       <td style="width:200px">${bedienung}</td>`;
     const knopf = zeile.querySelector('button[data-setzen]');
     if (knopf) knopf.onclick = () => parameterStellen(p, zeile, 'm-regler',

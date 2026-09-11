@@ -39,6 +39,30 @@ def _slug(text: str) -> str:
     return text or "wert"
 
 
+def ohne_wert(gelesen: dict) -> bool:
+    """Hat die Regelung auf diese Abfrage etwas Brauchbares geantwortet?
+
+    Drei Arten von „nein“ kommen vom Bus, und alle drei sahen früher
+    verschieden aus:
+
+    * gar nichts – der Parameter stand nicht in der Antwort
+    * ``""`` mit ``error`` 7 – „parameter not supported“: Diese Regelung
+      kennt die Größe nicht. Der Vorlauffühler einer Anlage, die keinen hat.
+    * ``"---"`` – der Parameter ist vorhanden, aber unbelegt (kein Fühler an
+      der Klemme)
+
+    Die mittleren beiden als Zeichenkette weiterzugeben wäre schlimm: Ein
+    Sensor mit Geräteklasse ``temperature`` kann mit „---“ nichts anfangen
+    und fällt auf „nicht verfügbar“ – mitsamt der Meldung im Protokoll.
+    """
+    if not gelesen:
+        return True
+    if gelesen.get("error"):
+        return True
+    wert = gelesen.get("value")
+    return wert in (None, "") or str(wert).strip() in ("---", "--")
+
+
 class Publisher:
     def __init__(self, host, port, user, password, praefix=DEVICE_ID):
         self.praefix = praefix
@@ -158,12 +182,11 @@ class Publisher:
         for eintrag in auswahl:
             key = self.schluessel(eintrag)
             gelesen = (werte or {}).get(str(eintrag.get("nr"))) or {}
-            wert = gelesen.get("value")
             # Kein Wert heißt "None" – daraus wird in Home Assistant der
             # Zustand "unbekannt". Das Wort "unknown" wäre für einen Sensor
             # mit Geräteklasse keine gültige Zahl und ließe die Entität auf
             # "unavailable" fallen.
-            zustand = "None" if wert in (None, "") else str(wert)
+            zustand = "None" if ohne_wert(gelesen) else str(gelesen.get("value"))
             self._publish(f"{self.basis}/{key}/state", zustand)
             self._publish(f"{self.basis}/{key}/attributes", json.dumps({
                 "parameter": eintrag.get("nr"),
