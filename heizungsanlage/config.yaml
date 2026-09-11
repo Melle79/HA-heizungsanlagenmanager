@@ -1,9 +1,10 @@
 name: "Heizungsanlagenmanager via BSB-LAN"
-version: "1.4.1"
-# Der slug bleibt: Er steckt in der Ingress-Adresse und in den
-# Entitäts-IDs. Ein neuer wäre für den Supervisor ein anderes
-# Add-on – mit Neuinstallation und verlorener Historie.
-slug: "kesselmanager"
+version: "1.5.0"
+# Der slug steckt in der Ingress-Adresse und – über DEVICE_ID – in den
+# Entitäts-IDs (sensor.heizungsanlage_p72). Wer ihn ändert, bekommt vom
+# Supervisor ein neues Add-on: Neuinstallation, und die Daten des alten
+# müssen mit umziehen. Nicht leichtfertig anfassen.
+slug: "heizungsanlage"
 description: "Heizungsregler über BSB-LAN lesen und stellen: Parameter auswählen, als Entitäten nach Home Assistant bringen, Sollwerte ändern."
 url: "https://github.com/Melle79/HA-heizungsanlagenmanager"
 arch:

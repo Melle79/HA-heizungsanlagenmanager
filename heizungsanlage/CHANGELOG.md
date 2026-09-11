@@ -1,5 +1,20 @@
 # Änderungen
 
+## 1.5.0
+
+- **Die Entitäten heißen jetzt `sensor.heizungsanlage_p…`** statt
+  `sensor.kesselmanager_p…`. Der alte Name passte nicht mehr zu dem, was das
+  Add-on tut, und je länger er stehenbleibt, desto teurer wird die Umstellung.
+- Beim ersten Start danach **räumt das Add-on hinter sich auf**: Die
+  Anmeldungen der alten Kennung werden zurückgenommen. Ohne das stünde in
+  Home Assistant für immer ein zweites, totes Gerät – Discovery-Nachrichten
+  überleben das Add-on, sie liegen im Broker.
+- Ein gespeichertes MQTT-Präfix `kesselmanager` wandert mit. Ein selbst
+  gewähltes bleibt unangetastet.
+- Der slug ist `heizungsanlage`; für den Supervisor ist das ein neues Add-on.
+  Einstellungen, Auswahl und Katalog müssen beim Umzug mitgenommen werden –
+  ein neues Einlesen des Katalogs über den Bus ist dafür nicht nötig.
+
 ## 1.4.1
 
 - **Neuer Name: „Heizungsanlagenmanager via BSB-LAN“.** „Kesselmanager“ war zu

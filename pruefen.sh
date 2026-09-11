@@ -13,7 +13,7 @@ if [ ! -x .venv/bin/python ]; then
   echo "Lege die Prüfumgebung an (einmalig) …"
   python3 -m venv .venv
   .venv/bin/pip install --quiet --upgrade pip
-  .venv/bin/pip install --quiet -r kesselmanager/backend/requirements.txt
+  .venv/bin/pip install --quiet -r heizungsanlage/backend/requirements.txt
 fi
 
-exec .venv/bin/python kesselmanager/tests/test_kessel.py
+exec .venv/bin/python heizungsanlage/tests/test_kessel.py

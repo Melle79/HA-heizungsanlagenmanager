@@ -16,8 +16,8 @@ adjustable through BSB-LAN.*
    **Parameterkatalog einlesen**.
 4. Unter **Auswahl** anhaken, was nach Home Assistant soll.
 
-Alles Weitere steht in der [Dokumentation](kesselmanager/DOCS.de.md)
-([English](kesselmanager/DOCS.md)).
+Alles Weitere steht in der [Dokumentation](heizungsanlage/DOCS.de.md)
+([English](heizungsanlage/DOCS.md)).
 
 ## Was es kann
 

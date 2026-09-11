@@ -22,7 +22,13 @@ import paho.mqtt.client as mqtt
 _LOGGER = logging.getLogger(__name__)
 
 DISCOVERY_PREFIX = "homeassistant"
-DEVICE_ID = "kesselmanager"
+
+# Die Kennung steckt in jeder Entitäts-ID (``sensor.heizungsanlage_p72``) und
+# in den MQTT-Themen. Sie zu ändern ist teuer: Home Assistant sieht andere
+# unique_ids und legt neue Entitäten an, die alten bleiben mit ihrer Historie
+# als Karteileichen stehen. Deshalb gibt es ``altes_geraet_abraeumen`` – wer
+# umbenennt, räumt hinter sich auf.
+DEVICE_ID = "heizungsanlage"
 
 
 def _slug(text: str) -> str:
@@ -34,7 +40,7 @@ def _slug(text: str) -> str:
 
 
 class Publisher:
-    def __init__(self, host, port, user, password, praefix="kesselmanager"):
+    def __init__(self, host, port, user, password, praefix=DEVICE_ID):
         self.praefix = praefix
         self.basis = praefix
         self.verfuegbarkeit = f"{praefix}/availability"
@@ -125,6 +131,27 @@ class Publisher:
             self._publish(f"{self.basis}/{alt}/attributes", "")
             _LOGGER.info("Entität %s abgemeldet", alt)
         return aktuell
+
+    def altes_geraet_abraeumen(self, geraet: str, praefix: str,
+                               entitaeten: list) -> None:
+        """Die Anmeldungen einer früheren Kennung zurücknehmen.
+
+        Discovery-Nachrichten sind „retained“: Sie überleben das Add-on und
+        liegen im Broker, bis jemand sie überschreibt. Nach einer Umbenennung
+        stünden sonst beide Geräte in Home Assistant – das alte für immer
+        „nicht verfügbar“, und niemand wüsste, welches das echte ist.
+
+        Eine leere Nutzlast auf dem Discovery-Thema ist die Abmeldung.
+        """
+        if not geraet:
+            return
+        for key in entitaeten or []:
+            self._publish(f"{DISCOVERY_PREFIX}/sensor/{geraet}/{key}/config", "")
+            self._publish(f"{praefix}/{key}/state", "")
+            self._publish(f"{praefix}/{key}/attributes", "")
+        self._publish(f"{praefix}/availability", "")
+        _LOGGER.info("Alte Kennung %s abgeräumt (%d Entitäten)",
+                     geraet, len(entitaeten or []))
 
     def werte(self, auswahl: list, werte: dict) -> None:
         """Die gelesenen Werte melden."""

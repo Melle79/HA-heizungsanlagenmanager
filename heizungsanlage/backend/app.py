@@ -26,7 +26,7 @@ logging.basicConfig(
     format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     datefmt="%H:%M:%S",
 )
-_LOGGER = logging.getLogger("kesselmanager")
+_LOGGER = logging.getLogger("heizungsanlage")
 
 FRONTEND = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                         "frontend")
@@ -169,6 +169,9 @@ def _discovery_auffrischen() -> None:
     """Entitäten anmelden – und die abgewählter Parameter wieder abräumen."""
     if _publisher is None or not _publisher.connected.is_set():
         return
+    # Erst hier importiert, wie oben auch: Ohne Broker soll die Oberfläche
+    # auch ohne paho-mqtt laufen.
+    import mqtt_publisher
     try:
         config = store.load_config()
         state = store.load_state()
@@ -180,9 +183,25 @@ def _discovery_auffrischen() -> None:
             aus_katalog = (katalog.get("parameter") or {}).get(eintrag["nr"]) or {}
             angereichert["kategorie_name"] = aus_katalog.get("kategorie_name", "")
             auswahl.append(angereichert)
+        # Wurde die Kennung geändert, gehören die Anmeldungen der alten
+        # zurückgenommen – sonst steht in Home Assistant für immer ein zweites,
+        # totes Gerät. Das passiert einmal, beim ersten Start danach.
+        # Fehlt der Merker, stammt der Zustand aus einer Fassung vor 1.5.0 –
+        # und die hießen ausnahmslos „kesselmanager“. Nur wenn damals etwas
+        # angemeldet wurde, gibt es auch etwas abzuräumen.
+        altes_geraet = state.get("geraet") or (
+            store.ALTE_KENNUNG if state.get("veroeffentlicht") else "")
+        if altes_geraet and altes_geraet != mqtt_publisher.DEVICE_ID:
+            _publisher.altes_geraet_abraeumen(
+                altes_geraet, state.get("praefix") or altes_geraet,
+                state.get("veroeffentlicht") or [])
+            state["veroeffentlicht"] = []
+
         aktuell = _publisher.discovery(auswahl, katalog,
                                        state.get("veroeffentlicht") or [])
         state["veroeffentlicht"] = aktuell
+        state["geraet"] = mqtt_publisher.DEVICE_ID
+        state["praefix"] = _publisher.praefix
         store.save_state(state)
         _publisher.werte(auswahl, state.get("werte") or {})
         _LOGGER.info("Discovery veröffentlicht (%d Parameter)", len(aktuell))

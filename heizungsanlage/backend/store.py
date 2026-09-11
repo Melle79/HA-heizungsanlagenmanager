@@ -47,7 +47,7 @@ STANDARD_EINSTELLUNGEN = {
     # Doppelte Sicherung zum Schreiben: Auch wenn BSB-LAN es erlaubt, rührt
     # der Manager nichts an, solange dieser Schalter aus ist.
     "schreiben_erlaubt": False,
-    "praefix": "kesselmanager",
+    "praefix": "heizungsanlage",
 }
 
 # Aus Einheit und Namen lässt sich meist ableiten, was Home Assistant wissen
@@ -141,12 +141,22 @@ def standard_einstellungen() -> dict:
     return json.loads(json.dumps(STANDARD_EINSTELLUNGEN))
 
 
+# Bis Fassung 1.4.1 hieß das Add-on „Kesselmanager“, und so hießen auch die
+# Entitäten. Wer von damals kommt, hat das Wort noch als MQTT-Präfix in seinen
+# Einstellungen stehen – und würde die neuen Werte ausgerechnet auf die
+# Themen schreiben, die beim Umbenennen abgeräumt werden.
+ALTE_KENNUNG = "kesselmanager"
+
+
 def load_config() -> dict:
     with _lock:
         roh = _read(CONFIG_FILE, {})
+    einstellungen = _merge(standard_einstellungen(),
+                           (roh or {}).get("einstellungen") or {})
+    if einstellungen.get("praefix") == ALTE_KENNUNG:
+        einstellungen["praefix"] = STANDARD_EINSTELLUNGEN["praefix"]
     return {
-        "einstellungen": _merge(standard_einstellungen(),
-                                (roh or {}).get("einstellungen") or {}),
+        "einstellungen": einstellungen,
         "auswahl": list((roh or {}).get("auswahl") or []),
     }
 
@@ -173,7 +183,7 @@ def validate_einstellungen(roh: dict) -> dict:
         raise ValidationError("Das Abfrageintervall muss zwischen 30 und 3600 "
                               "Sekunden liegen")
     e["schreiben_erlaubt"] = bool(e["schreiben_erlaubt"])
-    praefix = str(e["praefix"] or "").strip().strip("/") or "kesselmanager"
+    praefix = str(e["praefix"] or "").strip().strip("/") or "heizungsanlage"
     if not praefix.replace("_", "").replace("-", "").isalnum():
         raise ValidationError("Das MQTT-Präfix darf nur Buchstaben, Ziffern, "
                               "Bindestrich und Unterstrich enthalten")
@@ -228,6 +238,10 @@ def load_state() -> dict:
     state.setdefault("werte", {})            # nr -> {value, desc, zeit, error}
     state.setdefault("letzter_lauf", None)
     state.setdefault("veroeffentlicht", [])  # welche Entitäten angemeldet sind
+    # Unter welcher Kennung und welchem Präfix das zuletzt geschah. Weicht es
+    # beim Start ab, wurde umbenannt – dann gehört das Alte abgeräumt.
+    state.setdefault("geraet", "")
+    state.setdefault("praefix", "")
     return state
 
 

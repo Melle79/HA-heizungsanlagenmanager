@@ -302,6 +302,49 @@ except bsb.BsbFehler as err:
 ANLAGE["status"] = 1
 ANLAGE["schreibbar"] = True
 
+print("\n=== Eine Umbenennung räumt hinter sich auf ===")
+# Discovery-Nachrichten sind "retained": Sie liegen im Broker, bis jemand sie
+# ueberschreibt. Ohne Abraeumen stuenden nach einer Umbenennung zwei Geraete in
+# Home Assistant - das alte fuer immer "nicht verfuegbar".
+import mqtt_publisher
+
+class StummerBroker(mqtt_publisher.Publisher):
+    def __init__(self):
+        self.gesendet = []
+        self.praefix = self.basis = "heizungsanlage"
+        self.verfuegbarkeit = "heizungsanlage/availability"
+
+    def _publish(self, topic, payload):
+        self.gesendet.append((topic, payload))
+
+broker = StummerBroker()
+broker.altes_geraet_abraeumen("kesselmanager", "kesselmanager", ["p72", "p115"])
+themen = dict(broker.gesendet)
+pruefe(themen.get("homeassistant/sensor/kesselmanager/p72/config") == "",
+       "die alte Anmeldung wird mit leerer Nutzlast zurueckgenommen")
+pruefe(themen.get("kesselmanager/p115/state") == "",
+       "auch die alten Werte werden geraeumt")
+pruefe(themen.get("kesselmanager/availability") == "",
+       "und die Verfuegbarkeit des alten Geraets")
+pruefe(all("heizungsanlage" not in t for t, _ in broker.gesendet),
+       "das neue Geraet bleibt dabei unangetastet")
+pruefe(mqtt_publisher.DEVICE_ID == "heizungsanlage",
+       "die Kennung steht an einer Stelle und heisst heizungsanlage")
+
+# Wer von der alten Fassung kommt, hat "kesselmanager" als Praefix gespeichert.
+# Bliebe es stehen, schriebe das umbenannte Geraet seine Werte genau auf die
+# Themen, die der Aufraeumer gerade leert.
+store.save_config({"einstellungen": dict(store.standard_einstellungen(),
+                                         praefix="kesselmanager"),
+                   "auswahl": []})
+pruefe(store.load_config()["einstellungen"]["praefix"] == "heizungsanlage",
+       "das alte Praefix wandert beim Laden auf die neue Kennung")
+store.save_config({"einstellungen": dict(store.standard_einstellungen(),
+                                         praefix="eigenesthema"),
+                   "auswahl": []})
+pruefe(store.load_config()["einstellungen"]["praefix"] == "eigenesthema",
+       "ein selbst gewaehltes Praefix bleibt unangetastet")
+
 print("\n=== Einstellungen werden geprüft ===")
 e = store.validate_einstellungen({"bsb_url": "192.168.0.170"})
 pruefe(e["bsb_url"] == "http://192.168.0.170", "eine Adresse ohne Schema bekommt eins")
