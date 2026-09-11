@@ -181,6 +181,12 @@ Einlesen musst du den Katalog einmal – und danach nur noch, wenn du die
 Firmware mit einer neuen Liste geflasht hast. Es dauert ein bis zwei Minuten,
 weil jede Kategorie einzeln über den Bus geht.
 
+## Der Reiter „Home Assistant“
+
+Alles, was mit dem Weg nach Home Assistant zu tun hat, steht auf einer Seite:
+wer meldet, welche Parameter, und was zuletzt gelesen wurde. Darunter die
+Auswahl, darunter die Werte.
+
 ## Auswahl: was nach Home Assistant geht
 
 Jeder angehakte Parameter wird ein Sensor. Einheit und Geräteklasse schlägt

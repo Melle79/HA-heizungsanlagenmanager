@@ -187,8 +187,7 @@
 <nav>
   <button data-blatt="uebersicht" class="an">Übersicht</button>
   <button data-blatt="regler">Regelung</button>
-  <button data-blatt="werte">Werte</button>
-  <button data-blatt="auswahl">Auswahl</button>
+  <button data-blatt="mqtt">Home Assistant</button>
   <button data-blatt="einstellungen">Einstellungen</button>
 </nav>
 
@@ -209,62 +208,8 @@
 </section>
 
 <!-- ═══════════════════════════════════════════════════ Werte ═══ -->
-<section id="werte">
-  <div class="tafel">
-    <h2>Was nach Home Assistant geht</h2>
-    <div class="notiz">Jeder Eintrag hier ist eine Entität. Der Name in Klammern
-      ist die Parameternummer in der Regelung – sie bleibt gleich, auch wenn du
-      die Anzeige umbenennst.</div>
-    <div class="rollbar"><table>
-      <thead><tr><th>Nr</th><th>Name</th><th>Kategorie</th><th style="text-align:right">Wert</th></tr></thead>
-      <tbody id="wertetabelle"></tbody>
-    </table></div>
-    <div class="zeile-aktionen">
-      <button id="btn-lesen">Jetzt lesen</button>
-      <span class="notiz" id="werte-stand"></span>
-      <span class="meldung" id="m-werte"></span>
-    </div>
-  </div>
-</section>
 
 <!-- ═════════════════════════════════════════════════ Auswahl ═══ -->
-<section id="auswahl">
-  <div class="hinweis" id="katalog-hinweis"></div>
-  <div class="hinweis warn" id="auswahl-fremdlinge" hidden></div>
-  <div class="tafel">
-    <h2>Parameter auswählen</h2>
-    <div class="notiz">Angehakt heißt: Der Wert wird regelmäßig gelesen und als
-      Entität nach Home Assistant gemeldet. Einheit und Geräteklasse schlägt
-      der Manager aus dem Datentyp vor – Betriebsstunden und Zählerstände
-      bekommen automatisch eine Langzeitstatistik.</div>
-    <div class="felder" style="margin-top:var(--l3)">
-      <div class="feld"><label>Suche</label>
-        <input type="text" id="such" placeholder="Name oder Nummer …"></div>
-      <div class="feld"><label>Kategorie</label>
-        <select id="kat-filter"><option value="">alle</option></select></div>
-      <div class="feld"><label>Filter</label>
-        <select id="rw-filter">
-          <option value="">alle Parameter</option>
-          <option value="1">nur schreibbare</option>
-          <option value="a">nur ausgewählte</option>
-        </select></div>
-    </div>
-    <div class="zeile-aktionen">
-      <button id="btn-speichern-auswahl">Auswahl speichern</button>
-      <button class="leise" id="btn-vorschlag">Sinnvolle Auswahl vorschlagen</button>
-      <span class="notiz" id="auswahl-zahl"></span>
-      <span class="meldung" id="m-auswahl"></span>
-    </div>
-  </div>
-  <div class="tafel">
-    <div class="rollbar"><table>
-      <thead><tr><th style="width:34px"></th><th>Nr</th><th>Name</th>
-        <th>Kategorie</th><th>Einheit</th></tr></thead>
-      <tbody id="katalogtabelle"></tbody>
-    </table></div>
-    <div class="leer" id="katalog-leer" hidden>Keine Treffer.</div>
-  </div>
-</section>
 
 <!-- ═════════════════════════════════════════════════ Regler ═══ -->
 <section id="regler">
@@ -316,40 +261,11 @@
   </div>
 </section>
 
-<!-- ═══════════════════════════════════════════ Einstellungen ═══ -->
-<section id="einstellungen">
-  <div class="tafel">
-    <h2>Verbindung zu BSB-LAN</h2>
-    <div class="felder">
-      <div class="feld"><label>Adresse</label>
-        <input type="text" id="e-url" placeholder="http://192.168.1.50">
-        <div class="notiz">Die Adresse, unter der die Weboberfläche von
-          BSB-LAN erreichbar ist – meist die IP, oft auch
-          <code>http://bsb-lan.local</code>.</div></div>
-      <div class="feld"><label>Passkey (falls gesetzt)</label>
-        <input type="text" id="e-passkey"></div>
-      <div class="feld"><label>Abfrageintervall (Sekunden)</label>
-        <input type="number" id="e-intervall" min="30" max="3600" step="10">
-        <div class="notiz">Eine Heizung ist träge – fünf Minuten reichen.
-          Jede Abfrage belegt den Bus.</div></div>
-      <div class="feld"><label>MQTT-Präfix</label>
-        <input type="text" id="e-praefix"></div>
-    </div>
-  </div>
-
-  <div class="tafel">
-    <h2>Schreibzugriff</h2>
-    <label class="haken"><input type="checkbox" id="e-schreiben">
-      <span>Stellen von Parametern erlauben</span></label>
-    <div class="notiz">Zwei Schalter müssen dafür stehen: dieser und der in
-      BSB-LAN selbst. Beide sind ab Werk aus, und das mit Absicht – ein
-      falscher Sollwert lässt im Winter eine Wohnung auskühlen.</div>
-    <div class="zeile-aktionen">
-      <button id="btn-speichern-einst">Einstellungen speichern</button>
-      <span class="meldung" id="m-einst"></span>
-    </div>
-  </div>
-
+<!-- ═══════════════════════════════════════════ Home Assistant ═══ -->
+<!-- Drei Reiter beschäftigten sich mit derselben Frage: was geht nach Home
+     Assistant, wer schickt es, und was steht gerade drin. Jetzt eine Seite,
+     von oben nach unten in der Reihenfolge, in der man sie braucht. -->
+<section id="mqtt">
   <div class="tafel">
     <h2>Wer meldet nach Home Assistant?</h2>
     <div class="notiz">BSB-LAN bringt eigenes MQTT mit, samt automatischer
@@ -370,6 +286,11 @@
         sich mit eigenen Entitäten zurück. BSB-LAN fragt den Bus ohnehin ab,
         meldet häufiger und legt auch Bedienelemente an.</span>
     </label>
+
+    <div class="zeile-aktionen" id="melder-sichern">
+      <button id="btn-speichern-melder-oben">Speichern</button>
+      <span class="meldung" id="m-melder"></span>
+    </div>
 
     <div id="bsblan-felder" hidden>
       <div class="felder" style="margin-top:var(--l3)">
@@ -406,6 +327,94 @@
       </div>
     </div>
   </div>
+  <div class="hinweis" id="katalog-hinweis"></div>
+  <div class="hinweis warn" id="auswahl-fremdlinge" hidden></div>
+  <div class="tafel">
+    <h2>Parameter auswählen</h2>
+    <div class="notiz">Angehakt heißt: Der Wert wird regelmäßig gelesen und als
+      Entität nach Home Assistant gemeldet. Einheit und Geräteklasse schlägt
+      der Manager aus dem Datentyp vor – Betriebsstunden und Zählerstände
+      bekommen automatisch eine Langzeitstatistik.</div>
+    <div class="felder" style="margin-top:var(--l3)">
+      <div class="feld"><label>Suche</label>
+        <input type="text" id="such" placeholder="Name oder Nummer …"></div>
+      <div class="feld"><label>Kategorie</label>
+        <select id="kat-filter"><option value="">alle</option></select></div>
+      <div class="feld"><label>Filter</label>
+        <select id="rw-filter">
+          <option value="">alle Parameter</option>
+          <option value="1">nur schreibbare</option>
+          <option value="a">nur ausgewählte</option>
+        </select></div>
+    </div>
+    <div class="zeile-aktionen">
+      <button id="btn-speichern-auswahl">Auswahl speichern</button>
+      <button class="leise" id="btn-vorschlag">Sinnvolle Auswahl vorschlagen</button>
+      <span class="notiz" id="auswahl-zahl"></span>
+      <span class="meldung" id="m-auswahl"></span>
+    </div>
+  </div>
+  <div class="tafel">
+    <div class="rollbar"><table>
+      <thead><tr><th style="width:34px"></th><th>Nr</th><th>Name</th>
+        <th>Kategorie</th><th>Einheit</th></tr></thead>
+      <tbody id="katalogtabelle"></tbody>
+    </table></div>
+    <div class="leer" id="katalog-leer" hidden>Keine Treffer.</div>
+  </div>
+  <div class="tafel">
+    <h2>Was nach Home Assistant geht</h2>
+    <div class="notiz">Jeder Eintrag hier ist eine Entität. Der Name in Klammern
+      ist die Parameternummer in der Regelung – sie bleibt gleich, auch wenn du
+      die Anzeige umbenennst.</div>
+    <div class="rollbar"><table>
+      <thead><tr><th>Nr</th><th>Name</th><th>Kategorie</th><th style="text-align:right">Wert</th></tr></thead>
+      <tbody id="wertetabelle"></tbody>
+    </table></div>
+    <div class="zeile-aktionen">
+      <button id="btn-lesen">Jetzt lesen</button>
+      <span class="notiz" id="werte-stand"></span>
+      <span class="meldung" id="m-werte"></span>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════ Einstellungen ═══ -->
+<section id="einstellungen">
+  <div class="tafel">
+    <h2>Verbindung zu BSB-LAN</h2>
+    <div class="felder">
+      <div class="feld"><label>Adresse</label>
+        <input type="text" id="e-url" placeholder="http://192.168.1.50">
+        <div class="notiz">Die Adresse, unter der die Weboberfläche von
+          BSB-LAN erreichbar ist – meist die IP, oft auch
+          <code>http://bsb-lan.local</code>.</div></div>
+      <div class="feld"><label>Passkey (falls gesetzt)</label>
+        <input type="text" id="e-passkey"></div>
+      <div class="feld"><label>Abfrageintervall (Sekunden)</label>
+        <input type="number" id="e-intervall" min="30" max="3600" step="10">
+        <div class="notiz">Eine Heizung ist träge – fünf Minuten reichen.
+          Jede Abfrage belegt den Bus.</div></div>
+      <div class="feld"><label>MQTT-Präfix des Managers</label>
+        <input type="text" id="e-praefix">
+        <div class="notiz">Nur wirksam, solange der Manager selbst meldet.
+          Das Präfix von BSB-LAN steht unter „Home Assistant“.</div></div>
+    </div>
+  </div>
+
+  <div class="tafel">
+    <h2>Schreibzugriff</h2>
+    <label class="haken"><input type="checkbox" id="e-schreiben">
+      <span>Stellen von Parametern erlauben</span></label>
+    <div class="notiz">Zwei Schalter müssen dafür stehen: dieser und der in
+      BSB-LAN selbst. Beide sind ab Werk aus, und das mit Absicht – ein
+      falscher Sollwert lässt im Winter eine Wohnung auskühlen.</div>
+    <div class="zeile-aktionen">
+      <button id="btn-speichern-einst">Einstellungen speichern</button>
+      <span class="meldung" id="m-einst"></span>
+    </div>
+  </div>
+
 
   <div class="tafel">
     <h2>Anzeige</h2>
@@ -501,9 +510,9 @@ document.querySelectorAll('nav button[data-blatt]').forEach(knopf => {
     knopf.classList.add('an');
     $(knopf.dataset.blatt).classList.add('an');
     window.scrollTo(0, 0);
-    if (knopf.dataset.blatt === 'auswahl') katalogZeichnen();
+    if (knopf.dataset.blatt === 'mqtt') { katalogZeichnen(); werteZeichnen();
+                                          bsblanLage(); }
     if (knopf.dataset.blatt === 'regler') kategorienZeichnen();
-    if (knopf.dataset.blatt === 'werte') werteZeichnen();
   };
 });
 
@@ -625,23 +634,41 @@ async function bsblanLage() {
     return;
   }
   const meine = auswahl.length;
+  const durchBsblan = einst.melder === 'bsblan';
+  const takt = `${d.anzahl} Parameter alle ${d.intervall_s} Sekunden an `
+    + `${d.broker || 'seinen Broker'} unter <code>${d.praefix || '?'}/…</code>`;
+
   if (!d.sendet) {
-    feld.className = 'hinweis';
-    feld.innerHTML = `<b>BSB-LAN meldet nichts von sich aus.</b> Die
-      ${meine} Entität${meine === 1 ? '' : 'en'} in Home Assistant kommen
-      allein aus diesem Add-on.`;
+    feld.className = durchBsblan ? 'hinweis warn' : 'hinweis';
+    feld.innerHTML = durchBsblan
+      ? `<b>BSB-LAN meldet nichts – obwohl es soll.</b> In Home Assistant
+         kommt gerade nichts an, denn der Manager hält sich zurück. Mit
+         <i>BSB-LAN einrichten</i> schaltest du das Senden dort ein.`
+      : `<b>BSB-LAN meldet nichts von sich aus.</b> Die ${meine}
+         Entität${meine === 1 ? '' : 'en'} in Home Assistant kommen allein aus
+         diesem Add-on.`;
     return;
   }
-  feld.className = 'hinweis warn';
-  feld.innerHTML = `<b>BSB-LAN meldet selbst: ${d.anzahl} Parameter alle
-    ${d.intervall_s} Sekunden</b> an ${d.broker || 'seinen Broker'} unter
-    <code>${d.praefix || '?'}/…</code>${d.discovery
+
+  if (durchBsblan) {
+    // So ist es gewollt – hier gehört keine Warnung hin, sondern eine Bilanz.
+    feld.className = 'hinweis';
+    feld.innerHTML = `<b>BSB-LAN meldet: ${takt}</b>${d.discovery
       ? ' – mit automatischer Anmeldung in Home Assistant' : ''}.
+      <br>Der Manager hält sich zurück und meldet nichts Eigenes.${
+      d.anzahl !== meine ? ` <span class="notiz">Die Auswahl hier führt
+      ${meine} Parameter – mit „Auswahl an BSB-LAN geben“ gleichst du das
+      an.</span>` : ''}`;
+    return;
+  }
+
+  feld.className = 'hinweis warn';
+  feld.innerHTML = `<b>BSB-LAN meldet selbst: ${takt}</b>${d.discovery
+    ? ' – mit automatischer Anmeldung in Home Assistant' : ''}.
     <br>Dieses Add-on meldet zusätzlich ${meine} Parameter. Beide fragen
     denselben Bus ab; in Home Assistant stehen die Werte doppelt.
-    <br><span class="notiz">Abstellen lässt sich das an genau einer Stelle:
-    entweder in BSB-LAN unter „Logging → Log-Modus“, oder hier unter
-    „Auswahl“, indem du nichts auswählst.</span>`;
+    <br><span class="notiz">Abstellen lässt sich das hier: „BSB-LAN meldet“
+    wählen und speichern.</span>`;
 }
 
 async function katalogLaden() {
@@ -1431,7 +1458,7 @@ function einstellungenZeichnen(e) {
   einst = e;
 }
 
-$('btn-speichern-einst').onclick = async () => {
+async function einstellungenSpeichern(feld) {
   try {
     const e = await sendeJSON('einstellungen', 'PUT', {
       ...einst,
@@ -1447,10 +1474,14 @@ $('btn-speichern-einst').onclick = async () => {
       bsblan_einheiten: $('e-bsblan-einheiten').value,
       bsblan_art: $('e-bsblan-art').value});
     einstellungenZeichnen(e);
-    meldung('m-einst', 'Gespeichert', true);
+    meldung(feld, 'Gespeichert', true);
     await statusLaden();
-  } catch (err) { meldung('m-einst', err.message); }
-};
+    bsblanLage();
+  } catch (err) { meldung(feld, err.message); }
+}
+
+$('btn-speichern-einst').onclick = () => einstellungenSpeichern('m-einst');
+$('btn-speichern-melder-oben').onclick = () => einstellungenSpeichern('m-melder');
 
 document.querySelectorAll('input[name="melder"]').forEach(knopf => {
   knopf.onchange = () => { $('bsblan-felder').hidden = !$('e-melder-bsblan').checked; };
@@ -1546,7 +1577,7 @@ async function anlauf() {
   kategorienZeichnen();
   katalogLauf();
   setInterval(async () => { await werteLaden(); await statusLaden();
-    if ($('werte').classList.contains('an')) werteZeichnen(); }, 30000);
+    if ($('mqtt').classList.contains('an')) werteZeichnen(); }, 30000);
 }
 anlauf();
 </script>

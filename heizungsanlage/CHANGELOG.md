@@ -1,5 +1,21 @@
 # Änderungen
 
+## 1.14.0
+
+- **Aus drei Reitern wird einer: „Home Assistant“.** *Werte*, *Auswahl* und
+  die Melde-Einstellungen drehten sich um dieselbe Frage – was geht nach Home
+  Assistant, wer schickt es, und was steht gerade drin. Jetzt eine Seite, von
+  oben nach unten in der Reihenfolge, in der man sie braucht. Unter
+  *Einstellungen* bleibt, was die Anlage selbst betrifft: Verbindung,
+  Schreibzugriff, Anzeige, Katalog.
+- Gespeichert wird dort, wo die Felder stehen – ein Knopf, nicht zwei.
+- **Behoben: Die Lagemeldung warnte vor einer Doppelung, die abgestellt war.**
+  Sie sah nur, dass BSB-LAN sendet, nicht, dass der Manager sich deshalb
+  zurückhält. Jetzt steht dort eine Bilanz statt einer Warnung – und
+  umgekehrt fällt auf, wenn BSB-LAN melden soll, es aber nicht tut.
+- Der Eintrag „MQTT-Präfix“ unter *Einstellungen* heißt jetzt „MQTT-Präfix des
+  Managers“: Er gilt nur, solange der Manager selbst meldet.
+
 ## 1.13.0
 
 - **Beim Ändern der Liste räumt der Manager jetzt hinter sich auf.** Fällt ein
