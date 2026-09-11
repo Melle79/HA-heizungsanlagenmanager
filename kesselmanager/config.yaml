@@ -1,5 +1,5 @@
 name: "Heizungsanlagenmanager via BSB-LAN"
-version: "1.4.0"
+version: "1.4.1"
 # Der slug bleibt: Er steckt in der Ingress-Adresse und in den
 # Entitäts-IDs. Ein neuer wäre für den Supervisor ein anderes
 # Add-on – mit Neuinstallation und verlorener Historie.

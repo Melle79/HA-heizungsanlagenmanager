@@ -1,5 +1,16 @@
 # Änderungen
 
+## 1.4.1
+
+- **Neuer Name: „Heizungsanlagenmanager via BSB-LAN“.** „Kesselmanager“ war zu
+  eng – gestellt wird die ganze Anlage: Heizkreise, Trinkwasser,
+  Zeitprogramme. Im Seitenmenü steht das Add-on jetzt als *Heizkessel*, damit
+  es sich vom *Heizungsplaner* unterscheidet.
+- Die Entitäten heißen **unverändert** `sensor.kesselmanager_p…`. Der interne
+  Kurzname bleibt, denn er steckt in den IDs und in der aufgezeichneten
+  Historie; ein neuer wäre für den Supervisor ein anderes Add-on, mit
+  Neuinstallation und leeren Diagrammen.
+
 ## 1.4.0
 
 - **Der Manager passt jetzt auf jede BSB-LAN-Anlage, nicht nur auf eine.**
