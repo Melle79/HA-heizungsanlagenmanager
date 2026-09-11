@@ -5,7 +5,7 @@ version: "1.15.0"
 # Supervisor ein neues Add-on: Neuinstallation, und die Daten des alten
 # müssen mit umziehen. Nicht leichtfertig anfassen.
 slug: "heizungsanlage"
-description: "Heizungsregler über BSB-LAN lesen und stellen: Parameter auswählen, als Entitäten nach Home Assistant bringen, Sollwerte ändern."
+description: "Die Heizungsregelung über BSB-LAN bedienen: Kategorien wie am Kessel, Zeitprogramme als Wochentabelle, Sollwerte stellen – und die Werte nach Home Assistant bringen."
 url: "https://github.com/Melle79/HA-heizungsanlagenmanager"
 arch:
   - aarch64

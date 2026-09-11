@@ -4,15 +4,33 @@ Der Heizungsanlagenmanager bringt die Heizungsregelung nach Home Assistant – �
 [BSB-LAN](https://github.com/fredlcore/BSB-LAN), einen kleinen ESP32 am Bus
 des Reglers.
 
-Er tut drei Dinge:
+Er tut vier Dinge:
 
+* **Bedienen.** Die ganze Regelung, Kategorie für Kategorie, mit derselben
+  Gliederung wie am Gerät auf dem Kessel – und Zeitschaltprogramme als
+  Wochentabelle statt als Zeichenkette.
 * **Auswählen.** Aus allen Parametern, die deine Regelung kennt, hakst du die
-  an, die dich interessieren. Nur diese werden gelesen und als Entitäten
-  gemeldet.
-* **Lesen.** In einem einstellbaren Takt, schonend für den Bus, und mit
-  passender Geräteklasse für Home Assistant.
+  an, die dich interessieren. Nur diese werden zu Entitäten.
+* **Melden lassen.** Entweder meldet das Add-on sie selbst – oder es richtet
+  BSB-LAN so ein, dass der Adapter es tut, und hält sich dann heraus.
 * **Stellen.** Sollwerte und Betriebsarten ändern – hinter zwei Schaltern, die
   beide ab Werk aus sind.
+
+## Inhalt
+
+1. [Voraussetzungen](#voraussetzungen)
+2. [Der Parameterkatalog](#der-parameterkatalog)
+3. [Der Reiter „Regelung“](#der-reiter-regelung)
+4. [Zeitschaltprogramme](#zeitschaltprogramme)
+5. [Stellen: die zwei Schalter](#stellen-die-zwei-schalter)
+6. [Der Reiter „Home Assistant“](#der-reiter-home-assistant)
+7. [Auswahl: was nach Home Assistant geht](#auswahl-was-nach-home-assistant-geht)
+8. [Wer meldet nach Home Assistant?](#wer-meldet-nach-home-assistant)
+9. [Gemerkte Werte](#gemerkte-werte)
+10. [Gelesen wird auf Zuruf](#gelesen-wird-auf-zuruf)
+11. [Der Bus ist langsam](#der-bus-ist-langsam)
+12. [Übernahme durch andere Add-ons](#übernahme-durch-andere-add-ons)
+13. [Zusammenspiel mit dem Heizungsplaner](#zusammenspiel-mit-dem-heizungsplaner)
 
 ## Voraussetzungen
 
@@ -32,66 +50,137 @@ Was der Manager **nicht** leisten kann, ist mehr zu wissen als BSB-LAN: Führt
 deine Firmware einen Parameter nicht, gibt es ihn hier auch nicht. Und ob
 sich ein Wert stellen lässt, entscheidet am Ende die Regelung selbst.
 
-## Übernahme durch andere Add-ons
+## Der Parameterkatalog
 
-Der Heizungsplaner soll Sollwerte und Schaltzeiten übernehmen können, ohne
-dass hier jemand dagegenarbeitet. Dafür gibt es eine kleine Schnittstelle –
-und drei Regeln, die sie erträglich machen:
+Welche Parameter eine Regelung kennt, hängt am Gerät. Bei Siemens-Reglern –
+und damit bei Weishaupt, Brötje, Elco und vielen anderen – unterscheidet sich
+das sogar zwischen Gerätefamilien. Deshalb gibt es die **angepasste
+Parameterliste**, die der BSB-LAN-Entwickler aus den Rohdaten einer Anlage
+baut und die als `BSB_LAN_custom_defs.h` in die Firmware kommt.
 
-* **Ohne Anmeldung ändert sich nichts.** Ab Werk führt niemand etwas; das
-  Add-on bleibt vollständig eigenständig und braucht den Planer nicht.
-* **Übernommen heißt stillgelegt, nicht versteckt.** Die Werte sind weiter
-  ablesbar. Nur die Eingabefelder liegen still, mit dem Namen dessen, der sie
-  führt, direkt daneben.
-* **Der Mensch davor behält das letzte Wort.** Über der Tafel steht ein Knopf
-  *Übernahme aufheben*. Eine Sperre, die man nicht lösen kann, wäre keine
-  Zusammenarbeit.
+Der Heizungsanlagenmanager liest diese Liste nicht aus der Datei, sondern **aus BSB-LAN
+selbst**. Das ist robuster: Was BSB-LAN ausliefert, ist per Definition das, was
+auch tatsächlich geflasht ist. Aus „Parameter 72“ wird so
+„Gerätebetriebsstunden“.
 
-Erreichbar ist das Add-on für andere Add-ons unter
-`http://local-heizungsanlage:8099` (mit Bindestrich – der Unterstrich des
-slugs wird im Rechnernamen zum Strich).
+Einlesen musst du den Katalog einmal – und danach nur noch, wenn du die
+Firmware mit einer neuen Liste geflasht hast. Es dauert ein bis zwei Minuten,
+weil jede Kategorie einzeln über den Bus geht.
 
-### Anmelden
+## Der Reiter „Regelung“
+
+![Zeitschaltprogramm als Wochentabelle](https://raw.githubusercontent.com/Melle79/HA-heizungsanlagenmanager/main/bilder/regelung.png)
+
+
+Hier bedienst du die Anlage so, wie du es am Gerät auf dem Kessel tätest –
+**mit derselben Gliederung**. Die 27 Kategorien kommen nicht von mir, sondern
+aus der Regelung selbst: *Uhrzeit*, *Einstellwerte*, *Urlaub*, *Betriebsart*,
+*Heizkreis*, *Warmwasser*, *Kessel* und so weiter. Niemand muss etwas
+sortieren; die Anlage weiß am besten, was zusammengehört.
+
+Das Menü hat zwei Stufen: oben die **Bereiche** – *Heizen*, *Trinkwasser*,
+*Wärmeerzeuger*, *Speicher*, *Wartung & Diagnose*, *Anlage & Konfiguration* –,
+darunter die Kategorien des gewählten Bereichs, darunter das Formular. Ein
+Bereich mit nur einer Kategorie öffnet sie gleich mit.
+
+Über **Anpassen** blendest du aus, was deine Anlage nicht braucht: die
+Kaskade, wenn nur ein Kessel dasteht, den Pufferspeicher, wenn keiner
+angeschlossen ist, und alles, was BSB-LAN für sich selbst mitbringt.
+Ausgeblendet heißt nicht gelöscht – ein Klick holt es zurück.
+
+Wählst du eine Kategorie, liest der Manager ihre Werte und zeigt sie an.
+Kategorien sind klein – meist zwischen zwei und dreißig Parametern –, das geht
+in wenigen Sekunden. Stellbare Parameter bekommen gleich das passende
+Bedienelement: ein Zahlenfeld bei Temperaturen, eine Auswahlliste bei
+Betriebsarten, ein Textfeld sonst.
+
+Die Zeitschaltprogramme stehen im selben Menü – eine Zeile Text wäre dort
+keine brauchbare Bedienung, deshalb erscheint statt der Parameterliste eine
+Wochentabelle.
+
+## Zeitschaltprogramme
+
+Vier Programme – Heizkreis 1, 2, 3 und Trinkwasser –, jedes mit sieben Tagen
+und **drei Schaltfenstern je Tag**. Sie stehen im Bereich *Zeitprogramme* und
+erscheinen als Tabelle mit Uhrzeitfeldern: eine Zeile je Tag, drei Von-Bis-
+Paare nebeneinander.
+
+Oben in der Tafel steht, ob dieses Programm **gerade läuft** – denn aktiv ist
+immer nur eines. Welches, entscheidet ein gewöhnlicher Parameter der Regelung;
+der Manager erkennt ihn daran, dass seine Auswahlwerte mehrfach „Programm
+<Zahl>“ heißen, nicht an seinem Namen (der kann in einer angepassten
+Parameterliste durchaus falsch sein). Die Auswahl steht gleich daneben: Du
+schaltest von hier aus zwischen den Programmen um, ebenso auf Standby, Sommer
+oder Dauerbetrieb – dafür muss niemand in den Heizungskeller.
+
+Ein leeres Fenster heißt „wird nicht benutzt“. Das ✕ am Zeilenende leert einen
+ganzen Tag.
+
+Zwei Knöpfe sparen die meiste Tipparbeit: **Montag auf Mo–Fr übertragen** und
+**Montag auf alle Tage übertragen**.
+
+Geändert wird erst beim Speichern, und auch dann nur die Tage, die du angefasst
+hast – sie sind während der Bearbeitung farbig markiert. Vor dem Schreiben
+zeigt eine Rückfrage die Zeiten im Klartext. Lehnt die Regelung einen Tag ab,
+hört der Manager sofort auf, statt blind weiterzuschreiben.
+
+Technisch steht hinter jedem Tag eine Zeichenkette, wie BSB-LAN sie liefert und
+erwartet:
 
 ```
-PUT http://local-heizungsanlage:8099/api/uebernahme
-{
-  "quelle": "heizungsplaner",
-  "name": "Heizungsplaner",
-  "hinweis": "Sollwerte kommen aus dem Wochenplan",
-  "parameter": ["710", "712", "11", "11.1"]
-}
+06:00-22:00 ##:##-##:## ##:##-##:##
 ```
 
-Der Aufruf ersetzt jedes Mal die ganze Liste dieser Quelle – wer etwas
-freigeben will, schickt sie einfach ohne diesen Parameter erneut. Eine **leere
-Liste ist die Abmeldung**, damit beim Aufräumen ein Aufruf genügt.
+Das ist zum Ablesen brauchbar und zum Einstellen unzumutbar – deshalb der
+Editor.
 
-### Stellen
+## Stellen: die zwei Schalter
 
-Der Planer stellt seine Parameter über denselben Weg wie die Oberfläche, nennt
-dabei aber seine Kennung:
+Ein falscher Sollwert lässt im Winter eine Wohnung auskühlen. Deshalb müssen
+zum Stellen **zwei** Schalter stehen:
 
-```
-POST http://local-heizungsanlage:8099/api/setzen
-{"nr": "710", "wert": "21.5", "quelle": "heizungsplaner"}
-```
+1. in **BSB-LAN** selbst (dort heißt es `buswritable`),
+2. unter *Einstellungen → Schreibzugriff* in diesem Add-on.
 
-Ohne `quelle` antwortet das Add-on auf einen übernommenen Parameter mit
-**409** und einem Satz, der den Verantwortlichen nennt. Das ist Absicht: Ein
-von Hand gestellter Wert, den der Planer beim nächsten Takt zurückdreht, wäre
-schlimmer als eine klare Absage.
+Beide sind ab Werk aus. Der Reiter *Regelung* zeigt jederzeit, welcher von
+beiden noch fehlt. Zusätzlich nimmt der Manager nur Parameter an, die die
+Regelung selbst als beschreibbar meldet, und fragt vor jeder Änderung nach.
 
-### Nachsehen und aufheben
+## Der Reiter „Home Assistant“
 
-```
-GET    /api/uebernahme                → {quellen: {...}, parameter: {nr: {...}}}
-DELETE /api/uebernahme/heizungsplaner → hebt die Übernahme auf
-```
+![Auswahl und Werte in einer Tabelle](https://raw.githubusercontent.com/Melle79/HA-heizungsanlagenmanager/main/bilder/mqtt.png)
 
-Hebt jemand die Übernahme in der Oberfläche auf, erfährt der Planer das beim
-nächsten `GET`. Er sollte sie dann **nicht** stillschweigend neu anmelden –
-sonst ist der Knopf eine Attrappe.
+
+Alles, was mit dem Weg nach Home Assistant zu tun hat, steht auf einer Seite:
+wer meldet, welche Parameter, und was davon zuletzt ankam.
+
+Die Tabelle führt beides nebeneinander: links das Häkchen und der Name, rechts
+der zuletzt gelesene Wert. Die Spaltenköpfe sortieren – nach Nummer, Name,
+Kategorie, Einheit oder Wert –, und der Filter kennt neben „nur stellbare“ und
+„nur ausgewählte“ auch **„ausgewählt, aber ohne Wert“**: Damit findest du in
+einem Griff, was in Home Assistant als leere Entität landen würde.
+
+## Auswahl: was nach Home Assistant geht
+
+Jeder angehakte Parameter wird ein Sensor. Einheit und Geräteklasse schlägt
+der Manager aus dem Datentyp vor:
+
+| erkannt an | Geräteklasse | Verlauf |
+|---|---|---|
+| °C, °F, K | `temperature` | `measurement` |
+| bar | `pressure` | `measurement` |
+| kW / kWh | `power` / `energy` | `measurement` / `total_increasing` |
+| h, min, s | `duration` | `measurement` |
+| „Betriebsstunden“, „Starts“, „Verbrauch“ im Namen | – | **`total_increasing`** |
+| Aufzählungen, Datum, Uhrzeit | keine | keine |
+
+Die letzte Zeile mit den Zählerständen ist die wichtigste: Aus einem Wert, der
+nur wächst, baut Home Assistant von selbst eine **Langzeitstatistik** mit
+Tages-, Monats- und Jahreswerten. Wer eine Zeitreihendatenbank an Home
+Assistant hängt, bekommt den Verlauf dort ohne weiteres Zutun.
+
+Die Entität hängt an der **Parameternummer**, nicht am Namen. Wer die Anzeige
+umbenennt, behält also seine Historie.
 
 ## Wer meldet nach Home Assistant?
 
@@ -164,149 +253,19 @@ Zwei Dinge gelten auch mit Haken:
 * In den Zeitprogrammen werden nur die Tage aufgefrischt, die niemand
   angefasst hat. Geänderte Zeiten gehen nicht verloren.
 
-## Der Parameterkatalog
+## Gelesen wird auf Zuruf
 
-Welche Parameter eine Regelung kennt, hängt am Gerät. Bei Siemens-Reglern –
-und damit bei Weishaupt, Brötje, Elco und vielen anderen – unterscheidet sich
-das sogar zwischen Gerätefamilien. Deshalb gibt es die **angepasste
-Parameterliste**, die der BSB-LAN-Entwickler aus den Rohdaten einer Anlage
-baut und die als `BSB_LAN_custom_defs.h` in die Firmware kommt.
+Eine Regelung kennt schnell zweihundert Parameter, und über 160 davon sind bei
+einer Weishaupt-Anlage stellbar. Die alle im Takt abzufragen würde den Bus
+dauerhaft belegen – und die wenigsten davon will jemand dauerhaft sehen.
 
-Der Heizungsanlagenmanager liest diese Liste nicht aus der Datei, sondern **aus BSB-LAN
-selbst**. Das ist robuster: Was BSB-LAN ausliefert, ist per Definition das, was
-auch tatsächlich geflasht ist. Aus „Parameter 72“ wird so
-„Gerätebetriebsstunden“.
+Deshalb liest der Manager im Reiter *Regelung* nur, was gerade offen ist: die
+Kategorie, die du angeklickt hast, höchstens 40 Parameter auf einmal. Nach
+einer Änderung liest er **nur den geänderten Parameter** nach – der ist der
+Beweis, dass die Regelung den Wert übernommen hat.
 
-Einlesen musst du den Katalog einmal – und danach nur noch, wenn du die
-Firmware mit einer neuen Liste geflasht hast. Es dauert ein bis zwei Minuten,
-weil jede Kategorie einzeln über den Bus geht.
-
-## Der Reiter „Home Assistant“
-
-Alles, was mit dem Weg nach Home Assistant zu tun hat, steht auf einer Seite:
-wer meldet, welche Parameter, und was davon zuletzt ankam.
-
-Die Tabelle führt beides nebeneinander: links das Häkchen und der Name, rechts
-der zuletzt gelesene Wert. Die Spaltenköpfe sortieren – nach Nummer, Name,
-Kategorie, Einheit oder Wert –, und der Filter kennt neben „nur stellbare“ und
-„nur ausgewählte“ auch **„ausgewählt, aber ohne Wert“**: Damit findest du in
-einem Griff, was in Home Assistant als leere Entität landen würde.
-
-## Auswahl: was nach Home Assistant geht
-
-Jeder angehakte Parameter wird ein Sensor. Einheit und Geräteklasse schlägt
-der Manager aus dem Datentyp vor:
-
-| erkannt an | Geräteklasse | Verlauf |
-|---|---|---|
-| °C, °F, K | `temperature` | `measurement` |
-| bar | `pressure` | `measurement` |
-| kW / kWh | `power` / `energy` | `measurement` / `total_increasing` |
-| h, min, s | `duration` | `measurement` |
-| „Betriebsstunden“, „Starts“, „Verbrauch“ im Namen | – | **`total_increasing`** |
-| Aufzählungen, Datum, Uhrzeit | keine | keine |
-
-Die letzte Zeile mit den Zählerständen ist die wichtigste: Aus einem Wert, der
-nur wächst, baut Home Assistant von selbst eine **Langzeitstatistik** mit
-Tages-, Monats- und Jahreswerten. Wer eine Zeitreihendatenbank an Home
-Assistant hängt, bekommt den Verlauf dort ohne weiteres Zutun.
-
-Die Entität hängt an der **Parameternummer**, nicht am Namen. Wer die Anzeige
-umbenennt, behält also seine Historie.
-
-## Der Reiter „Regler“
-
-Hier bedienst du die Anlage so, wie du es am Gerät auf dem Kessel tätest –
-**mit derselben Gliederung**. Die 27 Kategorien kommen nicht von mir, sondern
-aus der Regelung selbst: *Uhrzeit*, *Einstellwerte*, *Urlaub*, *Betriebsart*,
-*Heizkreis*, *Warmwasser*, *Kessel* und so weiter. Niemand muss etwas
-sortieren; die Anlage weiß am besten, was zusammengehört.
-
-Das Menü hat zwei Stufen: oben die **Bereiche** – *Heizen*, *Trinkwasser*,
-*Wärmeerzeuger*, *Speicher*, *Wartung & Diagnose*, *Anlage & Konfiguration* –,
-darunter die Kategorien des gewählten Bereichs, darunter das Formular. Ein
-Bereich mit nur einer Kategorie öffnet sie gleich mit.
-
-Über **Anpassen** blendest du aus, was deine Anlage nicht braucht: die
-Kaskade, wenn nur ein Kessel dasteht, den Pufferspeicher, wenn keiner
-angeschlossen ist, und alles, was BSB-LAN für sich selbst mitbringt.
-Ausgeblendet heißt nicht gelöscht – ein Klick holt es zurück.
-
-Wählst du eine Kategorie, liest der Manager ihre Werte und zeigt sie an.
-Kategorien sind klein – meist zwischen zwei und dreißig Parametern –, das geht
-in wenigen Sekunden. Stellbare Parameter bekommen gleich das passende
-Bedienelement: ein Zahlenfeld bei Temperaturen, eine Auswahlliste bei
-Betriebsarten, ein Textfeld sonst.
-
-Die Zeitschaltprogramme stehen im selben Menü – eine Zeile Text wäre dort
-keine brauchbare Bedienung, deshalb erscheint statt der Parameterliste eine
-Wochentabelle.
-
-## Werte in der Steuerung: auf Zuruf
-
-Der Reiter *Steuerung* zeigt jeden Parameter, den die Regelung als
-beschreibbar meldet – bei einer Weishaupt-Anlage sind das über 160. Die alle
-im Takt abzufragen würde den Bus dauerhaft belegen, und die wenigsten davon
-will jemand dauerhaft sehen.
-
-Deshalb liest die Steuerung **auf Zuruf**:
-
-* Bis 25 angezeigte Parameter liest sie von selbst. Das trifft zu, sobald man
-  nach etwas Bestimmtem sucht – und genau dann will man auch Zahlen sehen.
-* Darüber wartet sie auf den Knopf *Werte der angezeigten Parameter lesen* und
-  liest höchstens 40 auf einmal.
-* Nach einer Änderung liest sie **nur den geänderten Parameter** nach. Der ist
-  der Beweis, dass die Regelung den Wert übernommen hat.
-
-Was du dauerhaft sehen willst, gehört unter *Auswahl* – nur diese Parameter
-laufen im Takt und werden zu Entitäten.
-
-## Zeitschaltprogramme
-
-Vier Programme – Heizkreis 1, 2, 3 und Trinkwasser –, jedes mit sieben Tagen
-und **drei Schaltfenstern je Tag**. Sie stehen im Bereich *Zeitprogramme* und
-erscheinen als Tabelle mit Uhrzeitfeldern: eine Zeile je Tag, drei Von-Bis-
-Paare nebeneinander.
-
-Oben in der Tafel steht, ob dieses Programm **gerade läuft** – denn aktiv ist
-immer nur eines. Welches, entscheidet ein gewöhnlicher Parameter der Regelung;
-der Manager erkennt ihn daran, dass seine Auswahlwerte mehrfach „Programm
-<Zahl>“ heißen, nicht an seinem Namen (der kann in einer angepassten
-Parameterliste durchaus falsch sein). Die Auswahl steht gleich daneben: Du
-schaltest von hier aus zwischen den Programmen um, ebenso auf Standby, Sommer
-oder Dauerbetrieb – dafür muss niemand in den Heizungskeller.
-
-Ein leeres Fenster heißt „wird nicht benutzt“. Das ✕ am Zeilenende leert einen
-ganzen Tag.
-
-Zwei Knöpfe sparen die meiste Tipparbeit: **Montag auf Mo–Fr übertragen** und
-**Montag auf alle Tage übertragen**.
-
-Geändert wird erst beim Speichern, und auch dann nur die Tage, die du angefasst
-hast – sie sind während der Bearbeitung farbig markiert. Vor dem Schreiben
-zeigt eine Rückfrage die Zeiten im Klartext. Lehnt die Regelung einen Tag ab,
-hört der Manager sofort auf, statt blind weiterzuschreiben.
-
-Technisch steht hinter jedem Tag eine Zeichenkette, wie BSB-LAN sie liefert und
-erwartet:
-
-```
-06:00-22:00 ##:##-##:## ##:##-##:##
-```
-
-Das ist zum Ablesen brauchbar und zum Einstellen unzumutbar – deshalb der
-Editor.
-## Stellen: die zwei Schalter
-
-Ein falscher Sollwert lässt im Winter eine Wohnung auskühlen. Deshalb müssen
-zum Stellen **zwei** Schalter stehen:
-
-1. in **BSB-LAN** selbst (dort heißt es `buswritable`),
-2. unter *Einstellungen → Schreibzugriff* in diesem Add-on.
-
-Beide sind ab Werk aus. Der Reiter *Steuerung* zeigt jederzeit, welcher von
-beiden noch fehlt. Zusätzlich nimmt der Manager nur Parameter an, die die
-Regelung selbst als beschreibbar meldet, und fragt vor jeder Änderung nach.
+Was du dauerhaft sehen willst, gehört unter *Home Assistant* in die Auswahl:
+Nur diese Parameter laufen im Takt und werden zu Entitäten.
 
 ## Der Bus ist langsam
 
@@ -317,6 +276,67 @@ nur dieses Bündel, nicht die ganze Runde.
 
 Fünf Minuten Abfrageintervall sind für eine Heizung reichlich – ihre Trägheit
 misst sich in Stunden.
+
+## Übernahme durch andere Add-ons
+
+Der Heizungsplaner soll Sollwerte und Schaltzeiten übernehmen können, ohne
+dass hier jemand dagegenarbeitet. Dafür gibt es eine kleine Schnittstelle –
+und drei Regeln, die sie erträglich machen:
+
+* **Ohne Anmeldung ändert sich nichts.** Ab Werk führt niemand etwas; das
+  Add-on bleibt vollständig eigenständig und braucht den Planer nicht.
+* **Übernommen heißt stillgelegt, nicht versteckt.** Die Werte sind weiter
+  ablesbar. Nur die Eingabefelder liegen still, mit dem Namen dessen, der sie
+  führt, direkt daneben.
+* **Der Mensch davor behält das letzte Wort.** Über der Tafel steht ein Knopf
+  *Übernahme aufheben*. Eine Sperre, die man nicht lösen kann, wäre keine
+  Zusammenarbeit.
+
+Erreichbar ist das Add-on für andere Add-ons unter
+`http://local-heizungsanlage:8099` (mit Bindestrich – der Unterstrich des
+slugs wird im Rechnernamen zum Strich).
+
+### Anmelden
+
+```
+PUT http://local-heizungsanlage:8099/api/uebernahme
+{
+  "quelle": "heizungsplaner",
+  "name": "Heizungsplaner",
+  "hinweis": "Sollwerte kommen aus dem Wochenplan",
+  "parameter": ["710", "712", "11", "11.1"]
+}
+```
+
+Der Aufruf ersetzt jedes Mal die ganze Liste dieser Quelle – wer etwas
+freigeben will, schickt sie einfach ohne diesen Parameter erneut. Eine **leere
+Liste ist die Abmeldung**, damit beim Aufräumen ein Aufruf genügt.
+
+### Stellen
+
+Der Planer stellt seine Parameter über denselben Weg wie die Oberfläche, nennt
+dabei aber seine Kennung:
+
+```
+POST http://local-heizungsanlage:8099/api/setzen
+{"nr": "710", "wert": "21.5", "quelle": "heizungsplaner"}
+```
+
+Ohne `quelle` antwortet das Add-on auf einen übernommenen Parameter mit
+**409** und einem Satz, der den Verantwortlichen nennt. Das ist Absicht: Ein
+von Hand gestellter Wert, den der Planer beim nächsten Takt zurückdreht, wäre
+schlimmer als eine klare Absage.
+
+### Nachsehen und aufheben
+
+```
+GET    /api/uebernahme                → {quellen: {...}, parameter: {nr: {...}}}
+DELETE /api/uebernahme/heizungsplaner → hebt die Übernahme auf
+```
+
+Hebt jemand die Übernahme in der Oberfläche auf, erfährt der Planer das beim
+nächsten `GET`. Er sollte sie dann **nicht** stillschweigend neu anmelden –
+sonst ist der Knopf eine Attrappe.
 
 ## Zusammenspiel mit dem Heizungsplaner
 

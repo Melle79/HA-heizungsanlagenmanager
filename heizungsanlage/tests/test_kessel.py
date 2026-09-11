@@ -588,8 +588,8 @@ pruefe(store.load_config()["einstellungen"]["praefix"] == "eigenesthema",
        "ein selbst gewaehltes Praefix bleibt unangetastet")
 
 print("\n=== Einstellungen werden geprüft ===")
-e = store.validate_einstellungen({"bsb_url": "192.168.0.170"})
-pruefe(e["bsb_url"] == "http://192.168.0.170", "eine Adresse ohne Schema bekommt eins")
+e = store.validate_einstellungen({"bsb_url": "192.168.1.50"})
+pruefe(e["bsb_url"] == "http://192.168.1.50", "eine Adresse ohne Schema bekommt eins")
 pruefe(store.standard_einstellungen()["schreiben_erlaubt"] is False,
        "ab Werk ist das Stellen gesperrt")
 for feld, wert, was in (("intervall_s", 5, "ein zu kurzes Intervall"),
