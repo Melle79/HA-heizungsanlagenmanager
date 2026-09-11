@@ -1,5 +1,12 @@
 # Änderungen
 
+## 1.12.3
+
+- Dokumentiert, was an der lebenden Anlage herauskam: **BSB-LAN nimmt
+  höchstens 40 Log-Parameter** und lässt alles Weitere stillschweigend fallen.
+  Der Manager meldet nach dem Zurücklesen, welche Nummern nicht angekommen
+  sind.
+
 ## 1.12.2
 
 - **Behoben: Das Schreiben nach BSB-LAN tat gar nichts.** Zurückgegeben wurde

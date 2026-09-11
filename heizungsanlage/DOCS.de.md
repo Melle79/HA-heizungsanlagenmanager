@@ -126,8 +126,17 @@ liste. Umgekehrt geht es auch: *Liste aus BSB-LAN übernehmen* holt, was dort
 über die Jahre zusammengekommen ist, in die Auswahl.
 
 Nach jedem Schreiben liest der Manager zurück und zeigt, was wirklich
-angekommen ist. BSB-LAN kürzt lange Listen stillschweigend – wer das nicht
-prüft, glaubt an Entitäten, die es nicht gibt.
+angekommen ist. Das ist keine Vorsicht, sondern Erfahrung:
+
+* **BSB-LAN nimmt höchstens 40 Log-Parameter.** Was darüber hinausgeht, fällt
+  stillschweigend weg – ohne Fehler, ohne Meldung. Der Manager sagt dir dann,
+  welche Nummern nicht angekommen sind.
+* **`/JW` verwirft Einträge, die zu viel mitbringen.** Gibt man den
+  vollständigen Eintrag aus `/JL` zurück – mit `type`, `format`, `category`
+  und `name` –, antwortet das Gerät mit einer leeren Struktur und ändert
+  nichts. Nur `parameter` und `value` werden angenommen.
+* **`/JL` liefert in 5.1.18 kaputtes JSON**, wenn keine One-Wire- oder
+  DHT-Pins gesetzt sind.
 
 ## Gemerkte Werte
 
