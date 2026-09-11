@@ -31,6 +31,38 @@ What it cannot do is know more than BSB-LAN: if your firmware does not carry a
 parameter, it does not exist here either. And whether a value can be set is
 decided by the controller itself.
 
+## Working together with the Heizungsplaner
+
+Another add-on can take charge of setpoints and schedules without this one
+fighting back. Three rules make that bearable:
+
+* **Nothing changes until someone registers.** Out of the box nobody owns
+  anything; the add-on stays fully self-contained.
+* **Owned means disabled, not hidden.** Values stay readable; only the input
+  fields go quiet, with the owner's name next to them.
+* **The person in front of it keeps the last word.** A *release* button sits
+  above the table. A lock you cannot open is not collaboration.
+
+Other add-ons reach this one at `http://local-heizungsanlage:8099` (hyphen –
+the slug's underscore becomes a dash in the host name).
+
+```
+PUT /api/uebernahme
+{"quelle": "heizungsplaner", "name": "Heizungsplaner",
+ "hinweis": "setpoints come from the weekly plan", "parameter": ["710", "712"]}
+
+POST /api/setzen
+{"nr": "710", "wert": "21.5", "quelle": "heizungsplaner"}
+
+GET    /api/uebernahme
+DELETE /api/uebernahme/heizungsplaner
+```
+
+Each `PUT` replaces that source's whole list; an empty list unregisters it.
+Setting an owned parameter without `quelle` answers **409** and names the
+owner, rather than letting a hand-made change be silently overwritten on the
+next tick.
+
 ## The parameter catalogue
 
 Which parameters a controller knows depends on the device. With Siemens

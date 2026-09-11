@@ -97,6 +97,13 @@
     font-size:.82rem; margin-bottom:var(--l4)}
   .hinweis.warn{border-left-color:var(--achtung)}
   .rollbar{overflow-x:auto; -webkit-overflow-scrolling:touch}
+  /* Übernommenes ist nicht kaputt, nur fremdgeführt – darum blass statt rot,
+     und immer mit dem Namen dessen, der es führt. */
+  .gefuehrt{opacity:.55}
+  .marke-fremd{font-size:.68rem; color:var(--warm); border:1px solid var(--warm);
+    border-radius:4px; padding:0 4px; margin-left:var(--l2); white-space:nowrap}
+  .uebernahme{display:flex; flex-wrap:wrap; align-items:center; gap:var(--l2)}
+  .uebernahme b{font-weight:600}
   .meldung{font-size:.8rem; color:var(--achtung); margin-left:var(--l3)}
   .meldung.gut{color:var(--ok)}
   .meldung:not(:empty){display:flex; align-items:flex-start; gap:var(--l2);
@@ -232,6 +239,7 @@
 <!-- ═════════════════════════════════════════════════ Regler ═══ -->
 <section id="regler">
   <div class="hinweis" id="regler-hinweis"></div>
+  <div class="hinweis" id="regler-uebernahme" hidden></div>
   <div class="tafel">
     <h2>Die Regelung, Kategorie für Kategorie</h2>
     <div class="notiz">Dieselbe Gliederung, die auch am Gerät auf dem Kessel
@@ -253,6 +261,7 @@
 <!-- ══════════════════════════════════════════ Zeitprogramme ═══ -->
 <section id="zeitprogramme">
   <div class="hinweis" id="zp-hinweis"></div>
+  <div class="hinweis" id="zp-uebernahme" hidden></div>
   <div class="hinweis warn" id="zp-dauerhinweis" hidden>Zum Speichern das Stellen
     unter „Einstellungen“ freigeben.</div>
   <div class="tafel">
@@ -595,6 +604,55 @@ $('btn-speichern-auswahl').onclick = async () => {
 // Datentyp TIMEPROG, den BSB-LAN vergibt, und nicht an Kategorienummern:
 // Die stehen auf jeder Anlage woanders. Aufbau je Eintrag:
 //     {"1": {name: "Zeitschaltprogramm 1", tage: ["11", "11.1", …]}}
+// Wer welche Parameter führt. Kommt beim Statusabruf mit; ist es leer – und
+// ab Werk ist es leer –, merkt man von der ganzen Mechanik nichts.
+const gefuehrtVon = (nr) => (status.uebernahme || {})[String(nr)] || null;
+
+// Das Band über einer Tafel: Es nennt die Quelle, sagt warum, und trägt den
+// Knopf, mit dem man alles zurückholt. Ohne den wäre es keine Zusammenarbeit.
+function uebernahmeBand(id, nummern) {
+  const feld = $(id); if (!feld) return;
+  const quellen = {};
+  (nummern || []).forEach(nr => {
+    const f = gefuehrtVon(nr);
+    if (!f) return;
+    if (!quellen[f.quelle]) quellen[f.quelle] = {...f, zahl: 0};
+    quellen[f.quelle].zahl++;
+  });
+  const liste = Object.values(quellen);
+  feld.hidden = !liste.length;
+  feld.innerHTML = '';
+  liste.forEach(q => {
+    const zeile = document.createElement('div');
+    zeile.className = 'uebernahme';
+    const satz = document.createElement('span');
+    satz.innerHTML = `<b>${q.zahl} ${q.zahl === 1 ? 'Parameter wird' :
+      'Parameter werden'} vom ${q.name} geführt</b>${
+      q.hinweis ? ' – ' + q.hinweis : ''}${
+      q.zeit ? ` <span class="notiz">(seit ${zeit(q.zeit)})</span>` : ''}`;
+    const knopf = document.createElement('button');
+    knopf.className = 'leise';
+    knopf.textContent = 'Übernahme aufheben';
+    knopf.title = 'Die Einstellung wieder selbst in die Hand nehmen';
+    knopf.onclick = () => uebernahmeLoesen(q.quelle, q.name);
+    zeile.append(satz, knopf);
+    feld.appendChild(zeile);
+  });
+}
+
+async function uebernahmeLoesen(quelle, name) {
+  if (!confirm(`Die Übernahme durch ${name} aufheben?\n\n`
+    + `Danach stellst du diese Parameter hier wieder selbst – `
+    + `${name} wird sie nicht mehr nachführen.`)) return;
+  try {
+    await hole('uebernahme/' + encodeURIComponent(quelle), {method: 'DELETE'});
+    await statusLaden();
+    if (reglerKat) await reglerZeichnen().catch(() => {});
+    if (zpKat) zpZeichnen();
+    zpAuswahlZeichnen();
+  } catch (err) { meldung('m-regler', err.message); }
+}
+
 let zeitprogramme = {};
 const istZeitprogramm = (id) => Object.hasOwn(zeitprogramme, String(id));
 let reglerKat = null;
@@ -661,8 +719,13 @@ async function reglerZeichnen() {
     const roh = w.value === undefined || w.value === null || w.value === ''
       ? '' : String(w.value);
     const zeile = document.createElement('tr');
+    const fremd = gefuehrtVon(p.nr);
     let bedienung = '<span class="notiz">nur lesen</span>';
-    if (p.schreibbar) {
+    if (p.schreibbar && fremd) {
+      // Nicht verstecken, nur stilllegen: Der Wert bleibt ablesbar, und es
+      // steht dabei, wer ihn stellt.
+      bedienung = `<span class="notiz">geführt vom ${fremd.name}</span>`;
+    } else if (p.schreibbar) {
       if (p.possibleValues && p.possibleValues.length) {
         bedienung = `<select data-nr="${p.nr}">` + p.possibleValues.map(v =>
           `<option value="${v.enumValue}"${
@@ -677,8 +740,10 @@ async function reglerZeichnen() {
         <button class="leise" data-setzen="${p.nr}" ${frei ? '' : 'disabled'}
           title="${frei ? 'stellen' : 'unter Einstellungen freigeben'}">→</button></div>`;
     }
+    if (fremd) zeile.className = 'gefuehrt';
     zeile.innerHTML = `<td class="nr">${p.nr}</td>
-      <td>${p.name}${p.unit ? ` <span class="notiz">(${p.unit})</span>` : ''}</td>
+      <td>${p.name}${p.unit ? ` <span class="notiz">(${p.unit})</span>` : ''}${
+        fremd ? `<span class="marke-fremd">${fremd.name}</span>` : ''}</td>
       <td class="wert">${roh === '' ? '–' : (w.desc || roh)} ${
         w.desc ? '' : (p.unit || '')}</td>
       <td style="width:200px">${bedienung}</td>`;
@@ -690,6 +755,7 @@ async function reglerZeichnen() {
   if (!koerper.children.length) {
     koerper.innerHTML = '<tr><td class="kat">Diese Kategorie ist leer.</td></tr>';
   }
+  uebernahmeBand('regler-uebernahme', (d.parameter || []).map(p => p.nr));
 }
 
 $('btn-regler-lesen').onclick = reglerLesen;
@@ -798,15 +864,19 @@ function zpZeichnen() {
     const zeile = document.createElement('tr');
     const geaendert = fensterSchreiben(tag.fenster) !== tag.urtext;
     if (geaendert) zeile.className = 'geaendert';
-    let zellen = `<td><b>${tag.name}</b><div class="notiz">${tag.nr}</div></td>`;
+    const fremd = gefuehrtVon(tag.nr);
+    if (fremd) zeile.className = (zeile.className + ' gefuehrt').trim();
+    const sperre = fremd ? ' disabled' : '';
+    let zellen = `<td><b>${tag.name}</b><div class="notiz">${tag.nr}</div>${
+      fremd ? `<span class="marke-fremd">${fremd.name}</span>` : ''}</td>`;
     tag.fenster.forEach((f, fi) => {
       zellen += `<td><div class="spanne">
-        <input type="time" value="${f.von}" data-tag="${index}" data-f="${fi}" data-teil="von">
+        <input type="time" value="${f.von}" data-tag="${index}" data-f="${fi}" data-teil="von"${sperre}>
         <span>–</span>
-        <input type="time" value="${f.bis}" data-tag="${index}" data-f="${fi}" data-teil="bis">
+        <input type="time" value="${f.bis}" data-tag="${index}" data-f="${fi}" data-teil="bis"${sperre}>
       </div></td>`;
     });
-    zellen += `<td><button class="leise" data-leeren="${index}"
+    zellen += `<td><button class="leise" data-leeren="${index}"${sperre}
       title="alle Fenster dieses Tages leeren">✕</button></td>`;
     zeile.innerHTML = zellen;
     zeile.querySelectorAll('input[type=time]').forEach(feld => {
@@ -821,7 +891,9 @@ function zpZeichnen() {
     };
     koerper.appendChild(zeile);
   });
-  const offen = zpTage.filter(t => fensterSchreiben(t.fenster) !== t.urtext).length;
+  uebernahmeBand('zp-uebernahme', zpTage.map(t => t.nr));
+  const offen = zpTage.filter(t => fensterSchreiben(t.fenster) !== t.urtext
+                                   && !gefuehrtVon(t.nr)).length;
   $('btn-zp-speichern').disabled = offen === 0 || !status.schreiben_erlaubt;
   $('btn-zp-speichern').textContent = offen
     ? `${offen} geänderte${offen === 1 ? 'n' : ''} Tag${offen === 1 ? '' : 'e'} speichern`
@@ -834,7 +906,7 @@ function zpUebertragen(bis) {
   if (!zpTage.length) return;
   const quelle = zpTage[0].fenster;
   for (let i = 1; i <= bis; i++) {
-    if (!zpTage[i]) continue;
+    if (!zpTage[i] || gefuehrtVon(zpTage[i].nr)) continue;
     zpTage[i].fenster = quelle.map(f => ({von: f.von, bis: f.bis}));
   }
   zpZeichnen();
@@ -844,7 +916,8 @@ $('btn-zp-alle').onclick = () => zpUebertragen(6);
 $('btn-zp-neu').onclick = () => zpOeffnen(zpKat);
 
 $('btn-zp-speichern').onclick = async () => {
-  const offen = zpTage.filter(t => fensterSchreiben(t.fenster) !== t.urtext);
+  const offen = zpTage.filter(t => fensterSchreiben(t.fenster) !== t.urtext
+                                   && !gefuehrtVon(t.nr));
   if (!offen.length) return;
   const liste = offen.map(t => `${t.name}: ${fensterSchreiben(t.fenster)}`).join('\n');
   if (!confirm(`${offen.length} Tag(e) an die Heizung schicken?\n\n${liste}`)) return;

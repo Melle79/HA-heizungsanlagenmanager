@@ -1,5 +1,26 @@
 # Änderungen
 
+## 1.6.0
+
+- **Andere Add-ons können Parameter übernehmen.** Gedacht für den
+  Heizungsplaner: Er meldet an, welche Sollwerte und Schaltzeiten er führt,
+  und die liegen hier dann still – ablesbar wie zuvor, aber mit seinem Namen
+  daneben statt einem Eingabefeld. Die Schnittstelle steht in der
+  Dokumentation.
+- **Eigenständig bleibt es trotzdem.** Ohne Anmeldung ändert sich gar nichts,
+  und über jeder betroffenen Tafel steht ein Knopf *Übernahme aufheben*. Eine
+  Sperre, die man nicht lösen kann, wäre keine Zusammenarbeit.
+- Ein übernommener Parameter lässt sich auch über die Schnittstelle nicht
+  versehentlich von Hand stellen: Das Add-on antwortet mit 409 und nennt den
+  Verantwortlichen, statt einen Wert anzunehmen, den der Planer beim nächsten
+  Takt zurückdreht.
+- **Behoben: Die Oberfläche zeigte die falsche Fassung.** Die Nummer stand an
+  zwei Stellen und lief auseinander – im Kopf stand „v1.3.1“, während das
+  Add-on längst 1.5.0 war. Sie kommt jetzt aus der `config.yaml`, und eine
+  Prüfung wacht darüber.
+- **Behoben: Das Protokoll meldete „126 Werte gelesen“**, wo dreizehn abgefragt
+  wurden – gezählt wurde der ganze Zwischenspeicher statt der Runde.
+
 ## 1.5.0
 
 - **Die Entitäten heißen jetzt `sensor.heizungsanlage_p…`** statt

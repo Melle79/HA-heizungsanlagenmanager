@@ -248,3 +248,90 @@ def load_state() -> dict:
 def save_state(state: dict) -> None:
     with _lock:
         _write(STATE_FILE, state)
+
+
+# ───────────────────────────────────────── Übernahme durch andere Add-ons ────
+#
+# Der Heizungsplaner soll Sollwerte und Schaltzeiten übernehmen können. Damit
+# das niemanden überrascht, steht hier, wer gerade was führt: Die Oberfläche
+# legt diese Parameter still und schreibt dazu, wer sie hat.
+#
+# Zwei Dinge sind dabei Absicht:
+#
+# * **Eigenständig bleibt eigenständig.** Ist nichts eingetragen – und ab
+#   Werk ist nichts eingetragen –, verhält sich das Add-on wie zuvor. Es
+#   braucht den Planer nicht, es lässt ihm nur Platz.
+# * **Wer davorsteht, behält das letzte Wort.** Eine Übernahme lässt sich in
+#   der Oberfläche mit einem Klick aufheben. Eine Sperre, die man nicht lösen
+#   kann, ist keine Zusammenarbeit, sondern eine Geiselnahme.
+
+UEBERNAHME_FILE = os.path.join(DATA_DIR, "uebernahme.json")
+
+
+def load_uebernahme() -> dict:
+    """{quelle: {name, hinweis, parameter: [...], zeit}} – meist leer."""
+    with _lock:
+        roh = _read(UEBERNAHME_FILE, {})
+    if not isinstance(roh, dict):
+        return {}
+    raus = {}
+    for quelle, eintrag in roh.items():
+        if not isinstance(eintrag, dict):
+            continue
+        raus[str(quelle)] = {
+            "name": str(eintrag.get("name") or quelle),
+            "hinweis": str(eintrag.get("hinweis") or ""),
+            "parameter": [str(nr) for nr in (eintrag.get("parameter") or [])],
+            "zeit": eintrag.get("zeit") or "",
+        }
+    return raus
+
+
+def save_uebernahme(daten: dict) -> None:
+    with _lock:
+        _write(UEBERNAHME_FILE, daten)
+
+
+def validate_uebernahme(roh: dict) -> tuple:
+    """Eine Anmeldung prüfen. Ergebnis: (quelle, eintrag)."""
+    if not isinstance(roh, dict):
+        raise ValidationError("Die Anmeldung muss ein Objekt sein.")
+    quelle = str(roh.get("quelle") or "").strip().lower()
+    if not quelle or not quelle.replace("_", "").replace("-", "").isalnum():
+        raise ValidationError(
+            "„quelle“ fehlt oder enthält Sonderzeichen – erlaubt sind "
+            "Buchstaben, Ziffern, Strich und Unterstrich.")
+    parameter = roh.get("parameter")
+    if not isinstance(parameter, list):
+        raise ValidationError("„parameter“ muss eine Liste sein.")
+    nummern = []
+    for nr in parameter:
+        nr = str(nr).strip()
+        if not nr:
+            continue
+        if nr not in nummern:
+            nummern.append(nr)
+    return quelle, {
+        "name": str(roh.get("name") or quelle).strip()[:60],
+        "hinweis": str(roh.get("hinweis") or "").strip()[:200],
+        "parameter": nummern,
+        "zeit": roh.get("zeit") or "",
+    }
+
+
+def uebernommen_von(uebernahme: dict) -> dict:
+    """Umgedreht nachschlagbar: {parameternummer: {quelle, name, hinweis}}.
+
+    Führen zwei Quellen denselben Parameter, gewinnt die zuerst eingetragene.
+    Das ist selten und immer ein Versehen – aber ein stiller Wechsel wäre
+    schlimmer als eine feste Regel.
+    """
+    raus = {}
+    for quelle, eintrag in (uebernahme or {}).items():
+        for nr in eintrag.get("parameter") or []:
+            raus.setdefault(str(nr), {
+                "quelle": quelle, "name": eintrag.get("name") or quelle,
+                "hinweis": eintrag.get("hinweis") or "",
+                "zeit": eintrag.get("zeit") or "",
+            })
+    return raus

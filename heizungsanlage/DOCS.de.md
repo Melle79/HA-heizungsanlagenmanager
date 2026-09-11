@@ -32,6 +32,67 @@ Was der Manager **nicht** leisten kann, ist mehr zu wissen als BSB-LAN: Führt
 deine Firmware einen Parameter nicht, gibt es ihn hier auch nicht. Und ob
 sich ein Wert stellen lässt, entscheidet am Ende die Regelung selbst.
 
+## Zusammenspiel mit dem Heizungsplaner
+
+Der Heizungsplaner soll Sollwerte und Schaltzeiten übernehmen können, ohne
+dass hier jemand dagegenarbeitet. Dafür gibt es eine kleine Schnittstelle –
+und drei Regeln, die sie erträglich machen:
+
+* **Ohne Anmeldung ändert sich nichts.** Ab Werk führt niemand etwas; das
+  Add-on bleibt vollständig eigenständig und braucht den Planer nicht.
+* **Übernommen heißt stillgelegt, nicht versteckt.** Die Werte sind weiter
+  ablesbar. Nur die Eingabefelder liegen still, mit dem Namen dessen, der sie
+  führt, direkt daneben.
+* **Der Mensch davor behält das letzte Wort.** Über der Tafel steht ein Knopf
+  *Übernahme aufheben*. Eine Sperre, die man nicht lösen kann, wäre keine
+  Zusammenarbeit.
+
+Erreichbar ist das Add-on für andere Add-ons unter
+`http://local-heizungsanlage:8099` (mit Bindestrich – der Unterstrich des
+slugs wird im Rechnernamen zum Strich).
+
+### Anmelden
+
+```
+PUT http://local-heizungsanlage:8099/api/uebernahme
+{
+  "quelle": "heizungsplaner",
+  "name": "Heizungsplaner",
+  "hinweis": "Sollwerte kommen aus dem Wochenplan",
+  "parameter": ["710", "712", "11", "11.1"]
+}
+```
+
+Der Aufruf ersetzt jedes Mal die ganze Liste dieser Quelle – wer etwas
+freigeben will, schickt sie einfach ohne diesen Parameter erneut. Eine **leere
+Liste ist die Abmeldung**, damit beim Aufräumen ein Aufruf genügt.
+
+### Stellen
+
+Der Planer stellt seine Parameter über denselben Weg wie die Oberfläche, nennt
+dabei aber seine Kennung:
+
+```
+POST http://local-heizungsanlage:8099/api/setzen
+{"nr": "710", "wert": "21.5", "quelle": "heizungsplaner"}
+```
+
+Ohne `quelle` antwortet das Add-on auf einen übernommenen Parameter mit
+**409** und einem Satz, der den Verantwortlichen nennt. Das ist Absicht: Ein
+von Hand gestellter Wert, den der Planer beim nächsten Takt zurückdreht, wäre
+schlimmer als eine klare Absage.
+
+### Nachsehen und aufheben
+
+```
+GET    /api/uebernahme                → {quellen: {...}, parameter: {nr: {...}}}
+DELETE /api/uebernahme/heizungsplaner → hebt die Übernahme auf
+```
+
+Hebt jemand die Übernahme in der Oberfläche auf, erfährt der Planer das beim
+nächsten `GET`. Er sollte sie dann **nicht** stillschweigend neu anmelden –
+sonst ist der Knopf eine Attrappe.
+
 ## Der Parameterkatalog
 
 Welche Parameter eine Regelung kennt, hängt am Gerät. Bei Siemens-Reglern –

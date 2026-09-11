@@ -302,6 +302,15 @@ except bsb.BsbFehler as err:
 ANLAGE["status"] = 1
 ANLAGE["schreibbar"] = True
 
+print("\n=== Die Fassung steht an einer Stelle ===")
+# Sie stand einmal doppelt - in config.yaml und in version.py - und lief
+# auseinander: Die Oberflaeche zeigte drei Fassungen lang eine falsche Nummer.
+import pathlib, re, version
+kopf = (pathlib.Path(__file__).resolve().parent.parent / "config.yaml")
+aus_yaml = re.search(r'^version:\s*"?([^"\s]+)"?', kopf.read_text(encoding="utf-8"), re.M)
+pruefe(aus_yaml is not None and version.VERSION == aus_yaml.group(1),
+       f"version.py und config.yaml sagen dasselbe ({version.VERSION})")
+
 print("\n=== Eine Umbenennung räumt hinter sich auf ===")
 # Discovery-Nachrichten sind "retained": Sie liegen im Broker, bis jemand sie
 # ueberschreibt. Ohne Abraeumen stuenden nach einer Umbenennung zwei Geraete in
@@ -360,6 +369,44 @@ for feld, wert, was in (("intervall_s", 5, "ein zu kurzes Intervall"),
     except store.ValidationError:
         pruefe(True, f"{was} wird abgelehnt")
 
+print("\n=== Übernahme durch ein anderes Add-on ===")
+# Der Heizungsplaner soll Sollwerte fuehren koennen. Das Add-on bleibt dabei
+# eigenstaendig: ohne Eintrag aendert sich nichts, und was eingetragen ist,
+# laesst sich wieder loesen.
+pruefe(store.load_uebernahme() == {}, "ab Werk fuehrt niemand etwas")
+
+quelle, eintrag = store.validate_uebernahme(
+    {"quelle": "Heizungsplaner", "name": "Heizungsplaner",
+     "hinweis": "Sollwerte kommen aus dem Wochenplan",
+     "parameter": ["710", "712", "710"]})
+pruefe(quelle == "heizungsplaner", "die Kennung wird kleingeschrieben")
+pruefe(eintrag["parameter"] == ["710", "712"], "doppelte Nummern zaehlen einmal")
+store.save_uebernahme({quelle: eintrag})
+
+nach_nummer = store.uebernommen_von(store.load_uebernahme())
+pruefe(nach_nummer["710"]["name"] == "Heizungsplaner",
+       "zu jeder Nummer laesst sich nachschlagen, wer sie fuehrt")
+pruefe("711" not in nach_nummer, "was niemand angemeldet hat, bleibt frei")
+
+# Zwei Quellen auf demselben Parameter sind ein Versehen - aber ein stiller
+# Wechsel waere schlimmer als eine feste Regel.
+store.save_uebernahme({"a": {"name": "A", "parameter": ["710"], "zeit": ""},
+                       "b": {"name": "B", "parameter": ["710"], "zeit": ""}})
+pruefe(store.uebernommen_von(store.load_uebernahme())["710"]["quelle"] == "a",
+       "bei zwei Anmeldungen gilt die erste")
+
+for falsch, was in (({"quelle": "", "parameter": []}, "eine Anmeldung ohne Quelle"),
+                    ({"quelle": "a b", "parameter": []}, "eine Quelle mit Leerzeichen"),
+                    ({"quelle": "gut", "parameter": "710"}, "eine Parameterliste, die keine ist")):
+    try:
+        store.validate_uebernahme(falsch)
+        pruefe(False, f"{was} wird abgelehnt")
+    except store.ValidationError:
+        pruefe(True, f"{was} wird abgelehnt")
+
+store.save_uebernahme({})
+pruefe(store.load_uebernahme() == {}, "und das Aufheben raeumt wieder alles weg")
+
 print("\n=== Die Auswahl wird geprüft ===")
 a = store.validate_auswahl([{"nr": "50", "name": "X"}, {"nr": "50", "name": "X"}])
 pruefe(len(a) == 1, "ein doppelt angehakter Parameter zählt einmal")
@@ -368,6 +415,59 @@ try:
     pruefe(False, "ein Eintrag ohne Parameternummer wird abgelehnt")
 except store.ValidationError:
     pruefe(True, "ein Eintrag ohne Parameternummer wird abgelehnt")
+
+print("\n=== Die Schnittstelle, so wie der Planer sie ruft ===")
+# Bis hierher waren es Bausteine. Jetzt die Wege selbst - mit Flasks
+# Testkunden, ohne Netz, ohne laufendes Add-on.
+store.save_uebernahme({})
+store.save_config({"einstellungen": dict(store.standard_einstellungen(),
+                                         bsb_url="http://kessel.test",
+                                         schreiben_erlaubt=True),
+                   "auswahl": []})
+store.save_katalog(k)
+import app as anwendung
+anwendung._client.cache_clear() if hasattr(anwendung._client, "cache_clear") else None
+kunde = anwendung.app.test_client()
+
+antwort = kunde.get("/api/uebernahme")
+pruefe(antwort.get_json() == {"quellen": {}, "parameter": {}},
+       "ohne Eintrag fuehrt niemand etwas")
+
+antwort = kunde.put("/api/uebernahme", json={
+    "quelle": "heizungsplaner", "name": "Heizungsplaner",
+    "hinweis": "Sollwerte aus dem Wochenplan", "parameter": ["50"]})
+pruefe(antwort.status_code == 200
+       and antwort.get_json()["parameter"]["50"]["quelle"] == "heizungsplaner",
+       "der Planer meldet an, was er fuehrt")
+
+ANLAGE["gesetzt"].clear()
+antwort = kunde.post("/api/setzen", json={"nr": "50", "wert": "21.0"})
+pruefe(antwort.status_code == 409, "von Hand wird der Parameter nicht gestellt")
+pruefe("Heizungsplaner" in antwort.get_json()["fehler"],
+       "und die Meldung nennt den, der ihn fuehrt")
+pruefe(ANLAGE["gesetzt"] == [], "es ging auch wirklich nichts an den Bus")
+
+antwort = kunde.post("/api/setzen",
+                     json={"nr": "50", "wert": "21.0", "quelle": "heizungsplaner"})
+pruefe(antwort.status_code == 200, "der Planer selbst darf schreiben")
+pruefe(ANLAGE["gesetzt"][-1]["Parameter"] == "50", "und der Wert geht an den Bus")
+
+antwort = kunde.post("/api/setzen", json={"nr": "55", "wert": "55"})
+pruefe(antwort.status_code == 200,
+       "ein nicht uebernommener Parameter bleibt frei stellbar")
+
+antwort = kunde.delete("/api/uebernahme/heizungsplaner")
+pruefe(antwort.get_json() == {"quellen": {}, "parameter": {}},
+       "die Uebernahme laesst sich aufheben - das Add-on bleibt eigenstaendig")
+antwort = kunde.post("/api/setzen", json={"nr": "50", "wert": "21.0"})
+pruefe(antwort.status_code == 200, "danach stellt man wieder selbst")
+
+# Eine leere Liste ist die Abmeldung: Das Aufraeumen soll ein Aufruf sein.
+kunde.put("/api/uebernahme", json={"quelle": "x", "parameter": ["50"]})
+kunde.put("/api/uebernahme", json={"quelle": "x", "parameter": []})
+pruefe(kunde.get("/api/uebernahme").get_json()["quellen"] == {},
+       "eine leere Liste meldet ab")
+store.save_uebernahme({})
 
 print(f"\n{'ALLE PRÜFUNGEN BESTANDEN' if not fehler else str(len(fehler)) + ' FEHLER'}")
 sys.exit(1 if fehler else 0)

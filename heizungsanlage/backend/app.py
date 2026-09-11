@@ -117,6 +117,7 @@ def _lesen(auswahl=None, nummern=None) -> dict:
             }
         if nummern is None:
             state["letzter_lauf"] = jetzt
+        gelesen = len(roh)
         store.save_state(state)
 
     # Auf Zuruf gelesene Werte gehen nicht nach MQTT – nur die Auswahl.
@@ -125,14 +126,18 @@ def _lesen(auswahl=None, nummern=None) -> dict:
             _publisher.werte(auswahl, state["werte"])
         except Exception as err:  # noqa: BLE001
             _LOGGER.warning("MQTT-Meldung fehlgeschlagen: %s", err)
-    return {"werte": state["werte"], "letzter_lauf": state["letzter_lauf"]}
+    # ``gelesen`` ist, was diesmal über den Bus kam – ``werte`` enthält auch
+    # alles früher Gelesene. Die beiden zu verwechseln ließ das Protokoll
+    # „126 Werte gelesen“ melden, wo dreizehn abgefragt wurden.
+    return {"werte": state["werte"], "letzter_lauf": state["letzter_lauf"],
+            "gelesen": gelesen}
 
 
 def _takt_schleife() -> None:
     while True:
         try:
             ergebnis = _lesen()
-            anzahl = len(ergebnis.get("werte") or {})
+            anzahl = int(ergebnis.get("gelesen") or 0)
             if ergebnis.get("fehler"):
                 _LOGGER.warning("Takt mit Fehler: %s", ergebnis["fehler"])
             elif anzahl:
@@ -239,6 +244,11 @@ def api_status():
         "mqtt": _publisher is not None and _publisher.connected.is_set(),
         "schreiben_erlaubt": config["einstellungen"]["schreiben_erlaubt"],
     }
+    # Fährt beim Statusabruf mit, damit die Oberfläche mitbekommt, wenn ein
+    # anderes Add-on etwas übernimmt – ohne dafür eigens zu fragen.
+    uebernahme = store.load_uebernahme()
+    antwort["uebernahme_quellen"] = uebernahme
+    antwort["uebernahme"] = store.uebernommen_von(uebernahme)
     try:
         info = _client().info()
         antwort["verbunden"] = True
@@ -267,6 +277,64 @@ def api_einstellungen():
     store.save_config(config)
     _sofort_lesen()
     return jsonify(neu)
+
+
+# ------------------------------------------------------------- Übernahme ----
+#
+# Die Schnittstelle für andere Add-ons – gedacht für den Heizungsplaner, offen
+# für jedes andere. Wer hier etwas einträgt, sagt: „Diese Parameter führe ich,
+# stellt sie nicht von Hand.“ Mehr passiert nicht: Gelesen wird weiter alles,
+# und die Oberfläche bleibt vollständig bedienbar.
+
+@app.route("/api/uebernahme", methods=["GET"])
+def api_uebernahme():
+    uebernahme = store.load_uebernahme()
+    return jsonify({"quellen": uebernahme,
+                    "parameter": store.uebernommen_von(uebernahme)})
+
+
+@app.route("/api/uebernahme", methods=["PUT", "POST"])
+def api_uebernahme_setzen():
+    """Eine Quelle meldet an, welche Parameter sie führt.
+
+    Eine leere Liste ist die Abmeldung – so braucht ein Add-on beim Aufräumen
+    keinen zweiten Aufruf zu kennen.
+    """
+    try:
+        quelle, eintrag = store.validate_uebernahme(
+            request.get_json(force=True) or {})
+    except store.ValidationError as err:
+        return jsonify({"fehler": str(err)}), 400
+
+    uebernahme = store.load_uebernahme()
+    if eintrag["parameter"]:
+        eintrag["zeit"] = eintrag["zeit"] or datetime.now().isoformat(
+            timespec="seconds")
+        uebernahme[quelle] = eintrag
+        _LOGGER.info("%s führt jetzt %d Parameter", eintrag["name"],
+                     len(eintrag["parameter"]))
+    else:
+        uebernahme.pop(quelle, None)
+        _LOGGER.info("Übernahme durch %s aufgehoben", quelle)
+    store.save_uebernahme(uebernahme)
+    return jsonify({"quellen": uebernahme,
+                    "parameter": store.uebernommen_von(uebernahme)})
+
+
+@app.route("/api/uebernahme/<quelle>", methods=["DELETE"])
+def api_uebernahme_loesen(quelle):
+    """Die Übernahme aufheben – der Knopf in der Oberfläche.
+
+    Damit bleibt das Add-on eigenständig: Was ein anderes Programm hält, kann
+    der Mensch davor jederzeit wieder an sich nehmen.
+    """
+    uebernahme = store.load_uebernahme()
+    weg = uebernahme.pop(str(quelle), None)
+    store.save_uebernahme(uebernahme)
+    if weg:
+        _LOGGER.info("Übernahme durch %s von Hand aufgehoben", quelle)
+    return jsonify({"quellen": uebernahme,
+                    "parameter": store.uebernommen_von(uebernahme)})
 
 
 # --------------------------------------------------------------- Katalog ----
@@ -402,6 +470,18 @@ def api_setzen():
     if eintrag and not eintrag.get("schreibbar"):
         return jsonify({"fehler": f"Parameter {nr} „{eintrag.get('name')}“ ist "
                                   f"laut Regelung nur lesbar"}), 400
+
+    # Hat ein anderes Add-on diesen Parameter übernommen, schreibt hier nur
+    # dieses selbst – erkennbar an „quelle“ im Rumpf. Für alle anderen wäre
+    # es ein Tauziehen: Der Planer stellte den Wert beim nächsten Takt zurück,
+    # und niemand verstünde, warum die Eingabe nicht hält.
+    besitzer = store.uebernommen_von(store.load_uebernahme()).get(nr)
+    if besitzer and str(daten.get("quelle") or "") != besitzer["quelle"]:
+        return jsonify({
+            "fehler": f"Parameter {nr} wird vom {besitzer['name']} geführt. "
+                      f"Zum selbst Stellen die Übernahme aufheben.",
+            "uebernahme": besitzer,
+        }), 409
     try:
         antwort = _client().setzen(nr, wert)
     except bsb_modul.BsbFehler as err:
