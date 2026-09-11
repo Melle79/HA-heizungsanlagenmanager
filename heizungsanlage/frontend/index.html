@@ -125,6 +125,9 @@
   /* Übernommenes ist nicht kaputt, nur fremdgeführt – darum blass statt rot,
      und immer mit dem Namen dessen, der es führt. */
   .gefuehrt{opacity:.55}
+  th.sortierbar{cursor:pointer; user-select:none}
+  th.sortierbar:hover{color:var(--text)}
+  th.sortierbar.an{color:var(--warm)}
   .marke-lauf{font-size:.7rem; border-radius:4px; padding:1px 7px;
     border:1px solid var(--linie); color:var(--leise)}
   .marke-lauf.an{color:var(--ok); border-color:var(--ok)}
@@ -343,8 +346,12 @@
       <div class="feld"><label>Filter</label>
         <select id="rw-filter">
           <option value="">alle Parameter</option>
-          <option value="1">nur schreibbare</option>
+          <option value="1">nur stellbare</option>
+          <option value="r">nur lesbare</option>
           <option value="a">nur ausgewählte</option>
+          <option value="n">nur nicht ausgewählte</option>
+          <option value="w">nur mit Wert</option>
+          <option value="o">ausgewählt, aber ohne Wert</option>
         </select></div>
     </div>
     <div class="zeile-aktionen">
@@ -353,26 +360,20 @@
       <span class="notiz" id="auswahl-zahl"></span>
       <span class="meldung" id="m-auswahl"></span>
     </div>
-  </div>
-  <div class="tafel">
+    <!-- Links, was ausgewählt ist; rechts, was zuletzt davon ankam. Vorher
+         standen beide Listen untereinander, und man musste zwischen ihnen
+         hin- und herspringen, um zu sehen, ob ein Häkchen auch einen Wert
+         trägt. -->
     <div class="rollbar"><table>
-      <thead><tr><th style="width:34px"></th><th>Nr</th><th>Name</th>
-        <th>Kategorie</th><th>Einheit</th></tr></thead>
+      <thead><tr><th style="width:34px"></th>
+        <th data-sort="nr">Nr</th><th data-sort="name">Name</th>
+        <th data-sort="kategorie">Kategorie</th><th data-sort="einheit">Einheit</th>
+        <th data-sort="wert" style="text-align:right">zuletzt gelesen</th></tr></thead>
       <tbody id="katalogtabelle"></tbody>
     </table></div>
     <div class="leer" id="katalog-leer" hidden>Keine Treffer.</div>
-  </div>
-  <div class="tafel">
-    <h2>Was nach Home Assistant geht</h2>
-    <div class="notiz">Jeder Eintrag hier ist eine Entität. Der Name in Klammern
-      ist die Parameternummer in der Regelung – sie bleibt gleich, auch wenn du
-      die Anzeige umbenennst.</div>
-    <div class="rollbar"><table>
-      <thead><tr><th>Nr</th><th>Name</th><th>Kategorie</th><th style="text-align:right">Wert</th></tr></thead>
-      <tbody id="wertetabelle"></tbody>
-    </table></div>
     <div class="zeile-aktionen">
-      <button id="btn-lesen">Jetzt lesen</button>
+      <button class="leise" id="btn-lesen">Jetzt lesen</button>
       <span class="notiz" id="werte-stand"></span>
       <span class="meldung" id="m-werte"></span>
     </div>
@@ -510,8 +511,8 @@ document.querySelectorAll('nav button[data-blatt]').forEach(knopf => {
     knopf.classList.add('an');
     $(knopf.dataset.blatt).classList.add('an');
     window.scrollTo(0, 0);
-    if (knopf.dataset.blatt === 'mqtt') { katalogZeichnen(); werteZeichnen();
-                                          bsblanLage(); }
+    // werteZeichnen frischt die Tabelle selbst auf – es gibt ja nur noch eine.
+    if (knopf.dataset.blatt === 'mqtt') { werteZeichnen(); bsblanLage(); }
     if (knopf.dataset.blatt === 'regler') kategorienZeichnen();
   };
 });
@@ -577,23 +578,14 @@ function uebersichtZeichnen() {
 }
 
 // ─────────────────────────────────────────────────────── Werte ──
+// Es gibt nur noch eine Tabelle – der Reiter frischt sie auf, statt eine
+// zweite zu führen.
 function werteZeichnen() {
-  const koerper = $('wertetabelle'); koerper.innerHTML = '';
-  auswahl.forEach(e => {
-    const w = werte[e.nr] || {};
-    const zeile = document.createElement('tr');
-    const leer = ohneWert(w);
-    if (leer) zeile.className = 'gefuehrt';
-    zeile.innerHTML = `<td class="nr">${e.nr}</td>
-      <td>${e.anzeige || e.name}</td>
-      <td class="kat">${leer ? wertErklaerung(w, e) : (w.desc || '')}</td>
-      <td class="wert">${leer ? '–' : w.value + ' ' + (e.einheit || w.unit || '')}</td>`;
-    koerper.appendChild(zeile);
-  });
-  if (!koerper.children.length) {
-    koerper.innerHTML = '<tr><td class="kat" colspan="4">Noch nichts ausgewählt.</td></tr>';
-  }
-  $('werte-stand').textContent = 'Zuletzt gelesen: ' + zeit(status.letzter_lauf);
+  const stand = $('werte-stand');
+  if (stand) stand.textContent = auswahl.length
+    ? `${auswahl.length} Parameter · zuletzt gelesen: ${zeit(status.letzter_lauf)}`
+    : 'Noch nichts ausgewählt.';
+  if ($('mqtt') && $('mqtt').classList.contains('an')) katalogZeichnen();
 }
 
 $('btn-lesen').onclick = async () => {
@@ -735,17 +727,85 @@ function fremdlingeZeichnen() {
   feld.appendChild(zeile);
 }
 
+// Was in der rechten Spalte steht. Für nicht Ausgewähltes bleibt sie leer –
+// dort wird nichts gelesen, und ein Strich sähe aus wie ein fehlender Wert.
+// Sortierung. Sie arbeitet auf dem, was gerade gezeigt wird – das Backend
+// liefert nach Parameternummer, und das ist nur eine von fünf Ordnungen, die
+// man vor einer Liste mit 242 Einträgen braucht.
+let sortSpalte = 'nr', sortRichtung = 1;
+
+function sortWert(p, spalte) {
+  if (spalte === 'nr') return parseFloat(p.nr) || 0;
+  if (spalte === 'name') return (p.name || '').toLowerCase();
+  if (spalte === 'kategorie') return (p.kategorie_name || '').toLowerCase();
+  if (spalte === 'einheit') return (p.unit || '').toLowerCase();
+  // Nach Wert: Zahlen der Größe nach, alles andere hinten.
+  const w = werte[p.nr];
+  if (!auswahlNr.has(p.nr) || !w || ohneWert(w)) return Infinity;
+  const zahl = parseFloat(String(w.value).replace(',', '.'));
+  return isNaN(zahl) ? Infinity : zahl;
+}
+
+function vergleich(a, b) {
+  const x = sortWert(a, sortSpalte), y = sortWert(b, sortSpalte);
+  if (x === y) return (parseFloat(a.nr) || 0) - (parseFloat(b.nr) || 0);
+  if (typeof x === 'string' || typeof y === 'string') {
+    return String(x).localeCompare(String(y), 'de') * sortRichtung;
+  }
+  return (x < y ? -1 : 1) * sortRichtung;
+}
+
+document.querySelectorAll('th[data-sort]').forEach(kopf => {
+  kopf.classList.add('sortierbar');
+  kopf.onclick = () => {
+    const spalte = kopf.dataset.sort;
+    sortRichtung = (spalte === sortSpalte) ? -sortRichtung : 1;
+    sortSpalte = spalte;
+    katalogZeichnen();
+  };
+});
+
+function sortKoepfeZeichnen() {
+  document.querySelectorAll('th[data-sort]').forEach(kopf => {
+    const an = kopf.dataset.sort === sortSpalte;
+    kopf.classList.toggle('an', an);
+    const pfeil = an ? (sortRichtung > 0 ? ' ▲' : ' ▼') : '';
+    kopf.textContent = kopf.textContent.replace(/ [▲▼]$/, '') + pfeil;
+  });
+}
+
+function wertZelle(p) {
+  if (!auswahlNr.has(p.nr)) return '';
+  const w = werte[p.nr];
+  if (!w) return '<span class="notiz">noch nicht gelesen</span>';
+  if (ohneWert(w)) return `<span class="notiz">${wertErklaerung(w, p)}</span>`;
+  return `${w.desc || w.value}${w.desc ? '' : ' ' + (p.unit || '')}`;
+}
+
 async function katalogZeichnen() {
-  const nurAusgewaehlt = $('rw-filter').value === 'a';
+  const filter = $('rw-filter').value;
   const args = new URLSearchParams({
     q: $('such').value,
     kat: $('kat-filter').value,
-    rw: $('rw-filter').value === '1' ? '1' : '',
+    rw: filter === '1' ? '1' : '',
   });
   const d = await hole('katalog/suche?' + args);
   parameterListe = d.parameter || [];
-  const liste = nurAusgewaehlt
-    ? parameterListe.filter(p => auswahlNr.has(p.nr)) : parameterListe;
+
+  // Was das Backend nicht filtern kann, weil es die Auswahl und die zuletzt
+  // gelesenen Werte nicht kennt.
+  const gewaehlt = (p) => auswahlNr.has(p.nr);
+  const hatWert = (p) => gewaehlt(p) && werte[p.nr] && !ohneWert(werte[p.nr]);
+  const pruefung = {
+    'r': p => !p.schreibbar,
+    'a': gewaehlt,
+    'n': p => !gewaehlt(p),
+    'w': hatWert,
+    'o': p => gewaehlt(p) && !hatWert(p),
+  }[filter];
+  const liste = pruefung ? parameterListe.filter(pruefung) : parameterListe.slice();
+  liste.sort(vergleich);
+  sortKoepfeZeichnen();
 
   const koerper = $('katalogtabelle'); koerper.innerHTML = '';
   liste.forEach(p => {
@@ -758,7 +818,8 @@ async function katalogZeichnen() {
       <td>${p.name}${p.schreibbar ? '<span class="marke-rw">stellbar</span>' : ''}
         <div class="notiz">${[p.device_class, p.state_class].filter(Boolean).join(' · ') || ''}</div></td>
       <td class="kat">${p.kategorie_name}</td>
-      <td class="kat">${p.unit || ''}</td>`;
+      <td class="kat">${p.unit || ''}</td>
+      <td class="wert">${wertZelle(p)}</td>`;
     zeile.querySelector('input').onchange = (ev) => {
       const nr = ev.target.dataset.nr;
       if (ev.target.checked) { auswahlNr.add(nr); zeile.classList.remove('aus'); }
@@ -1577,7 +1638,7 @@ async function anlauf() {
   kategorienZeichnen();
   katalogLauf();
   setInterval(async () => { await werteLaden(); await statusLaden();
-    if ($('mqtt').classList.contains('an')) werteZeichnen(); }, 30000);
+    werteZeichnen(); }, 30000);
 }
 anlauf();
 </script>

@@ -184,8 +184,13 @@ weil jede Kategorie einzeln über den Bus geht.
 ## Der Reiter „Home Assistant“
 
 Alles, was mit dem Weg nach Home Assistant zu tun hat, steht auf einer Seite:
-wer meldet, welche Parameter, und was zuletzt gelesen wurde. Darunter die
-Auswahl, darunter die Werte.
+wer meldet, welche Parameter, und was davon zuletzt ankam.
+
+Die Tabelle führt beides nebeneinander: links das Häkchen und der Name, rechts
+der zuletzt gelesene Wert. Die Spaltenköpfe sortieren – nach Nummer, Name,
+Kategorie, Einheit oder Wert –, und der Filter kennt neben „nur stellbare“ und
+„nur ausgewählte“ auch **„ausgewählt, aber ohne Wert“**: Damit findest du in
+einem Griff, was in Home Assistant als leere Entität landen würde.
 
 ## Auswahl: was nach Home Assistant geht
 

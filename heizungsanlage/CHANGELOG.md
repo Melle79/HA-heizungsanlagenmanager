@@ -1,5 +1,18 @@
 # Änderungen
 
+## 1.15.0
+
+- **Eine Tabelle statt zweier.** Links die Auswahl, rechts der zuletzt
+  gelesene Wert – vorher standen beide Listen untereinander, und man musste
+  zwischen ihnen hin- und herspringen, um zu sehen, ob ein Häkchen auch einen
+  Wert trägt.
+- **Sortieren durch Klick auf die Spaltenköpfe**, in beide Richtungen: nach
+  Nummer, Name, Kategorie, Einheit oder Wert. Nach Wert wird der Größe nach
+  sortiert; was keinen hat, steht hinten.
+- **Mehr Filter:** nur stellbare, nur lesbare, nur ausgewählte, nur nicht
+  ausgewählte, nur mit Wert – und „ausgewählt, aber ohne Wert“. Der letzte
+  findet in einem Griff, was in Home Assistant als leere Entität landet.
+
 ## 1.14.1
 
 - **Behoben: Die Einheiten-Einstellung wurde nie an BSB-LAN geschrieben** und
