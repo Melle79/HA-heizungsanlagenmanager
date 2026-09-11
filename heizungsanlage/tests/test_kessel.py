@@ -468,6 +468,18 @@ pruefe(konf["34"]["value"] == "8700,8310",
        "der unbeendete Wert kostet nicht die ganze Antwort")
 pruefe(konf["45"]["value"] == "", "und wird als das gelesen, was er ist: leer")
 
+# Die Optionsnummern aus /JL sind nicht die Feldnamen der Weboberflaeche:
+# Der Log-Modus ist Option 53, die 11 sind die Bustelegramme. Einmal
+# verwechselt - und die App meldete "BSB-LAN sendet nichts", waehrend es sandte.
+pruefe(anwendung.BSBLAN_OPTIONEN.get(53) == "logmodus",
+       "der Log-Modus ist Option 53")
+pruefe(11 not in anwendung.BSBLAN_OPTIONEN,
+       "und Option 11 - die Bustelegramme - wird nicht dafuer gehalten")
+pruefe(12 & anwendung.LOGMODUS_MQTT == anwendung.LOGMODUS_MQTT,
+       "Log-Modus 12 heisst: an MQTT senden")
+pruefe(8 & anwendung.LOGMODUS_MQTT == 0,
+       "Log-Modus 8 allein heisst es nicht")
+
 print("\n=== Was ausgeblendet werden darf ===")
 e = store.validate_einstellungen({"bsb_url": "http://x", "versteckte_kategorien": ["25", "26", "25"]})
 pruefe(e["versteckte_kategorien"] == ["25", "26"], "doppelt genannt zaehlt einmal")

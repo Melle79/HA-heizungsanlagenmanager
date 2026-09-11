@@ -1,5 +1,12 @@
 # Änderungen
 
+## 1.11.1
+
+- **Behoben: „BSB-LAN meldet nichts von sich aus“ – obwohl es meldete.** Ich
+  hatte die Optionsnummer der Weboberfläche mit der aus `/JL` verwechselt: Der
+  Log-Modus ist dort Option 53, die 11 sind die Bustelegramme. Eine Zahl
+  daneben, und die Auskunft war das Gegenteil der Wahrheit.
+
 ## 1.11.0
 
 - **Auch beim Trinkwasserprogramm steht jetzt, ob es gilt.** Es hängt nicht an

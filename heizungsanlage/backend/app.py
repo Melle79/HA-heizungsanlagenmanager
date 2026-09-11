@@ -351,11 +351,14 @@ def api_uebernahme_loesen(quelle):
 # Die Einträge aus /JL, auf die es ankommt. Der Schlüssel ist die Option-
 # nummer, die BSB-LAN selbst vergibt – der Index davor ist nicht stabil.
 BSBLAN_OPTIONEN = {
-    11: "logmodus", 13: "logintervall", 14: "logparameter",
+    53: "logmodus",       # nicht 11 – das sind die Bustelegramme
+    13: "logintervall", 14: "logparameter",
     36: "mqtt_broker", 39: "mqtt_praefix", 35: "mqtt_art", 59: "mqtt_discovery",
 }
-# Bit 4 im Log-Modus heißt „An MQTT-Broker senden“ (12 = 4 + 8, also senden
-# und nur die Log-Parameter).
+# Der Log-Modus ist ein Bitfeld, in der Reihenfolge der Häkchen auf der
+# Einstellungsseite: 1 = auf SD-Karte schreiben, 2 = 24-Stunden-Mittel,
+# 4 = an MQTT-Broker senden, 8 = nur die Log-Parameter, 16 = UDP. Svens 12
+# heißt also: senden, und zwar nur die Log-Parameter.
 LOGMODUS_MQTT = 4
 
 
