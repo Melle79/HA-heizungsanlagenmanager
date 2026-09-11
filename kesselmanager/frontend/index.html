@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kesselmanager</title>
+<style>
+  :root{
+    --bg:#10141a; --flaeche:#181d25; --flaeche2:#1e2530; --linie:#2b323d;
+    --text:#e9edf2; --leise:#8b95a4; --sehr-leise:#5f6875;
+    --warm:#e8a23d; --heiss:#ef8354; --kalt:#7aa2ff;
+    --ok:#4cc38a; --achtung:#e36d6d;
+    --l1:4px; --l2:8px; --l3:12px; --l4:16px; --l5:24px; --l6:36px;
+    --rund:10px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0}
+  body{background:var(--bg); color:var(--text);
+    font-family:"Avenir Next","Segoe UI",system-ui,sans-serif;
+    font-size:15px; line-height:1.55; min-height:100vh;
+    -webkit-font-smoothing:antialiased}
+
+  .kopf{display:flex; align-items:center; gap:var(--l4); flex-wrap:wrap;
+    padding:var(--l3) var(--l5); border-bottom:1px solid var(--linie);
+    background:var(--flaeche)}
+  .kopf .marke{display:flex; align-items:baseline; gap:var(--l2); flex:1; min-width:180px}
+  .kopf h1{font-size:1.05rem; font-weight:600}
+  .kopf .fassung{font-size:.72rem; color:var(--sehr-leise)}
+  .kopf-rechts{display:flex; align-items:center; gap:var(--l4); flex-wrap:wrap}
+  .punkt{width:8px; height:8px; border-radius:50%; background:var(--achtung); flex:none}
+  .punkt.ok{background:var(--ok)}
+  .zustand{display:flex; align-items:center; gap:var(--l1); font-size:.8rem; color:var(--leise)}
+
+  nav{display:flex; gap:var(--l1); padding:0 var(--l5); border-bottom:1px solid var(--linie);
+      overflow-x:auto; background:var(--flaeche)}
+  nav button{background:none; border:none; border-bottom:2px solid transparent;
+    color:var(--leise); padding:var(--l3) var(--l4); font-size:.9rem; font-weight:500;
+    cursor:pointer; white-space:nowrap; font-family:inherit}
+  nav button:hover{color:var(--text)}
+  nav button.an{color:var(--text); border-bottom-color:var(--warm)}
+
+  main{padding:var(--l5); max-width:1100px; margin:0 auto}
+  section{display:none} section.an{display:block}
+
+  .tafel{background:var(--flaeche); border:1px solid var(--linie);
+    border-radius:var(--rund); padding:var(--l4); margin-bottom:var(--l4)}
+  .tafel h2{font-size:.95rem; font-weight:600; margin-bottom:var(--l3)}
+  .tafel h3{font-size:.85rem; font-weight:600; color:var(--leise);
+    margin:var(--l4) 0 var(--l2)}
+  .notiz{font-size:.78rem; color:var(--leise); line-height:1.5}
+  .notiz + .notiz{margin-top:var(--l2)}
+
+  .kacheln{display:grid; gap:var(--l3);
+    grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}
+  .kachel{background:var(--flaeche2); border-radius:var(--rund); padding:var(--l3)}
+  .kachel .titel{font-size:.72rem; color:var(--leise); text-transform:uppercase;
+    letter-spacing:.04em}
+  .kachel .wert{font-size:1.45rem; font-weight:600; font-variant-numeric:tabular-nums;
+    margin-top:var(--l1)}
+  .kachel .wert small{font-size:.8rem; color:var(--leise); font-weight:400}
+  .kachel .zusatz{font-size:.72rem; color:var(--sehr-leise); margin-top:var(--l1)}
+
+  .felder{display:grid; gap:var(--l3);
+    grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}
+  .feld label{display:block; font-size:.78rem; color:var(--leise); margin-bottom:var(--l1)}
+  input,select,button{font-family:inherit; font-size:.88rem}
+  input[type=text],input[type=number],input[type=password],select{
+    width:100%; background:var(--flaeche2); color:var(--text);
+    border:1px solid var(--linie); border-radius:var(--rund);
+    padding:var(--l2) var(--l3)}
+  input:focus,select:focus{outline:none; border-color:var(--warm)}
+  button{background:var(--warm); color:#171105; border:none; border-radius:var(--rund);
+    padding:var(--l2) var(--l4); font-weight:600; cursor:pointer}
+  button:hover{filter:brightness(1.08)}
+  button.leise{background:var(--flaeche2); color:var(--text); border:1px solid var(--linie)}
+  button:disabled{opacity:.45; cursor:not-allowed; filter:none}
+  .zeile-aktionen{display:flex; gap:var(--l2); flex-wrap:wrap; align-items:center;
+    margin-top:var(--l3)}
+
+  table{width:100%; border-collapse:collapse; font-size:.85rem}
+  th{text-align:left; font-weight:600; color:var(--leise); font-size:.74rem;
+    text-transform:uppercase; letter-spacing:.04em; padding:var(--l2) var(--l2)}
+  td{padding:var(--l2); border-top:1px solid var(--linie);
+    vertical-align:middle}
+  td.nr{color:var(--sehr-leise); font-variant-numeric:tabular-nums; width:56px}
+  td.wert{font-variant-numeric:tabular-nums; white-space:nowrap; text-align:right}
+  td.kat{color:var(--leise); font-size:.78rem}
+  tr.aus td{opacity:.5}
+
+  .haken{display:flex; align-items:flex-start; gap:var(--l2); cursor:pointer;
+    padding:var(--l1) 0}
+  .haken input{margin-top:3px; accent-color:var(--warm)}
+  .marke-rw{font-size:.68rem; color:var(--warm); border:1px solid var(--warm);
+    border-radius:4px; padding:0 4px; margin-left:var(--l2)}
+
+  .hinweis{border-left:3px solid var(--warm); background:var(--flaeche2);
+    padding:var(--l3); border-radius:0 var(--rund) var(--rund) 0;
+    font-size:.82rem; margin-bottom:var(--l4)}
+  .hinweis.warn{border-left-color:var(--achtung)}
+  .meldung{font-size:.8rem; color:var(--achtung); margin-left:var(--l3)}
+  .meldung.gut{color:var(--ok)}
+  .balken{height:6px; border-radius:3px; background:var(--flaeche2); overflow:hidden;
+    margin-top:var(--l2)}
+  .balken div{height:100%; background:var(--warm); width:0; transition:width .3s}
+  .leer{color:var(--sehr-leise); font-size:.82rem; padding:var(--l4) 0}
+  @media(max-width:640px){ main{padding:var(--l3)} .kopf,nav{padding-left:var(--l3);
+    padding-right:var(--l3)} }
+</style>
+</head>
+<body>
+
+<header class="kopf">
+  <div class="marke">
+    <h1>Kesselmanager</h1>
+    <span class="fassung" id="fassung"></span>
+  </div>
+  <div class="kopf-rechts">
+    <span class="zustand"><span class="punkt" id="punkt-bsb"></span>
+      <span id="zustand-bsb">BSB-LAN</span></span>
+    <span class="zustand"><span class="punkt" id="punkt-mqtt"></span>
+      <span id="zustand-mqtt">MQTT</span></span>
+  </div>
+</header>
+
+<nav>
+  <button data-blatt="uebersicht" class="an">Übersicht</button>
+  <button data-blatt="werte">Werte</button>
+  <button data-blatt="auswahl">Auswahl</button>
+  <button data-blatt="steuerung">Steuerung</button>
+  <button data-blatt="einstellungen">Einstellungen</button>
+</nav>
+
+<main>
+
+<!-- ═══════════════════════════════════════════════ Übersicht ═══ -->
+<section id="uebersicht" class="an">
+  <div id="lage"></div>
+  <div class="tafel">
+    <h2>Die Anlage</h2>
+    <div class="kacheln" id="kacheln"></div>
+    <div class="notiz" id="uebersicht-fuss" style="margin-top:var(--l3)"></div>
+  </div>
+  <div class="tafel">
+    <h2>Am Bus</h2>
+    <table><tbody id="geraete"></tbody></table>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════ Werte ═══ -->
+<section id="werte">
+  <div class="tafel">
+    <h2>Was nach Home Assistant geht</h2>
+    <div class="notiz">Jeder Eintrag hier ist eine Entität. Der Name in Klammern
+      ist die Parameternummer in der Regelung – sie bleibt gleich, auch wenn du
+      die Anzeige umbenennst.</div>
+    <table>
+      <thead><tr><th>Nr</th><th>Name</th><th>Kategorie</th><th style="text-align:right">Wert</th></tr></thead>
+      <tbody id="wertetabelle"></tbody>
+    </table>
+    <div class="zeile-aktionen">
+      <button id="btn-lesen">Jetzt lesen</button>
+      <span class="notiz" id="werte-stand"></span>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════════════════════════════════════════════ Auswahl ═══ -->
+<section id="auswahl">
+  <div class="hinweis" id="katalog-hinweis"></div>
+  <div class="tafel">
+    <h2>Parameter auswählen</h2>
+    <div class="notiz">Angehakt heißt: Der Wert wird regelmäßig gelesen und als
+      Entität nach Home Assistant gemeldet. Einheit und Geräteklasse schlägt
+      der Manager aus dem Datentyp vor – Betriebsstunden und Zählerstände
+      bekommen automatisch eine Langzeitstatistik.</div>
+    <div class="felder" style="margin-top:var(--l3)">
+      <div class="feld"><label>Suche</label>
+        <input type="text" id="such" placeholder="Name oder Nummer …"></div>
+      <div class="feld"><label>Kategorie</label>
+        <select id="kat-filter"><option value="">alle</option></select></div>
+      <div class="feld"><label>Filter</label>
+        <select id="rw-filter">
+          <option value="">alle Parameter</option>
+          <option value="1">nur schreibbare</option>
+          <option value="a">nur ausgewählte</option>
+        </select></div>
+    </div>
+    <div class="zeile-aktionen">
+      <button id="btn-speichern-auswahl">Auswahl speichern</button>
+      <button class="leise" id="btn-vorschlag">Sinnvolle Auswahl vorschlagen</button>
+      <span class="notiz" id="auswahl-zahl"></span>
+      <span class="meldung" id="m-auswahl"></span>
+    </div>
+  </div>
+  <div class="tafel">
+    <table>
+      <thead><tr><th style="width:34px"></th><th>Nr</th><th>Name</th>
+        <th>Kategorie</th><th>Einheit</th></tr></thead>
+      <tbody id="katalogtabelle"></tbody>
+    </table>
+    <div class="leer" id="katalog-leer" hidden>Keine Treffer.</div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════ Steuerung ═══ -->
+<section id="steuerung">
+  <div class="hinweis warn" id="schreib-hinweis"></div>
+  <div class="tafel">
+    <h2>Sollwerte stellen</h2>
+    <div class="notiz">Nur Parameter, welche die Regelung selbst als
+      beschreibbar meldet. Jede Änderung geht unmittelbar an die Heizung –
+      es gibt kein Rückgängig.</div>
+    <div class="felder" style="margin-top:var(--l3)">
+      <div class="feld"><label>Suche</label>
+        <input type="text" id="such-st" placeholder="Name oder Nummer …"></div>
+      <div class="feld"><label>Kategorie</label>
+        <select id="kat-st"><option value="">alle</option></select></div>
+    </div>
+    <span class="meldung" id="m-steuerung"></span>
+  </div>
+  <div class="tafel">
+    <table>
+      <thead><tr><th>Nr</th><th>Name</th><th style="text-align:right">Wert</th>
+        <th style="width:190px">Neu</th></tr></thead>
+      <tbody id="steuertabelle"></tbody>
+    </table>
+    <div class="leer" id="steuer-leer" hidden>Keine Treffer.</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════ Einstellungen ═══ -->
+<section id="einstellungen">
+  <div class="tafel">
+    <h2>Verbindung zu BSB-LAN</h2>
+    <div class="felder">
+      <div class="feld"><label>Adresse</label>
+        <input type="text" id="e-url" placeholder="http://192.168.0.170"></div>
+      <div class="feld"><label>Passkey (falls gesetzt)</label>
+        <input type="text" id="e-passkey"></div>
+      <div class="feld"><label>Abfrageintervall (Sekunden)</label>
+        <input type="number" id="e-intervall" min="30" max="3600" step="10">
+        <div class="notiz">Eine Heizung ist träge – fünf Minuten reichen.
+          Jede Abfrage belegt den Bus.</div></div>
+      <div class="feld"><label>MQTT-Präfix</label>
+        <input type="text" id="e-praefix"></div>
+    </div>
+  </div>
+
+  <div class="tafel">
+    <h2>Schreibzugriff</h2>
+    <label class="haken"><input type="checkbox" id="e-schreiben">
+      <span>Stellen von Parametern erlauben</span></label>
+    <div class="notiz">Zwei Schalter müssen dafür stehen: dieser und der in
+      BSB-LAN selbst. Beide sind ab Werk aus, und das mit Absicht – ein
+      falscher Sollwert lässt im Winter eine Wohnung auskühlen.</div>
+    <div class="zeile-aktionen">
+      <button id="btn-speichern-einst">Einstellungen speichern</button>
+      <span class="meldung" id="m-einst"></span>
+    </div>
+  </div>
+
+  <div class="tafel">
+    <h2>Parameterkatalog</h2>
+    <div class="notiz" id="katalog-stand"></div>
+    <div class="notiz">Der Katalog kommt aus BSB-LAN und enthält genau die
+      Parameter, die deine Regelung kennt – also das, was in der angepassten
+      Parameterliste steckt. Neu einlesen musst du ihn nur, wenn du die
+      Firmware mit einer neuen Liste geflasht hast. Es dauert ein bis zwei
+      Minuten, weil jede Kategorie einzeln über den Bus geht.</div>
+    <div class="balken" id="katalog-balken" hidden><div></div></div>
+    <div class="zeile-aktionen">
+      <button class="leise" id="btn-katalog">Katalog neu einlesen</button>
+      <span class="notiz" id="katalog-fortschritt"></span>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<script>
+const API = '';
+const $ = (id) => document.getElementById(id);
+
+let katalog = {kategorien:{}, anzahl:0};
+let parameterListe = [];
+let auswahl = [];
+let auswahlNr = new Set();
+let werte = {};
+let status = {};
+
+async function hole(pfad, optionen) {
+  const antwort = await fetch(API + pfad, {cache:'no-store', ...(optionen||{})});
+  const text = await antwort.text();
+  const daten = text ? JSON.parse(text) : null;
+  if (!antwort.ok) throw new Error((daten && daten.fehler) || 'Fehler ' + antwort.status);
+  return daten;
+}
+const sendeJSON = (pfad, methode, koerper) => hole(pfad, {
+  method: methode, headers:{'Content-Type':'application/json'},
+  body: JSON.stringify(koerper)});
+
+function meldung(id, text, gut) {
+  const feld = $(id); if (!feld) return;
+  feld.textContent = text || '';
+  feld.className = 'meldung' + (gut ? ' gut' : '');
+  if (text) setTimeout(() => { if (feld.textContent === text) feld.textContent = ''; }, 6000);
+}
+const zeit = (iso) => iso ? new Date(iso).toLocaleString('de-DE',
+  {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'}) : '–';
+
+// ────────────────────────────────────────────────────── Reiter ──
+document.querySelectorAll('nav button[data-blatt]').forEach(knopf => {
+  knopf.onclick = () => {
+    document.querySelectorAll('nav button').forEach(b => b.classList.remove('an'));
+    document.querySelectorAll('main > section').forEach(s => s.classList.remove('an'));
+    knopf.classList.add('an');
+    $(knopf.dataset.blatt).classList.add('an');
+    window.scrollTo(0, 0);
+    if (knopf.dataset.blatt === 'auswahl') katalogZeichnen();
+    if (knopf.dataset.blatt === 'steuerung') steuerungZeichnen();
+    if (knopf.dataset.blatt === 'werte') werteZeichnen();
+  };
+});
+
+// ─────────────────────────────────────────────────── Übersicht ──
+const KACHELN = [
+  {nr:'115', titel:'Kessel'},      {nr:'116', titel:'Vorlauf'},
+  {nr:'110', titel:'Außen'},       {nr:'111', titel:'Außen gedämpft'},
+  {nr:'72',  titel:'Betriebsstunden'}, {nr:'73', titel:'Brennerstarts'},
+];
+
+function uebersichtZeichnen() {
+  const lage = $('lage');
+  if (!status.verbunden) {
+    lage.innerHTML = `<div class="hinweis warn"><b>Keine Verbindung zu BSB-LAN.</b>
+      ${status.bsb_fehler || ''}<br>Adresse prüfen unter „Einstellungen“.</div>`;
+  } else if (!status.ausgewaehlt) {
+    lage.innerHTML = `<div class="hinweis">Verbunden – aber es ist noch nichts
+      ausgewählt. Unter <b>Auswahl</b> bestimmst du, welche Werte nach Home
+      Assistant gehen.</div>`;
+  } else { lage.innerHTML = ''; }
+
+  const k = $('kacheln'); k.innerHTML = '';
+  KACHELN.forEach(def => {
+    const w = werte[def.nr];
+    const el = document.createElement('div');
+    el.className = 'kachel';
+    const roh = w && w.value !== null && w.value !== '' ? w.value : null;
+    el.innerHTML = `<div class="titel">${def.titel}</div>
+      <div class="wert">${roh === null ? '–' : roh}
+        <small>${(w && w.unit) || ''}</small></div>
+      <div class="zusatz">${auswahlNr.has(def.nr) ? 'Parameter ' + def.nr
+        : 'nicht ausgewählt'}</div>`;
+    k.appendChild(el);
+  });
+
+  const b = status.bsb || {};
+  $('uebersicht-fuss').textContent = status.verbunden
+    ? `BSB-LAN ${b.version || ''} · Bus ${b.bus || '?'} · `
+      + `Adresse ${b.busaddr} → ${b.busdest} · `
+      + `Schreibzugriff in BSB-LAN ${b.buswritable ? 'frei' : 'gesperrt'}`
+    : '';
+
+  const g = $('geraete'); g.innerHTML = '';
+  ((status.bsb || {}).geraete || []).forEach(d => {
+    const zeile = document.createElement('tr');
+    zeile.innerHTML = `<td><b>${d.dev_name || '?'}</b></td>
+      <td class="kat">Adresse ${d.dev_id} · Familie ${d.dev_fam}
+        · Variante ${d.dev_var}</td>`;
+    g.appendChild(zeile);
+  });
+  if (!g.children.length) g.innerHTML = '<tr><td class="kat">Noch nichts gefunden</td></tr>';
+}
+
+// ─────────────────────────────────────────────────────── Werte ──
+function werteZeichnen() {
+  const koerper = $('wertetabelle'); koerper.innerHTML = '';
+  auswahl.forEach(e => {
+    const w = werte[e.nr] || {};
+    const zeile = document.createElement('tr');
+    const roh = w.value !== undefined && w.value !== null && w.value !== ''
+      ? w.value : '–';
+    zeile.innerHTML = `<td class="nr">${e.nr}</td>
+      <td>${e.anzeige || e.name}</td>
+      <td class="kat">${w.desc || ''}</td>
+      <td class="wert">${roh} ${e.einheit || w.unit || ''}</td>`;
+    koerper.appendChild(zeile);
+  });
+  if (!koerper.children.length) {
+    koerper.innerHTML = '<tr><td class="kat" colspan="4">Noch nichts ausgewählt.</td></tr>';
+  }
+  $('werte-stand').textContent = 'Zuletzt gelesen: ' + zeit(status.letzter_lauf);
+}
+
+$('btn-lesen').onclick = async () => {
+  const knopf = $('btn-lesen'); knopf.disabled = true;
+  knopf.textContent = 'liest …';
+  try { const d = await hole('/api/lesen', {method:'POST'});
+        werte = d.werte || werte; await statusLaden(); werteZeichnen(); }
+  catch (err) { meldung('werte-stand', err.message); }
+  finally { knopf.disabled = false; knopf.textContent = 'Jetzt lesen'; }
+};
+
+// ───────────────────────────────────────────────────── Auswahl ──
+function kategorienFuellen(select) {
+  const vorher = select.value;
+  select.innerHTML = '<option value="">alle</option>';
+  Object.entries(katalog.kategorien || {})
+    .sort((a, b) => parseFloat(a[0]) - parseFloat(b[0]))
+    .forEach(([id, k]) => {
+      const o = document.createElement('option');
+      o.value = id; o.textContent = k.name;
+      select.appendChild(o);
+    });
+  select.value = vorher;
+}
+
+async function katalogLaden() {
+  katalog = await hole('/api/katalog');
+  kategorienFuellen($('kat-filter'));
+  kategorienFuellen($('kat-st'));
+  $('katalog-stand').textContent = katalog.anzahl
+    ? `${katalog.anzahl} Parameter, eingelesen am ${zeit(katalog.gebaut_am)}`
+    : 'Noch kein Katalog eingelesen.';
+  $('katalog-hinweis').innerHTML = katalog.anzahl
+    ? `<b>${katalog.anzahl} Parameter</b> kennt deine Regelung.
+       ${auswahl.length} davon gehen nach Home Assistant.`
+    : `<b>Noch kein Katalog.</b> Lies ihn unter „Einstellungen“ einmal ein –
+       danach steht hier die Liste deiner Regelung.`;
+}
+
+async function katalogZeichnen() {
+  const nurAusgewaehlt = $('rw-filter').value === 'a';
+  const args = new URLSearchParams({
+    q: $('such').value,
+    kat: $('kat-filter').value,
+    rw: $('rw-filter').value === '1' ? '1' : '',
+  });
+  const d = await hole('/api/katalog/suche?' + args);
+  parameterListe = d.parameter || [];
+  const liste = nurAusgewaehlt
+    ? parameterListe.filter(p => auswahlNr.has(p.nr)) : parameterListe;
+
+  const koerper = $('katalogtabelle'); koerper.innerHTML = '';
+  liste.forEach(p => {
+    const zeile = document.createElement('tr');
+    if (!auswahlNr.has(p.nr)) zeile.className = 'aus';
+    zeile.innerHTML = `
+      <td><input type="checkbox" data-nr="${p.nr}"
+          ${auswahlNr.has(p.nr) ? 'checked' : ''}></td>
+      <td class="nr">${p.nr}</td>
+      <td>${p.name}${p.schreibbar ? '<span class="marke-rw">stellbar</span>' : ''}
+        <div class="notiz">${[p.device_class, p.state_class].filter(Boolean).join(' · ') || ''}</div></td>
+      <td class="kat">${p.kategorie_name}</td>
+      <td class="kat">${p.unit || ''}</td>`;
+    zeile.querySelector('input').onchange = (ev) => {
+      const nr = ev.target.dataset.nr;
+      if (ev.target.checked) { auswahlNr.add(nr); zeile.classList.remove('aus'); }
+      else { auswahlNr.delete(nr); zeile.classList.add('aus'); }
+      $('auswahl-zahl').textContent = `${auswahlNr.size} ausgewählt`;
+    };
+    koerper.appendChild(zeile);
+  });
+  $('katalog-leer').hidden = liste.length > 0;
+  $('auswahl-zahl').textContent = `${auswahlNr.size} ausgewählt`;
+}
+
+['such','kat-filter','rw-filter'].forEach(id => {
+  const el = $(id);
+  el.oninput = el.onchange = () => katalogZeichnen();
+});
+
+$('btn-vorschlag').onclick = () => {
+  // Was man bei einer Ölheizung eigentlich immer sehen will: Temperaturen,
+  // Betriebsstunden, Starts, Störung. Der Rest ist Geschmackssache.
+  const wunsch = ['110','111','115','116','72','73','71','8','50','51','55','70'];
+  wunsch.forEach(nr => { if ((katalog.kategorien) && nr) auswahlNr.add(nr); });
+  katalogZeichnen();
+  meldung('m-auswahl', 'Vorschlag übernommen – noch nicht gespeichert', true);
+};
+
+$('btn-speichern-auswahl').onclick = async () => {
+  const nachKatalog = {};
+  parameterListe.forEach(p => nachKatalog[p.nr] = p);
+  auswahl.forEach(a => { if (!nachKatalog[a.nr]) nachKatalog[a.nr] = a; });
+  const koerper = [...auswahlNr].map(nr => {
+    const p = nachKatalog[nr] || {};
+    const alt = auswahl.find(a => a.nr === nr) || {};
+    return {nr, name: p.name || alt.name || ('Parameter ' + nr),
+            anzeige: alt.anzeige || '',
+            einheit: p.unit !== undefined ? p.unit : (alt.einheit || ''),
+            device_class: p.device_class !== undefined ? p.device_class : (alt.device_class||''),
+            state_class: p.state_class !== undefined ? p.state_class : (alt.state_class||'')};
+  });
+  try {
+    auswahl = await sendeJSON('/api/auswahl', 'PUT', koerper);
+    auswahlNr = new Set(auswahl.map(a => a.nr));
+    meldung('m-auswahl', `${auswahl.length} Parameter gespeichert`, true);
+    await statusLaden();
+  } catch (err) { meldung('m-auswahl', err.message); }
+};
+
+// ─────────────────────────────────────────────────── Steuerung ──
+async function steuerungZeichnen() {
+  const frei = status.schreiben_erlaubt && (status.bsb || {}).buswritable;
+  $('schreib-hinweis').innerHTML = frei
+    ? '<b>Stellen ist freigegeben.</b> Änderungen gehen unmittelbar an die Heizung.'
+    : `<b>Stellen ist gesperrt.</b> Dafür müssen zwei Schalter stehen:
+       in BSB-LAN selbst (dort steht er auf
+       <i>${(status.bsb||{}).buswritable ? 'frei' : 'nur lesen'}</i>) und hier
+       unter „Einstellungen“ (dort: <i>${status.schreiben_erlaubt ? 'erlaubt' : 'gesperrt'}</i>).`;
+  $('schreib-hinweis').className = frei ? 'hinweis' : 'hinweis warn';
+
+  const args = new URLSearchParams({q: $('such-st').value,
+                                    kat: $('kat-st').value, rw: '1'});
+  const d = await hole('/api/katalog/suche?' + args);
+  const koerper = $('steuertabelle'); koerper.innerHTML = '';
+  (d.parameter || []).forEach(p => {
+    const w = werte[p.nr] || {};
+    const zeile = document.createElement('tr');
+    const jetzt = w.value !== undefined && w.value !== null && w.value !== ''
+      ? `${w.value} ${w.unit || ''}` : '–';
+    const eingabe = (p.possibleValues && p.possibleValues.length)
+      ? `<select data-nr="${p.nr}">` + p.possibleValues.map(v =>
+          `<option value="${v.enumValue}">${v.desc}</option>`).join('') + '</select>'
+      : `<input type="text" data-nr="${p.nr}" placeholder="${p.unit || ''}">`;
+    zeile.innerHTML = `<td class="nr">${p.nr}</td>
+      <td>${p.name}<div class="notiz">${p.kategorie_name}</div></td>
+      <td class="wert">${jetzt}</td>
+      <td><div style="display:flex; gap:var(--l1)">${eingabe}
+        <button class="leise" data-setzen="${p.nr}" ${frei ? '' : 'disabled'}>→</button>
+      </div></td>`;
+    zeile.querySelector('button[data-setzen]').onclick = async (ev) => {
+      const nr = ev.target.dataset.setzen;
+      const feld = zeile.querySelector(`[data-nr="${nr}"]`);
+      const wert = feld.value;
+      if (wert === '') return meldung('m-steuerung', 'Erst einen Wert eingeben');
+      if (!confirm(`Parameter ${nr} „${p.name}“ auf ${wert} stellen?\n\n`
+                 + `Das geht unmittelbar an die Heizung.`)) return;
+      ev.target.disabled = true;
+      try {
+        await sendeJSON('/api/setzen', 'POST', {nr, wert});
+        meldung('m-steuerung', `Parameter ${nr} gestellt`, true);
+        setTimeout(async () => { await werteLaden(); steuerungZeichnen(); }, 1500);
+      } catch (err) { meldung('m-steuerung', err.message); }
+      finally { ev.target.disabled = false; }
+    };
+    koerper.appendChild(zeile);
+  });
+  $('steuer-leer').hidden = (d.parameter || []).length > 0;
+}
+['such-st','kat-st'].forEach(id => {
+  const el = $(id); el.oninput = el.onchange = () => steuerungZeichnen();
+});
+
+// ───────────────────────────────────────────────── Einstellungen ──
+function einstellungenZeichnen(e) {
+  $('e-url').value = e.bsb_url; $('e-passkey').value = e.passkey;
+  $('e-intervall').value = e.intervall_s; $('e-praefix').value = e.praefix;
+  $('e-schreiben').checked = e.schreiben_erlaubt;
+}
+
+$('btn-speichern-einst').onclick = async () => {
+  try {
+    const e = await sendeJSON('/api/einstellungen', 'PUT', {
+      bsb_url: $('e-url').value, passkey: $('e-passkey').value,
+      intervall_s: parseInt($('e-intervall').value, 10),
+      praefix: $('e-praefix').value,
+      schreiben_erlaubt: $('e-schreiben').checked});
+    einstellungenZeichnen(e);
+    meldung('m-einst', 'Gespeichert', true);
+    await statusLaden();
+  } catch (err) { meldung('m-einst', err.message); }
+};
+
+$('btn-katalog').onclick = async () => {
+  try { await hole('/api/katalog/aufbauen', {method:'POST'}); katalogLauf(); }
+  catch (err) { meldung('m-einst', err.message); }
+};
+
+async function katalogLauf() {
+  const s = await hole('/api/status');
+  const lauf = s.katalog_lauf || {};
+  $('katalog-balken').hidden = !lauf.laeuft;
+  $('btn-katalog').disabled = !!lauf.laeuft;
+  if (lauf.laeuft) {
+    const anteil = lauf.gesamt ? Math.round(lauf.schritt / lauf.gesamt * 100) : 0;
+    $('katalog-balken').firstElementChild.style.width = anteil + '%';
+    $('katalog-fortschritt').textContent =
+      `${lauf.schritt} von ${lauf.gesamt} – ${lauf.name}`;
+    setTimeout(katalogLauf, 1200);
+  } else {
+    $('katalog-fortschritt').textContent = lauf.fehler || '';
+    await katalogLaden();
+  }
+}
+
+// ───────────────────────────────────────────────────── Anlauf ──
+async function statusLaden() {
+  status = await hole('/api/status');
+  $('fassung').textContent = 'v' + (status.version || '');
+  $('punkt-bsb').className = 'punkt' + (status.verbunden ? ' ok' : '');
+  $('zustand-bsb').textContent = status.verbunden ? 'BSB-LAN verbunden' : 'BSB-LAN fehlt';
+  $('punkt-mqtt').className = 'punkt' + (status.mqtt ? ' ok' : '');
+  $('zustand-mqtt').textContent = status.mqtt ? 'MQTT verbunden' : 'kein MQTT';
+  uebersichtZeichnen();
+}
+
+async function werteLaden() {
+  const d = await hole('/api/werte');
+  werte = d.werte || {};
+}
+
+async function anlauf() {
+  const e = await hole('/api/einstellungen');
+  einstellungenZeichnen(e);
+  auswahl = await hole('/api/auswahl');
+  auswahlNr = new Set(auswahl.map(a => a.nr));
+  await werteLaden();
+  await katalogLaden();
+  await statusLaden();
+  katalogLauf();
+  setInterval(async () => { await werteLaden(); await statusLaden();
+    if ($('werte').classList.contains('an')) werteZeichnen(); }, 30000);
+}
+anlauf();
+</script>
+</body>
+</html>

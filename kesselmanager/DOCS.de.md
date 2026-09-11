@@ -1,0 +1,90 @@
+# Kesselmanager
+
+Der Kesselmanager bringt die Heizungsregelung nach Home Assistant – über
+[BSB-LAN](https://github.com/fredlcore/BSB-LAN), einen kleinen ESP32 am Bus
+des Reglers.
+
+Er tut drei Dinge:
+
+* **Auswählen.** Aus allen Parametern, die deine Regelung kennt, hakst du die
+  an, die dich interessieren. Nur diese werden gelesen und als Entitäten
+  gemeldet.
+* **Lesen.** In einem einstellbaren Takt, schonend für den Bus, und mit
+  passender Geräteklasse für Home Assistant.
+* **Stellen.** Sollwerte und Betriebsarten ändern – hinter zwei Schaltern, die
+  beide ab Werk aus sind.
+
+## Voraussetzungen
+
+Ein laufendes BSB-LAN im selben Netz und ein MQTT-Broker in Home Assistant.
+Beides wird beim Start geprüft; fehlt der Broker, läuft die Oberfläche
+trotzdem, es entstehen nur keine Entitäten.
+
+## Der Parameterkatalog
+
+Welche Parameter eine Regelung kennt, hängt am Gerät. Bei Siemens-Reglern –
+und damit bei Weishaupt, Brötje, Elco und vielen anderen – unterscheidet sich
+das sogar zwischen Gerätefamilien. Deshalb gibt es die **angepasste
+Parameterliste**, die der BSB-LAN-Entwickler aus den Rohdaten einer Anlage
+baut und die als `BSB_LAN_custom_defs.h` in die Firmware kommt.
+
+Der Kesselmanager liest diese Liste nicht aus der Datei, sondern **aus BSB-LAN
+selbst**. Das ist robuster: Was BSB-LAN ausliefert, ist per Definition das, was
+auch tatsächlich geflasht ist. Aus „Parameter 72“ wird so
+„Gerätebetriebsstunden“.
+
+Einlesen musst du den Katalog einmal – und danach nur noch, wenn du die
+Firmware mit einer neuen Liste geflasht hast. Es dauert ein bis zwei Minuten,
+weil jede Kategorie einzeln über den Bus geht.
+
+## Auswahl: was nach Home Assistant geht
+
+Jeder angehakte Parameter wird ein Sensor. Einheit und Geräteklasse schlägt
+der Manager aus dem Datentyp vor:
+
+| erkannt an | Geräteklasse | Verlauf |
+|---|---|---|
+| °C, °F, K | `temperature` | `measurement` |
+| bar | `pressure` | `measurement` |
+| kW / kWh | `power` / `energy` | `measurement` / `total_increasing` |
+| h, min, s | `duration` | `measurement` |
+| „Betriebsstunden“, „Starts“, „Verbrauch“ im Namen | – | **`total_increasing`** |
+| Aufzählungen, Datum, Uhrzeit | keine | keine |
+
+Die letzte Zeile mit den Zählerständen ist die wichtigste: Aus einem Wert, der
+nur wächst, baut Home Assistant von selbst eine **Langzeitstatistik** mit
+Tages-, Monats- und Jahreswerten. Wer eine Zeitreihendatenbank an Home
+Assistant hängt, bekommt den Verlauf dort ohne weiteres Zutun.
+
+Die Entität hängt an der **Parameternummer**, nicht am Namen. Wer die Anzeige
+umbenennt, behält also seine Historie.
+
+## Stellen: die zwei Schalter
+
+Ein falscher Sollwert lässt im Winter eine Wohnung auskühlen. Deshalb müssen
+zum Stellen **zwei** Schalter stehen:
+
+1. in **BSB-LAN** selbst (dort heißt es `buswritable`),
+2. unter *Einstellungen → Schreibzugriff* in diesem Add-on.
+
+Beide sind ab Werk aus. Der Reiter *Steuerung* zeigt jederzeit, welcher von
+beiden noch fehlt. Zusätzlich nimmt der Manager nur Parameter an, die die
+Regelung selbst als beschreibbar meldet, und fragt vor jeder Änderung nach.
+
+## Der Bus ist langsam
+
+Jede Abfrage ist ein Telegramm auf einem Zweidrahtbus, und die Regelung
+antwortet in ihrem eigenen Takt. Der Manager fragt deshalb in Bündeln zu zwölf
+Parametern mit kurzen Pausen dazwischen. Ein Aussetzer in einem Bündel kostet
+nur dieses Bündel, nicht die ganze Runde.
+
+Fünf Minuten Abfrageintervall sind für eine Heizung reichlich – ihre Trägheit
+misst sich in Stunden.
+
+## Zusammenspiel mit dem Heizungsplaner
+
+Die Entitäten sind gewöhnliche Sensoren und lassen sich überall verwenden. Im
+[Heizungsplaner](https://github.com/Melle79/HA-heizungsplaner-heating-planner)
+gehört vor allem einer hinein: der **Betriebsstundenzähler**. Trägst du ihn
+dort unter *Öltank → Laufzeitzähler* ein, rechnet der Planer daraus Verbrauch,
+Reichweite und Kosten.
