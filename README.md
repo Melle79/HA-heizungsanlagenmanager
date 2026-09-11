@@ -29,6 +29,18 @@ Alles Weitere steht in der [Dokumentation](kesselmanager/DOCS.de.md)
 * Sollwerte stellen – hinter zwei Schaltern, beide ab Werk aus
 * Schonender Umgang mit dem Bus: Bündel statt Einzelabfragen, Pausen dazwischen
 
+## Selber daran arbeiten
+
+Die Prüfungen laufen ohne Heizung und ohne Home Assistant – BSB-LAN ist darin
+gefälscht:
+
+```sh
+./pruefen.sh
+```
+
+Beim ersten Aufruf legt das Skript sich eine eigene Python-Umgebung unter
+`.venv/` an und holt sich, was im Add-on das Dockerfile besorgt.
+
 ## Lizenz
 
 MIT
