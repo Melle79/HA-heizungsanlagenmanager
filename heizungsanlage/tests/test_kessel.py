@@ -716,6 +716,8 @@ KONFIG = {
   "40": {"parameter": 40, "category": "MQTT", "name": "Geraete-ID", "value": ""},
   "41": {"parameter": 39, "category": "MQTT", "name": "Topic", "value": "ALT"},
   "42": {"parameter": 59, "category": "MQTT", "name": "Discovery", "value": "0"},
+  "43": {"parameter": 35, "category": "MQTT", "name": "Verwenden", "value": "1"},
+  "44": {"parameter": 58, "category": "MQTT", "name": "Einheiten", "value": "0"},
 }
 GERAET = {"konfig": json.loads(json.dumps(KONFIG)), "geschrieben": [], "befehle": []}
 
@@ -753,6 +755,13 @@ store.save_config({"einstellungen": dict(store.standard_einstellungen(),
                                          bsblan_intervall_s=60),
                    "auswahl": [{"nr": "50", "name": "X"}, {"nr": "72", "name": "Y"}]})
 
+# Der Fehler, der zweimal passiert ist: Ein Name, den das Einrichten setzen
+# will, fehlt in der Optionszuordnung - und wird stillschweigend uebersprungen.
+# Erst traf es Benutzer und Passwort, dann die Einheiten.
+bekannt = set(anwendung.BSBLAN_OPTIONEN.values())
+fehlend = [n for n in anwendung.BSBLAN_SOLL_NAMEN if n not in bekannt]
+pruefe(not fehlend, f"jede Einstellung hat eine Optionsnummer (fehlt: {fehlend})")
+
 antwort = kunde.post("/api/bsblan/einrichten").get_json()
 pruefe(antwort.get("offen") == [], f"alles kam an: {antwort}")
 pruefe(GERAET["konfig"]["37"]["value"] == "kern-mosquitto:1883",
@@ -760,6 +769,8 @@ pruefe(GERAET["konfig"]["37"]["value"] == "kern-mosquitto:1883",
 pruefe(GERAET["konfig"]["41"]["value"] == "HEIZUNG", "das Praefix aus den Einstellungen")
 pruefe(GERAET["konfig"]["42"]["value"] == "1", "Auto-Discovery wird eingeschaltet")
 pruefe(GERAET["konfig"]["33"]["value"] == "60", "und das Intervall gesetzt")
+pruefe(GERAET["konfig"]["44"]["value"] == "1",
+       "die Einheiten werden auf die von Home Assistant gestellt")
 # 1 = auf SD-Karte schreiben. Das darf das Einrichten nicht abschalten.
 pruefe(int(GERAET["konfig"]["32"]["value"]) & 1 == 1,
        "was das Geraet sonst tut, bleibt unangetastet")

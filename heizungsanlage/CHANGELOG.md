@@ -1,5 +1,14 @@
 # Änderungen
 
+## 1.14.1
+
+- **Behoben: Die Einheiten-Einstellung wurde nie an BSB-LAN geschrieben** und
+  in der Lagemeldung stand immer „nicht für Home Assistant“. Der Optionsnummer
+  58 fehlte der Eintrag in der Zuordnung – derselbe Fehler wie zuvor bei
+  Benutzer und Passwort: Was dort nicht steht, wird stillschweigend
+  übersprungen. Jetzt prüft ein Test, dass jede Einstellung, die das
+  Einrichten setzen will, auch eine Optionsnummer hat.
+
 ## 1.14.0
 
 - **Aus drei Reitern wird einer: „Home Assistant“.** *Werte*, *Auswahl* und

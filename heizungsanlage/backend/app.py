@@ -377,8 +377,15 @@ BSBLAN_OPTIONEN = {
     13: "logintervall", 14: "logparameter",
     36: "mqtt_broker", 37: "mqtt_user", 38: "mqtt_passwort",
     39: "mqtt_praefix", 40: "mqtt_geraete_id",
-    35: "mqtt_art", 59: "mqtt_discovery",
+    35: "mqtt_art", 58: "mqtt_einheiten", 59: "mqtt_discovery",
 }
+# Jeder Name, den das Einrichten setzen will, muss hier oben vorkommen – sonst
+# wird er stillschweigend übersprungen. Zweimal ist mir genau das passiert:
+# erst bei den Zugangsdaten, dann bei den Einheiten. Eine Prüfung wacht
+# seitdem darüber.
+BSBLAN_SOLL_NAMEN = ("mqtt_broker", "mqtt_user", "mqtt_passwort", "mqtt_praefix",
+                     "mqtt_geraete_id", "mqtt_art", "mqtt_einheiten",
+                     "mqtt_discovery", "logintervall", "logmodus")
 # Was aus dieser Liste die Oberfläche nie zu sehen bekommt. Die Zugangsdaten
 # müssen durchgereicht werden, damit BSB-LAN den Broker erreicht – gezeigt
 # oder zurückgemeldet werden sie nicht.
