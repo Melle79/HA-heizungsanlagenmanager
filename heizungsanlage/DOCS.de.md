@@ -32,7 +32,7 @@ Was der Manager **nicht** leisten kann, ist mehr zu wissen als BSB-LAN: Führt
 deine Firmware einen Parameter nicht, gibt es ihn hier auch nicht. Und ob
 sich ein Wert stellen lässt, entscheidet am Ende die Regelung selbst.
 
-## Zusammenspiel mit dem Heizungsplaner
+## Übernahme durch andere Add-ons
 
 Der Heizungsplaner soll Sollwerte und Schaltzeiten übernehmen können, ohne
 dass hier jemand dagegenarbeitet. Dafür gibt es eine kleine Schnittstelle –
@@ -92,6 +92,28 @@ DELETE /api/uebernahme/heizungsplaner → hebt die Übernahme auf
 Hebt jemand die Übernahme in der Oberfläche auf, erfährt der Planer das beim
 nächsten `GET`. Er sollte sie dann **nicht** stillschweigend neu anmelden –
 sonst ist der Knopf eine Attrappe.
+
+## Gemerkte Werte
+
+Eine Kategorie über den Bus zu lesen dauert ein paar Sekunden – 4800 Baud, und
+die Regelung antwortet in ihrem Takt. Wer nur nachsehen will, wie der
+Komfortsollwert steht, wartet jedes Mal aufs Neue.
+
+Der Manager merkt sich deshalb, was er zuletzt gelesen hat. Steht unter
+*Einstellungen → Anzeige* der Haken **„Zuletzt gelesene Werte beim Öffnen
+sofort zeigen“**, erscheint die Tabelle ohne Wartezeit, mit dem Alter daneben –
+„vor 7 Minuten gelesen · wird aufgefrischt …“ –, und der frische Stand kommt im
+Hintergrund nach.
+
+Ab Werk ist der Haken **aus**, und das hat einen Grund: Wer seine Anlage auch
+am Gerät auf dem Kessel verstellt, sähe für diese paar Sekunden den alten Wert.
+Läuft alles über Home Assistant, kann das nicht passieren.
+
+Zwei Dinge gelten auch mit Haken:
+
+* Eine Zahl, die gerade getippt wird, überlebt das Auffrischen – samt Cursor.
+* In den Zeitprogrammen werden nur die Tage aufgefrischt, die niemand
+  angefasst hat. Geänderte Zeiten gehen nicht verloren.
 
 ## Der Parameterkatalog
 

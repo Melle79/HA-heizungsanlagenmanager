@@ -31,7 +31,7 @@ What it cannot do is know more than BSB-LAN: if your firmware does not carry a
 parameter, it does not exist here either. And whether a value can be set is
 decided by the controller itself.
 
-## Working together with the Heizungsplaner
+## Takeover by other add-ons
 
 Another add-on can take charge of setpoints and schedules without this one
 fighting back. Three rules make that bearable:
@@ -62,6 +62,20 @@ Each `PUT` replaces that source's whole list; an empty list unregisters it.
 Setting an owned parameter without `quelle` answers **409** and names the
 owner, rather than letting a hand-made change be silently overwritten on the
 next tick.
+
+## Remembered values
+
+Reading a category over the bus takes a few seconds – 4800 baud, and the
+controller answers at its own pace. Tick **"show the last values immediately"**
+under *Settings → Display* and the table appears at once, with its age next to
+it, while fresh values are fetched in the background.
+
+Off by default on purpose: if you also adjust the system at the boiler's own
+panel, you would see the old value for those few seconds. If everything goes
+through Home Assistant, that cannot happen.
+
+A number being typed survives the refresh, and in the time programs only
+untouched days are refreshed – edits are never overwritten.
 
 ## The parameter catalogue
 

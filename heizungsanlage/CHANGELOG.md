@@ -1,5 +1,25 @@
 # Änderungen
 
+## 1.8.0
+
+- **Der Regler zeigt sofort etwas an.** Bisher stand beim Öffnen einer
+  Kategorie „wird gelesen …“, bis der Bus geantwortet hatte – mehrere Sekunden,
+  jedes Mal. Mit dem neuen Haken unter *Einstellungen → Anzeige* steht gleich
+  da, was zuletzt gelesen wurde, mit Altersangabe („vor 7 Minuten gelesen ·
+  wird aufgefrischt …“), und der frische Stand kommt im Hintergrund nach.
+  Dasselbe in den Zeitprogrammen.
+- **Ab Werk aus.** Wer seine Anlage auch am Gerät auf dem Kessel verstellt,
+  sähe für diese Sekunden den alten Wert. Wessen Heizung nur über Home
+  Assistant läuft, schaltet es ein und merkt nie einen Nachteil.
+- Eine Zahl, die gerade getippt wird, überlebt das Auffrischen – samt Cursor.
+  In den Zeitprogrammen werden nur unangetastete Tage aufgefrischt; geänderte
+  Zeiten gehen nicht verloren.
+- Wechselt man die Kategorie, während eine Abfrage noch läuft, landet deren
+  Antwort nicht mehr auf dem neuen Bildschirm.
+- Die Dokumentation hatte zweimal dieselbe Überschrift „Zusammenspiel mit dem
+  Heizungsplaner“ – die Schnittstelle heißt jetzt „Übernahme durch andere
+  Add-ons“.
+
 ## 1.7.0
 
 - **Das Kategorienmenü ist gruppiert.** 27 Knöpfe nebeneinander waren eine
