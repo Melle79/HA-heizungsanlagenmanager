@@ -178,8 +178,9 @@ in wenigen Sekunden. Stellbare Parameter bekommen gleich das passende
 Bedienelement: ein Zahlenfeld bei Temperaturen, eine Auswahlliste bei
 Betriebsarten, ein Textfeld sonst.
 
-Die vier Zeitschaltprogramme haben einen **eigenen Reiter** – eine Zeile Text
-wäre dort keine brauchbare Bedienung.
+Die Zeitschaltprogramme stehen im selben Menü – eine Zeile Text wäre dort
+keine brauchbare Bedienung, deshalb erscheint statt der Parameterliste eine
+Wochentabelle.
 
 ## Werte in der Steuerung: auf Zuruf
 
@@ -203,8 +204,17 @@ laufen im Takt und werden zu Entitäten.
 ## Zeitschaltprogramme
 
 Vier Programme – Heizkreis 1, 2, 3 und Trinkwasser –, jedes mit sieben Tagen
-und **drei Schaltfenstern je Tag**. Der Reiter zeigt sie als Tabelle mit
-Uhrzeitfeldern: eine Zeile je Tag, drei Von-Bis-Paare nebeneinander.
+und **drei Schaltfenstern je Tag**. Sie stehen im Bereich *Zeitprogramme* und
+erscheinen als Tabelle mit Uhrzeitfeldern: eine Zeile je Tag, drei Von-Bis-
+Paare nebeneinander.
+
+Oben in der Tafel steht, ob dieses Programm **gerade läuft** – denn aktiv ist
+immer nur eines. Welches, entscheidet ein gewöhnlicher Parameter der Regelung;
+der Manager erkennt ihn daran, dass seine Auswahlwerte mehrfach „Programm
+<Zahl>“ heißen, nicht an seinem Namen (der kann in einer angepassten
+Parameterliste durchaus falsch sein). Die Auswahl steht gleich daneben: Du
+schaltest von hier aus zwischen den Programmen um, ebenso auf Standby, Sommer
+oder Dauerbetrieb – dafür muss niemand in den Heizungskeller.
 
 Ein leeres Fenster heißt „wird nicht benutzt“. Das ✕ am Zeilenende leert einen
 ganzen Tag.

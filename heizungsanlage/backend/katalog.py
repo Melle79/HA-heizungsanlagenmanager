@@ -17,6 +17,7 @@ beschäftigt – 27 Kategorien, jede eine eigene Abfrage.
 from __future__ import annotations
 
 import logging
+import re
 import time
 
 import bsb as bsb_modul
@@ -301,3 +302,54 @@ def gruppen(katalog: dict) -> list:
     reihenfolge = [g["titel"] for g in GRUPPEN] + [GRUPPE_BSBLAN, GRUPPE_REST]
     return [{"titel": titel, "kategorien": zuordnung[titel]}
             for titel in reihenfolge if zuordnung[titel]]
+
+
+# ─────────────────────────────────────────── Welches Programm gerade läuft ────
+#
+# Diese Regelung führt drei Heizprogramme, aber nur eines davon ist aktiv. Die
+# Wahl steckt in einem gewöhnlichen Parameter: bei Sven ist es die Nummer 70,
+# deren Auswahlwerte „Standby, Programm 3, Programm 2, Programm 1, Nenn,
+# Reduziert, Sommer“ heißen. Die Nummer ist nichts Allgemeines – der Weg
+# dahin schon: Wer eine Aufzählung führt, in der mehrfach „Programm <Zahl>“
+# steht, der meint damit die Programmwahl.
+#
+# Der Name des Parameters taugt dafür nicht. In Svens Liste heißt 70
+# „Brauchwassertemperatur-Reduziertsollwert“ – das ist schlicht falsch, die
+# Auswahlwerte verraten die Wahrheit.
+
+_PROGRAMM = re.compile(r"programm\s*(\d+)", re.I)
+
+
+def programmwahl(katalog: dict) -> dict:
+    """Der Parameter, der bestimmt, welches Zeitprogramm läuft.
+
+    Ergebnis ``{"nr": "70", "name": …, "zu": {"1": "3", "2": "2", "3": "1"}}``
+    – von der Programmnummer auf den Wert, den der Parameter dafür annimmt.
+    Findet sich nichts, kommt ein leeres Verzeichnis zurück: Dann sagt die
+    Oberfläche nichts, statt etwas zu behaupten.
+    """
+    beste = None
+    for eintrag in sorted((katalog.get("parameter") or {}).values(),
+                          key=lambda e: _nummer(e.get("nr"))):
+        if _nummer(eintrag.get("nr")) >= EIGENE_AB:
+            continue
+        zu = {}
+        for wert in eintrag.get("possibleValues") or []:
+            treffer = _PROGRAMM.search(str(wert.get("desc") or ""))
+            if treffer:
+                zu.setdefault(treffer.group(1), str(wert.get("enumValue")))
+        # Eine einzelne Erwähnung ist Zufall – „Warmwasserprogramm“ etwa.
+        # Erst mehrere nummerierte Programme sind eine Wahl.
+        if len(zu) >= 2:
+            beste = {"nr": str(eintrag.get("nr")),
+                     "name": eintrag.get("name") or "",
+                     "schreibbar": bool(eintrag.get("schreibbar")),
+                     "zu": zu,
+                     # Die ganze Auswahl, nicht nur die Programme: Standby,
+                     # Sommer und Dauerbetrieb gehören zur selben Entscheidung
+                     # und sollen dort stehen, wo sie getroffen wird.
+                     "werte": [{"wert": str(w.get("enumValue")),
+                                "text": str(w.get("desc") or "")}
+                               for w in eintrag.get("possibleValues") or []]}
+            break
+    return beste or {}

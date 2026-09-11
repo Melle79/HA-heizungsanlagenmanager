@@ -387,6 +387,37 @@ ANLAGE["abfragen"].clear()
 pruefe(set(store.load_state()["werte"]) == {"50", "55"} and ANLAGE["abfragen"] == [],
        "das blosse Nachschlagen belegt den Bus nicht")
 
+print("\n=== Welches Programm laeuft ===")
+# Die Regelung fuehrt drei Heizprogramme, aktiv ist eines. Die Wahl steckt in
+# einem gewoehnlichen Parameter - bei Sven in der 70, deren Name in der
+# Parameterliste schlicht falsch ist ("Brauchwassertemperatur-Reduziert-
+# sollwert"). Die Auswahlwerte verraten die Wahrheit, nicht der Name.
+WAHL = {"kategorien": {"7": {"name": "Betriebsart", "parameter": ["70"]}},
+        "parameter": {"70": {"nr": "70", "name": "Brauchwassertemperatur-Reduziertsollwert",
+                             "schreibbar": True, "possibleValues": [
+                                 {"enumValue": "0", "desc": "Standby"},
+                                 {"enumValue": "1", "desc": "Programm 3"},
+                                 {"enumValue": "2", "desc": "Programm 2"},
+                                 {"enumValue": "3", "desc": "Programm 1"},
+                                 {"enumValue": "6", "desc": "Sommer"}]}}}
+pw = katalog.programmwahl(WAHL)
+pruefe(pw["nr"] == "70", "die Programmwahl wird an ihren Werten erkannt, nicht am Namen")
+pruefe(pw["zu"] == {"3": "1", "2": "2", "1": "3"},
+       "und die Zuordnung ist verdreht - Programm 1 ist der Wert 3")
+pruefe(len(pw["werte"]) == 5, "die ganze Auswahl faehrt mit, auch Standby und Sommer")
+pruefe(pw["schreibbar"] is True, "stellbar - man muss nicht an den Kessel laufen")
+
+# Ein einzelnes "Warmwasserprogramm" ist keine Wahl zwischen Programmen.
+EINZELN = {"kategorien": {"14": {"name": "Warmwasser", "parameter": ["160"]}},
+           "parameter": {"160": {"nr": "160", "name": "Warmwasser-Mode",
+                                 "possibleValues": [
+                                     {"enumValue": "0", "desc": "24h/Tag"},
+                                     {"enumValue": "2", "desc": "Warmwasserprogramm"}]}}}
+pruefe(katalog.programmwahl(EINZELN) == {},
+       "eine einzelne Erwaehnung wird nicht fuer eine Programmwahl gehalten")
+pruefe(katalog.programmwahl({"parameter": {}}) == {},
+       "und wo es nichts gibt, wird nichts behauptet")
+
 print("\n=== Was ausgeblendet werden darf ===")
 e = store.validate_einstellungen({"bsb_url": "http://x", "versteckte_kategorien": ["25", "26", "25"]})
 pruefe(e["versteckte_kategorien"] == ["25", "26"], "doppelt genannt zaehlt einmal")

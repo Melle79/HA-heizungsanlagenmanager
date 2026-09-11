@@ -125,6 +125,11 @@
   /* Übernommenes ist nicht kaputt, nur fremdgeführt – darum blass statt rot,
      und immer mit dem Namen dessen, der es führt. */
   .gefuehrt{opacity:.55}
+  .marke-lauf{font-size:.7rem; border-radius:4px; padding:1px 7px;
+    border:1px solid var(--linie); color:var(--leise)}
+  .marke-lauf.an{color:var(--ok); border-color:var(--ok)}
+  select.programmwahl{width:auto; min-width:150px; margin-left:var(--l2)}
+  #zp-aktiv{display:flex; align-items:center; gap:var(--l2); flex-wrap:wrap}
   .marke-fremd{font-size:.68rem; color:var(--warm); border:1px solid var(--warm);
     border-radius:4px; padding:0 4px; margin-left:var(--l2); white-space:nowrap}
   .uebernahme{display:flex; flex-wrap:wrap; align-items:center; gap:var(--l2)}
@@ -181,8 +186,7 @@
 
 <nav>
   <button data-blatt="uebersicht" class="an">Übersicht</button>
-  <button data-blatt="regler">Regler</button>
-  <button data-blatt="zeitprogramme">Zeitprogramme</button>
+  <button data-blatt="regler">Regelung</button>
   <button data-blatt="werte">Werte</button>
   <button data-blatt="auswahl">Auswahl</button>
   <button data-blatt="einstellungen">Einstellungen</button>
@@ -272,37 +276,22 @@
       <button class="leise" id="btn-kat-anpassen" hidden>Anpassen</button>
     </div>
     <div class="notiz">Dieselbe Gliederung, die auch am Gerät auf dem Kessel
-      steht. Wählst du eine Kategorie, liest der Manager ihre Werte und zeigt
-      sie an – stellbare gleich zum Ändern.</div>
+      steht. Wähle einen Bereich, darunter die Kategorie – die Werte stehen
+      dann unten, stellbare gleich zum Ändern.</div>
     <div class="kachelleiste gruppenleiste" id="gruppenleiste"></div>
     <div id="kategorienliste"></div>
   </div>
-  <div class="tafel" id="regler-tafel" hidden>
-    <h2 id="regler-titel"></h2>
-    <div class="rollbar"><table><tbody id="reglertabelle"></tbody></table></div>
-    <div class="zeile-aktionen">
-      <button class="leise" id="btn-regler-lesen">Neu lesen</button>
-      <span class="notiz" id="regler-stand"></span>
-      <span class="meldung" id="m-regler"></span>
-    </div>
-  </div>
-</section>
-
-<!-- ══════════════════════════════════════════ Zeitprogramme ═══ -->
-<section id="zeitprogramme">
-  <div class="hinweis" id="zp-hinweis"></div>
   <div class="hinweis" id="zp-uebernahme" hidden></div>
   <div class="hinweis warn" id="zp-dauerhinweis" hidden>Zum Speichern das Stellen
     unter „Einstellungen“ freigeben.</div>
-  <div class="tafel">
-    <h2>Zeitschaltprogramme</h2>
+  <div class="tafel" id="zp-tafel" hidden>
+    <div class="tafelkopf">
+      <h2 id="zp-titel"></h2>
+      <span id="zp-aktiv"></span>
+    </div>
     <div class="notiz">Je Tag drei Schaltfenster. Ein leeres Fenster heißt:
       wird nicht benutzt. Geändert wird erst beim Speichern, und auch dann nur
       die Tage, die du angefasst hast.</div>
-    <div class="kachelleiste" id="zp-auswahl" style="margin-top:var(--l3)"></div>
-  </div>
-  <div class="tafel" id="zp-tafel" hidden>
-    <h2 id="zp-titel"></h2>
     <div class="rollbar"><table class="zp">
       <thead><tr><th style="width:110px">Tag</th><th>Fenster 1</th>
         <th>Fenster 2</th><th>Fenster 3</th><th style="width:54px"></th></tr></thead>
@@ -314,6 +303,15 @@
       <button class="leise" id="btn-zp-alle">Montag auf alle Tage übertragen</button>
       <button class="leise" id="btn-zp-neu">Verwerfen und neu lesen</button>
       <span class="meldung" id="m-zp"></span>
+    </div>
+  </div>
+  <div class="tafel" id="regler-tafel" hidden>
+    <h2 id="regler-titel"></h2>
+    <div class="rollbar"><table><tbody id="reglertabelle"></tbody></table></div>
+    <div class="zeile-aktionen">
+      <button class="leise" id="btn-regler-lesen">Neu lesen</button>
+      <span class="notiz" id="regler-stand"></span>
+      <span class="meldung" id="m-regler"></span>
     </div>
   </div>
 </section>
@@ -448,7 +446,6 @@ document.querySelectorAll('nav button[data-blatt]').forEach(knopf => {
     window.scrollTo(0, 0);
     if (knopf.dataset.blatt === 'auswahl') katalogZeichnen();
     if (knopf.dataset.blatt === 'regler') kategorienZeichnen();
-    if (knopf.dataset.blatt === 'zeitprogramme') zpAuswahlZeichnen();
     if (knopf.dataset.blatt === 'werte') werteZeichnen();
   };
 });
@@ -761,7 +758,6 @@ async function uebernahmeLoesen(quelle, name) {
     await statusLaden();
     if (reglerKat) await reglerZeichnen().catch(() => {});
     if (zpKat) zpZeichnen();
-    zpAuswahlZeichnen();
   } catch (err) { meldung('m-regler', err.message); }
 }
 
@@ -806,8 +802,7 @@ function kategorienZeichnen() {
     ? `<b>Was im Menü stehen soll.</b> Abgehakte Kategorien verschwinden aus
        der Auswahl – gelöscht wird nichts, ein Klick holt sie zurück.`
     : `<b>${gesamt - weg} von ${gesamt} Kategorien</b> in `
-      + `${sichtbareGruppen().length} Bereichen. Zeitschaltprogramme haben `
-      + `ihren eigenen Reiter.`
+      + `${sichtbareGruppen().length} Bereichen.`
       + (weg ? ` <span class="notiz">${weg} ausgeblendet – über „Anpassen“
           zurückholen.</span>` : '');
 
@@ -823,8 +818,7 @@ function menueZeichnen() {
 
   gruppen.forEach(gruppe => {
     const knopf = document.createElement('button');
-    knopf.innerHTML = `${gruppe.titel}
-      <span class="notiz">${gruppe.kategorien.length}</span>`;
+    knopf.textContent = gruppe.titel;
     knopf.className = gruppe.titel === reglerGruppe ? 'an' : '';
     knopf.onclick = () => gruppeOeffnen(gruppe.titel);
     oben.appendChild(knopf);
@@ -878,7 +872,7 @@ function anpassenZeichnen() {
       knopf.className = 'leise' + (versteckt ? ' aus' : '');
       knopf.title = versteckt ? 'wieder einblenden' : 'ausblenden';
       knopf.innerHTML = `<span class="haekchen">${versteckt ? '☐' : '☑'}</span>`
-        + `${k.name} <span class="notiz">${k.anzahl}</span>`;
+        + k.name;
       knopf.onclick = () => kategorieUmschalten(k.id);
       reihe.appendChild(knopf);
     });
@@ -927,12 +921,15 @@ async function reglerOeffnen(id) {
   if (dazu) reglerGruppe = dazu.titel;
   kategorienZeichnen();
   if (istZeitprogramm(id)) {
-    // Zeitprogramme gehören in ihren eigenen Reiter – dort kann man sie
-    // wirklich einstellen statt nur anzusehen.
-    document.querySelector('nav button[data-blatt="zeitprogramme"]').click();
+    // Ein Zeitprogramm braucht eine Wochentabelle statt einer Parameterliste.
+    // Beides steht im selben Reiter; sichtbar ist immer nur eines.
+    $('regler-tafel').hidden = true;
     zpOeffnen(String(id));
     return;
   }
+  $('zp-tafel').hidden = true;
+  $('zp-uebernahme').hidden = true;
+  $('zp-dauerhinweis').hidden = true;
   $('regler-tafel').hidden = false;
   $('regler-titel').textContent = (katalog.kategorien[id] || {}).name || '';
   const nummern = ((katalog.kategorien[id] || {}).parameter) || [];
@@ -1091,28 +1088,59 @@ function fensterSchreiben(fenster) {
                                            : `${LEER}-${LEER}`).join(' ');
 }
 
-function zpAuswahlZeichnen() {
-  const leiste = $('zp-auswahl'); leiste.innerHTML = '';
-  const vorhanden = Object.keys(zeitprogramme)
-    .sort((a, b) => parseFloat(a) - parseFloat(b));
-  if (!vorhanden.length) {
-    $('zp-hinweis').innerHTML = (katalog.anzahl
-      ? `<b>Keine Schaltzeiten gefunden.</b> Deine Regelung führt keine
-         Parameter vom Typ TIMEPROG – dann gibt es hier nichts einzustellen.`
-      : `<b>Noch kein Katalog.</b> Lies ihn unter „Einstellungen“ ein, dann
-         erscheinen hier die Programme.`);
-    return;
-  }
-  const tage = zeitprogramme[vorhanden[0]].tage.length;
-  $('zp-hinweis').innerHTML = `<b>${vorhanden.length} Programme</b> mit je
-    ${tage} Tagen und drei Schaltfenstern.`;
-  vorhanden.forEach(id => {
-    const knopf = document.createElement('button');
-    knopf.textContent = zeitprogramme[id].name;
-    knopf.className = id === zpKat ? 'an' : '';
-    knopf.onclick = () => zpOeffnen(id);
-    leiste.appendChild(knopf);
+// Welches der drei Programme trägt diese Kategorie im Namen? „Zeitschalt-
+// programm 2“ → 2. Ohne Zahl (das Trinkwasserprogramm) gibt es nichts zu
+// vergleichen, dann sagt die Oberfläche dazu auch nichts.
+const programmNummer = (name) => (String(name || '').match(/(\d+)\s*$/) || [])[1] || null;
+
+// „Läuft das gerade?“ ist die Frage, die man vor einer Wochentabelle hat.
+// Beantwortet wird sie aus dem Parameter, den der Katalog als Programmwahl
+// erkannt hat – und gleich daneben steht die Auswahl, um es zu ändern.
+function zpAktivZeichnen() {
+  const feld = $('zp-aktiv'); if (!feld) return;
+  feld.innerHTML = '';
+  const pw = katalog.programmwahl || {};
+  const meine = programmNummer((zeitprogramme[zpKat] || {}).name);
+  if (!pw.nr || !meine) return;
+
+  const w = werte[pw.nr] || {};
+  if (ohneWert(w)) return;
+  const aktuell = String(w.value);
+  const laeuft = pw.zu[meine] === aktuell;
+
+  const marke = document.createElement('span');
+  marke.className = 'marke-lauf' + (laeuft ? ' an' : '');
+  marke.textContent = laeuft ? 'läuft gerade' : 'läuft gerade nicht';
+  feld.appendChild(marke);
+
+  const wahl = document.createElement('select');
+  wahl.className = 'programmwahl';
+  (pw.werte || []).forEach(v => {
+    const o = document.createElement('option');
+    o.value = v.wert; o.textContent = v.text;
+    if (v.wert === aktuell) o.selected = true;
+    wahl.appendChild(o);
   });
+  wahl.disabled = !status.schreiben_erlaubt || !pw.schreibbar
+                  || !!gefuehrtVon(pw.nr);
+  wahl.title = wahl.disabled ? 'Das Stellen ist nicht freigegeben'
+                             : `Betriebsart (Parameter ${pw.nr})`;
+  wahl.onchange = async () => {
+    const gewaehlt = wahl.value;
+    const text = wahl.options[wahl.selectedIndex].textContent;
+    if (!confirm(`Betriebsart auf „${text}“ stellen?`)) {
+      wahl.value = aktuell; return;
+    }
+    wahl.disabled = true;
+    try {
+      await sendeJSON('setzen', 'POST', {nr: pw.nr, wert: gewaehlt});
+      meldung('m-zp', `Betriebsart auf „${text}“ gestellt`, true);
+      const d = await sendeJSON('lesen', 'POST', {nr: [pw.nr]});
+      werte = d.werte || werte;
+    } catch (err) { meldung('m-zp', err.message); }
+    zpAktivZeichnen();
+  };
+  feld.appendChild(wahl);
 }
 
 function zpAusWerten(nummern) {
@@ -1126,18 +1154,21 @@ function zpAusWerten(nummern) {
 
 async function zpOeffnen(id) {
   zpKat = String(id);
-  zpAuswahlZeichnen();
   $('zp-tafel').hidden = false;
   $('zp-titel').textContent = (zeitprogramme[zpKat] || {}).name || '';
   // Nur die Schaltzeitenparameter, nicht die ganze Kategorie: Neben den
   // Tagen stehen dort auf manchen Anlagen noch „Standardwerte“ und
   // „Vorwahl“, und die gehören nicht in eine Wochentabelle.
-  const nummern = (zeitprogramme[zpKat] || {}).tage || [];
+  const tage = (zeitprogramme[zpKat] || {}).tage || [];
+  // Die Programmwahl wird mitgelesen – ein Parameter mehr, dafür die
+  // Auskunft, ob diese Wochentabelle überhaupt gerade gilt.
+  const pwNr = (katalog.programmwahl || {}).nr;
+  const nummern = pwNr && !tage.includes(pwNr) ? [...tage, pwNr] : tage;
   const gemerkt = einst.werte_merken && nummern.some(nr => werte[nr]);
   if (gemerkt) {
-    zpTage = zpAusWerten(nummern);
+    zpTage = zpAusWerten(tage);
     zpZeichnen();
-    zpAuffrischen(nummern, zpKat);
+    zpAuffrischen(nummern, tage, zpKat);
     return;
   }
   $('zp-tabelle').innerHTML = '<tr><td class="kat">wird gelesen …</td></tr>';
@@ -1145,11 +1176,11 @@ async function zpOeffnen(id) {
     const d = await sendeJSON('lesen', 'POST', {nr: nummern});
     werte = d.werte || werte;
   } catch (err) { meldung('m-zp', err.message); }
-  zpTage = zpAusWerten(nummern);
+  zpTage = zpAusWerten(tage);
   zpZeichnen();
 }
 
-async function zpAuffrischen(nummern, fuer) {
+async function zpAuffrischen(nummern, tage, fuer) {
   try {
     const d = await sendeJSON('lesen', 'POST', {nr: nummern});
     if (zpKat !== fuer) return;          // inzwischen woanders
@@ -1161,7 +1192,7 @@ async function zpAuffrischen(nummern, fuer) {
   // Nur unangetastete Tage übernehmen. Wer schon Zeiten geändert hat, soll
   // sie nicht durch das Nachladen verlieren – auch dann nicht, wenn die
   // Regelung inzwischen etwas anderes meldet.
-  const frisch = zpAusWerten(nummern);
+  const frisch = zpAusWerten(tage);
   zpTage = zpTage.map((tag, i) => {
     const neu = frisch[i];
     if (!neu || neu.nr !== tag.nr) return tag;
@@ -1204,6 +1235,7 @@ function zpZeichnen() {
     };
     koerper.appendChild(zeile);
   });
+  zpAktivZeichnen();
   uebernahmeBand('zp-uebernahme', zpTage.map(t => t.nr));
   const offen = zpTage.filter(t => fensterSchreiben(t.fenster) !== t.urtext
                                    && !gefuehrtVon(t.nr)).length;
@@ -1329,7 +1361,6 @@ async function anlauf() {
   await katalogLaden();
   await statusLaden();
   kategorienZeichnen();
-  zpAuswahlZeichnen();
   katalogLauf();
   setInterval(async () => { await werteLaden(); await statusLaden();
     if ($('werte').classList.contains('an')) werteZeichnen(); }, 30000);

@@ -1,5 +1,23 @@
 # Änderungen
 
+## 1.10.0
+
+- **Ein Reiter statt zwei.** Aus „Regler“ wird *Regelung*, und die
+  Zeitschaltprogramme stehen jetzt darin – im Bereich *Zeitprogramme*, wie
+  jede andere Kategorie auch. Sie zweimal im Menü zu führen war einmal
+  praktisch und dann nur noch doppelt.
+- **Die Zahlen sind aus den Knöpfen verschwunden.** Neben „Zeitschaltprogramm
+  1“ noch eine 7 zu setzen half niemandem – es sah aus wie ein zweiter Name.
+- **Man sieht, welches Programm gerade läuft.** Über der Wochentabelle steht
+  *läuft gerade* oder *läuft gerade nicht*, und daneben die Auswahl, um
+  umzuschalten – auch auf Standby, Sommer oder Dauerbetrieb.
+- Den Parameter dafür findet der Manager an seinen **Auswahlwerten**, nicht am
+  Namen: Wo mehrfach „Programm <Zahl>“ zur Wahl steht, ist die Programmwahl.
+  In Weishaupts angepasster Liste heißt dieser Parameter
+  „Brauchwassertemperatur-Reduziertsollwert“ – schlicht falsch, und ein guter
+  Grund, Namen nicht zu glauben. Findet sich nichts Passendes, behauptet die
+  Oberfläche auch nichts.
+
 ## 1.9.0
 
 - **Das Menü im Reiter „Regler“ hat jetzt zwei Stufen.** Oben die Bereiche –
