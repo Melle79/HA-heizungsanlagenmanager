@@ -341,6 +341,18 @@
   </div>
 
   <div class="tafel">
+    <h2>Anzeige</h2>
+    <label class="haken"><input type="checkbox" id="e-merken">
+      <span>Zuletzt gelesene Werte beim Öffnen sofort zeigen</span></label>
+    <div class="notiz">Eine Kategorie über den Bus zu lesen dauert ein paar
+      Sekunden. Mit diesem Haken steht sofort da, was zuletzt gelesen wurde –
+      mit Altersangabe –, und der frische Stand kommt im Hintergrund nach.
+      <br>Ab Werk aus, und zwar aus einem Grund: Wer die Anlage auch am Gerät
+      auf dem Kessel verstellt, sieht für diese paar Sekunden den alten Wert.
+      Läuft bei dir alles über Home Assistant, kann das nicht schiefgehen.</div>
+  </div>
+
+  <div class="tafel">
     <h2>Parameterkatalog</h2>
     <div class="notiz" id="katalog-stand"></div>
     <div class="notiz">Der Katalog kommt aus BSB-LAN und enthält genau die
@@ -819,6 +831,23 @@ async function kategorieUmschalten(id) {
 
 $('btn-kat-anpassen').onclick = () => { anpassen = !anpassen; kategorienZeichnen(); };
 
+// Wie alt ist der älteste Wert, den wir gerade zeigen? „vor 3 Minuten“ ist
+// eine Auskunft, „14:02“ ist eine Rechenaufgabe.
+function alterText(nummern) {
+  const zeiten = (nummern || [])
+    .map(nr => (werte[nr] || {}).zeit)
+    .filter(Boolean)
+    .map(z => new Date(z).getTime());
+  if (!zeiten.length) return '';
+  const minuten = Math.floor((Date.now() - Math.min(...zeiten)) / 60000);
+  if (minuten < 1) return 'gerade eben gelesen';
+  if (minuten === 1) return 'vor einer Minute gelesen';
+  if (minuten < 60) return `vor ${minuten} Minuten gelesen`;
+  const stunden = Math.floor(minuten / 60);
+  return stunden === 1 ? 'vor einer Stunde gelesen'
+                       : `vor ${stunden} Stunden gelesen`;
+}
+
 async function reglerOeffnen(id) {
   reglerKat = id;
   kategorienZeichnen();
@@ -831,28 +860,59 @@ async function reglerOeffnen(id) {
   }
   $('regler-tafel').hidden = false;
   $('regler-titel').textContent = (katalog.kategorien[id] || {}).name || '';
-  $('reglertabelle').innerHTML =
-    '<tr><td class="kat">wird gelesen …</td></tr>';
-  await reglerLesen();
+  const nummern = ((katalog.kategorien[id] || {}).parameter) || [];
+  const gemerkt = einst.werte_merken && nummern.some(nr => werte[nr]);
+  if (gemerkt) {
+    // Erst zeigen, was wir schon wissen – der Bus braucht für eine Kategorie
+    // mehrere Sekunden, und in der Zeit auf „wird gelesen …“ zu starren ist
+    // keine Bedienung. Das Nachziehen läuft daneben weiter.
+    await reglerZeichnen();
+    $('regler-stand').textContent = alterText(nummern) + ' · wird aufgefrischt …';
+    reglerLesen({leise: true});
+  } else {
+    $('reglertabelle').innerHTML =
+      '<tr><td class="kat">wird gelesen …</td></tr>';
+    await reglerLesen();
+  }
 }
 
-async function reglerLesen() {
+async function reglerLesen(wie) {
   if (reglerKat === null) return;
   const nummern = ((katalog.kategorien[reglerKat] || {}).parameter) || [];
+  const meine = reglerKat;
   try {
     const d = await sendeJSON('lesen', 'POST', {nr: nummern});
+    // Zwischen Absenden und Antwort kann jemand die Kategorie gewechselt
+    // haben. Dann gehört das Ergebnis nicht mehr auf diesen Bildschirm.
+    if (reglerKat !== meine) return;
     werte = d.werte || werte;
     if (d.hinweis) meldung('m-regler', d.hinweis);
     $('regler-stand').textContent = `${nummern.length} Parameter, gelesen ${
       new Date().toLocaleTimeString('de-DE', {hour:'2-digit', minute:'2-digit'})}`;
-  } catch (err) { meldung('m-regler', err.message); }
+  } catch (err) {
+    if (reglerKat !== meine) return;
+    meldung('m-regler', err.message);
+    // Beim stillen Auffrischen bleibt der gemerkte Stand stehen – aber er
+    // gibt sich nicht als frisch aus.
+    if (wie && wie.leise) {
+      $('regler-stand').textContent = alterText(nummern) + ' · Auffrischen fehlgeschlagen';
+    }
+  }
   await reglerZeichnen();
 }
 
 async function reglerZeichnen() {
   const args = new URLSearchParams({kat: reglerKat});
   const d = await hole('katalog/suche?' + args);
-  const koerper = $('reglertabelle'); koerper.innerHTML = '';
+  const koerper = $('reglertabelle');
+  // Wer gerade eine Zahl tippt, soll sie behalten. Das Auffrischen im
+  // Hintergrund baut die Tabelle neu – ohne das hier wäre die halbe Eingabe
+  // eine Sekunde später weg, und niemand wüsste warum.
+  const aktiv = document.activeElement;
+  const getippt = aktiv && aktiv.dataset && aktiv.dataset.nr
+                  && koerper.contains(aktiv)
+    ? {nr: aktiv.dataset.nr, wert: aktiv.value} : null;
+  koerper.innerHTML = '';
   const frei = !!status.schreiben_erlaubt;
 
   (d.parameter || []).forEach(p => {
@@ -896,6 +956,10 @@ async function reglerZeichnen() {
   });
   if (!koerper.children.length) {
     koerper.innerHTML = '<tr><td class="kat">Diese Kategorie ist leer.</td></tr>';
+  }
+  if (getippt) {
+    const feld = koerper.querySelector(`[data-nr="${getippt.nr}"]`);
+    if (feld) { feld.value = getippt.wert; feld.focus(); }
   }
   uebernahmeBand('regler-uebernahme', (d.parameter || []).map(p => p.nr));
 }
@@ -976,26 +1040,58 @@ function zpAuswahlZeichnen() {
   });
 }
 
+function zpAusWerten(nummern) {
+  return nummern.map((nr, i) => {
+    const w = werte[nr] || {};
+    return {nr, name: w.name || TAGE[i] || nr,
+            urtext: String(w.value || ''),
+            fenster: fensterLesen(w.value)};
+  });
+}
+
 async function zpOeffnen(id) {
   zpKat = String(id);
   zpAuswahlZeichnen();
   $('zp-tafel').hidden = false;
   $('zp-titel').textContent = (zeitprogramme[zpKat] || {}).name || '';
-  $('zp-tabelle').innerHTML = '<tr><td class="kat">wird gelesen …</td></tr>';
   // Nur die Schaltzeitenparameter, nicht die ganze Kategorie: Neben den
   // Tagen stehen dort auf manchen Anlagen noch „Standardwerte“ und
   // „Vorwahl“, und die gehören nicht in eine Wochentabelle.
   const nummern = (zeitprogramme[zpKat] || {}).tage || [];
+  const gemerkt = einst.werte_merken && nummern.some(nr => werte[nr]);
+  if (gemerkt) {
+    zpTage = zpAusWerten(nummern);
+    zpZeichnen();
+    zpAuffrischen(nummern, zpKat);
+    return;
+  }
+  $('zp-tabelle').innerHTML = '<tr><td class="kat">wird gelesen …</td></tr>';
   try {
     const d = await sendeJSON('lesen', 'POST', {nr: nummern});
     werte = d.werte || werte;
   } catch (err) { meldung('m-zp', err.message); }
+  zpTage = zpAusWerten(nummern);
+  zpZeichnen();
+}
 
-  zpTage = nummern.map((nr, i) => {
-    const w = werte[nr] || {};
-    return {nr, name: w.name || TAGE[i] || nr,
-            urtext: String(w.value || ''),
-            fenster: fensterLesen(w.value)};
+async function zpAuffrischen(nummern, fuer) {
+  try {
+    const d = await sendeJSON('lesen', 'POST', {nr: nummern});
+    if (zpKat !== fuer) return;          // inzwischen woanders
+    werte = d.werte || werte;
+  } catch (err) {
+    if (zpKat === fuer) meldung('m-zp', 'Auffrischen fehlgeschlagen: ' + err.message);
+    return;
+  }
+  // Nur unangetastete Tage übernehmen. Wer schon Zeiten geändert hat, soll
+  // sie nicht durch das Nachladen verlieren – auch dann nicht, wenn die
+  // Regelung inzwischen etwas anderes meldet.
+  const frisch = zpAusWerten(nummern);
+  zpTage = zpTage.map((tag, i) => {
+    const neu = frisch[i];
+    if (!neu || neu.nr !== tag.nr) return tag;
+    const angefasst = fensterSchreiben(tag.fenster) !== tag.urtext;
+    return angefasst ? {...tag, urtext: neu.urtext} : neu;
   });
   zpZeichnen();
 }
@@ -1092,6 +1188,7 @@ function einstellungenZeichnen(e) {
   $('e-url').value = e.bsb_url; $('e-passkey').value = e.passkey;
   $('e-intervall').value = e.intervall_s; $('e-praefix').value = e.praefix;
   $('e-schreiben').checked = e.schreiben_erlaubt;
+  $('e-merken').checked = !!e.werte_merken;
   einst = e;
 }
 
@@ -1102,7 +1199,8 @@ $('btn-speichern-einst').onclick = async () => {
       bsb_url: $('e-url').value, passkey: $('e-passkey').value,
       intervall_s: parseInt($('e-intervall').value, 10),
       praefix: $('e-praefix').value,
-      schreiben_erlaubt: $('e-schreiben').checked});
+      schreiben_erlaubt: $('e-schreiben').checked,
+      werte_merken: $('e-merken').checked});
     einstellungenZeichnen(e);
     meldung('m-einst', 'Gespeichert', true);
     await statusLaden();

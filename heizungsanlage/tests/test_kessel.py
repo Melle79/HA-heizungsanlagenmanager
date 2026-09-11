@@ -361,6 +361,32 @@ pruefe(fg["Wärmeerzeuger"] == ["Feuerungsautomat"], "der Feuerungsautomat erzeu
 pruefe(sorted(fg["Wartung & Diagnose"]) == ["Ein-/Ausgangstest", "Fehler"],
        "Fehler und Ausgangstest sind Diagnose")
 
+print("\n=== Gemerkte Werte ===")
+# Der Zwischenspeicher gab es schon - er lag nur brach. Wichtig ist, dass ein
+# Wert seinen Zeitstempel traegt: Ohne den kann die Oberflaeche nicht sagen,
+# wie alt das ist, was sie zeigt, und ein alter Wert saehe aus wie ein frischer.
+pruefe(store.standard_einstellungen()["werte_merken"] is False,
+       "ab Werk aus - niemand kennt die fremde Anlage")
+e = store.validate_einstellungen({"bsb_url": "http://x", "werte_merken": "ja"})
+pruefe(e["werte_merken"] is True, "und laesst sich einschalten")
+
+store.save_config({"einstellungen": dict(store.standard_einstellungen(),
+                                         bsb_url="http://kessel.test"),
+                   "auswahl": []})
+store.save_state({"werte": {}, "letzter_lauf": None, "veroeffentlicht": []})
+ANLAGE["abfragen"].clear()
+import app as anwendung
+ergebnis = anwendung._lesen(nummern=["50", "55"])
+gemerkt = store.load_state()["werte"]
+pruefe(set(gemerkt) == {"50", "55"}, "was auf Zuruf gelesen wird, bleibt gespeichert")
+pruefe(bool(gemerkt["50"].get("zeit")), "und traegt den Zeitpunkt, zu dem es galt")
+pruefe(ergebnis.get("gelesen") == 2, "die Runde meldet, wie viele sie holte")
+
+# Beim naechsten Oeffnen liegt es da, ohne dass der Bus angefasst wird.
+ANLAGE["abfragen"].clear()
+pruefe(set(store.load_state()["werte"]) == {"50", "55"} and ANLAGE["abfragen"] == [],
+       "das blosse Nachschlagen belegt den Bus nicht")
+
 print("\n=== Was ausgeblendet werden darf ===")
 e = store.validate_einstellungen({"bsb_url": "http://x", "versteckte_kategorien": ["25", "26", "25"]})
 pruefe(e["versteckte_kategorien"] == ["25", "26"], "doppelt genannt zaehlt einmal")

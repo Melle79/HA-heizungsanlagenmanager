@@ -53,6 +53,13 @@ STANDARD_EINSTELLUNGEN = {
     # PPS-Emulation, bei der anderen die Kaskade. Das gehört eingestellt, nicht
     # weggeworfen: Ausgeblendetes ist einen Klick weit weg, nicht weg.
     "versteckte_kategorien": [],
+    # Zeigt der Regler beim Öffnen zuerst die zuletzt gelesenen Werte und
+    # holt frische erst im Hintergrund? Das ist schnell und fast immer
+    # richtig – aber eben nur fast: Wer am Gerät auf dem Kessel selbst dreht,
+    # sähe für ein paar Sekunden den alten Stand. Wessen Anlage nur über Home
+    # Assistant verstellt wird, für den kann das nicht schiefgehen.
+    # Ab Werk aus, weil niemand die fremde Anlage kennt.
+    "werte_merken": False,
 }
 
 # Aus Einheit und Namen lässt sich meist ableiten, was Home Assistant wissen
@@ -193,6 +200,8 @@ def validate_einstellungen(roh: dict) -> dict:
         raise ValidationError("Das MQTT-Präfix darf nur Buchstaben, Ziffern, "
                               "Bindestrich und Unterstrich enthalten")
     e["praefix"] = praefix
+
+    e["werte_merken"] = bool(e.get("werte_merken"))
 
     versteckt = e.get("versteckte_kategorien")
     if versteckt is None:
