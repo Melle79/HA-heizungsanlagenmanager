@@ -1,5 +1,17 @@
 # Änderungen
 
+## 1.16.0
+
+- **Das Add-on sagt jetzt an, wo es zu erreichen ist.** Beim Verbinden mit
+  MQTT geht eine bleibende Nachricht auf `heizungsanlage/anschrift` mit der
+  eigenen Anschrift im Docker-Netz.
+- Hintergrund: Der Hostname lautet `<repo-hash>-heizungsanlage`, und der Hash
+  hängt am Repository, aus dem das Add-on stammt. Ein anderes Add-on kann ihn
+  nicht raten, und die Add-on-Liste gibt der Supervisor nur mit
+  Verwalterrechten heraus. Damit der Heizungsplaner die Übernahme-Schnittstelle
+  findet, ohne solche Rechte zu verlangen, nennt sie das Add-on selbst.
+- Für alle, die den Heizungsplaner nicht einsetzen, ändert sich nichts.
+
 ## 1.15.1
 
 - **Behoben: Die Rückfrage beim Umschalten nannte einen falschen Namen.** Sie

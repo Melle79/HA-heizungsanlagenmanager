@@ -13,6 +13,7 @@ je angehakten Parameter eine Karteileiche in Home Assistant stehen.
 from __future__ import annotations
 
 import json
+import os
 import logging
 import re
 import threading
@@ -63,11 +64,32 @@ def ohne_wert(gelesen: dict) -> bool:
     return wert in (None, "") or str(wert).strip() in ("---", "--")
 
 
+def _anschrift() -> dict:
+    """Die eigene Anschrift im Docker-Netz von Home Assistant.
+
+    Der Containername ist zugleich der Hostname, unter dem andere Add-ons
+    dieses hier erreichen – bei einem Add-on aus einem Repository also
+    „<repo-hash>-heizungsanlage“. Er steht nirgends fest im Code, weil er von
+    Installation zu Installation verschieden ist.
+    """
+    import socket
+    name = socket.gethostname()
+    port = int(os.environ.get("INGRESS_PORT", 8099))
+    return {"adresse": f"http://{name}:{port}", "dienst": "heizungsanlage"}
+
+
 class Publisher:
     def __init__(self, host, port, user, password, praefix=DEVICE_ID):
         self.praefix = praefix
         self.basis = praefix
         self.verfuegbarkeit = f"{praefix}/availability"
+        # Wo dieses Add-on im Docker-Netz zu erreichen ist. Der Heizungsplaner
+        # kann das sonst nicht herausfinden: Der Hostname lautet
+        # „<repo-hash>-heizungsanlage“, und die Add-on-Liste gibt der
+        # Supervisor nur mit Verwalterrechten heraus. Ein Heizungsplaner, der
+        # Add-ons starten und löschen dürfte, um einen Namen nachzuschlagen,
+        # wäre schlecht zugeschnitten. Also sagen wir ihn selbst an.
+        self.anschrift = f"{praefix}/anschrift"
         self.connected = threading.Event()
         self._client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2,
                                    client_id=f"{DEVICE_ID}-addon")
@@ -90,6 +112,7 @@ class Publisher:
             return
         self.connected.set()
         client.publish(self.verfuegbarkeit, "online", retain=True)
+        client.publish(self.anschrift, json.dumps(_anschrift()), retain=True)
         _LOGGER.info("Mit MQTT-Broker verbunden")
         if self.on_ready:
             self.on_ready()
