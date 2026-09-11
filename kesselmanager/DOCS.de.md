@@ -59,6 +59,23 @@ Assistant hängt, bekommt den Verlauf dort ohne weiteres Zutun.
 Die Entität hängt an der **Parameternummer**, nicht am Namen. Wer die Anzeige
 umbenennt, behält also seine Historie.
 
+## Der Reiter „Regler“
+
+Hier bedienst du die Anlage so, wie du es am Gerät auf dem Kessel tätest –
+**mit derselben Gliederung**. Die 27 Kategorien kommen nicht von mir, sondern
+aus der Regelung selbst: *Uhrzeit*, *Einstellwerte*, *Urlaub*, *Betriebsart*,
+*Heizkreis*, *Warmwasser*, *Kessel* und so weiter. Niemand muss etwas
+sortieren; die Anlage weiß am besten, was zusammengehört.
+
+Wählst du eine Kategorie, liest der Manager ihre Werte und zeigt sie an.
+Kategorien sind klein – meist zwischen zwei und dreißig Parametern –, das geht
+in wenigen Sekunden. Stellbare Parameter bekommen gleich das passende
+Bedienelement: ein Zahlenfeld bei Temperaturen, eine Auswahlliste bei
+Betriebsarten, ein Textfeld sonst.
+
+Die vier Zeitschaltprogramme haben einen **eigenen Reiter** – eine Zeile Text
+wäre dort keine brauchbare Bedienung.
+
 ## Werte in der Steuerung: auf Zuruf
 
 Der Reiter *Steuerung* zeigt jeden Parameter, den die Regelung als
@@ -80,22 +97,30 @@ laufen im Takt und werden zu Entitäten.
 
 ## Zeitschaltprogramme
 
-Ein Zeitprogramm ist kein Messwert, sondern eine Zeichenkette mit **drei
-Schaltfenstern** je Tag:
+Vier Programme – Heizkreis 1, 2, 3 und Trinkwasser –, jedes mit sieben Tagen
+und **drei Schaltfenstern je Tag**. Der Reiter zeigt sie als Tabelle mit
+Uhrzeitfeldern: eine Zeile je Tag, drei Von-Bis-Paare nebeneinander.
+
+Ein leeres Fenster heißt „wird nicht benutzt“. Das ✕ am Zeilenende leert einen
+ganzen Tag.
+
+Zwei Knöpfe sparen die meiste Tipparbeit: **Montag auf Mo–Fr übertragen** und
+**Montag auf alle Tage übertragen**.
+
+Geändert wird erst beim Speichern, und auch dann nur die Tage, die du angefasst
+hast – sie sind während der Bearbeitung farbig markiert. Vor dem Schreiben
+zeigt eine Rückfrage die Zeiten im Klartext. Lehnt die Regelung einen Tag ab,
+hört der Manager sofort auf, statt blind weiterzuschreiben.
+
+Technisch steht hinter jedem Tag eine Zeichenkette, wie BSB-LAN sie liefert und
+erwartet:
 
 ```
 06:00-22:00 ##:##-##:## ##:##-##:##
 ```
 
-`##:##` heißt „nicht benutzt". Die Steuerung zeigt der Übersicht halber nur
-die belegten Fenster an; im Eingabefeld steht die vollständige Zeichenkette,
-weil sie beim Schreiben genau so erwartet wird. Wer ein zweites Fenster
-einrichten will, ersetzt die Rauten:
-
-```
-06:00-08:00 16:00-22:00 ##:##-##:##
-```
-
+Das ist zum Ablesen brauchbar und zum Einstellen unzumutbar – deshalb der
+Editor.
 ## Stellen: die zwei Schalter
 
 Ein falscher Sollwert lässt im Winter eine Wohnung auskühlen. Deshalb müssen

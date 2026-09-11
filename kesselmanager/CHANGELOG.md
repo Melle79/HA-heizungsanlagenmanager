@@ -1,5 +1,22 @@
 # Änderungen
 
+## 1.3.0
+
+- **Neu: der Reiter „Regler“.** Die Anlage bedienen wie am Gerät auf dem
+  Kessel – mit derselben Gliederung. Die 27 Kategorien kommen aus der Regelung
+  selbst; niemand muss etwas sortieren. Eine Kategorie anklicken genügt, der
+  Manager liest ihre Werte und zeigt stellbare gleich mit passendem
+  Bedienelement: Zahlenfeld bei Temperaturen, Auswahlliste bei Betriebsarten.
+- **Neu: der Reiter „Zeitprogramme“.** Vier Programme mit je sieben Tagen und
+  drei Schaltfenstern, als Tabelle aus Uhrzeitfeldern statt als Zeile
+  Rautentext. Dazu *Montag auf Mo–Fr übertragen* und *auf alle Tage
+  übertragen*, ein ✕ zum Leeren eines Tages und eine Rückfrage im Klartext.
+- Gespeichert werden **nur geänderte Tage**; sie sind während der Bearbeitung
+  markiert. Lehnt die Regelung einen Tag ab, hört der Manager auf, statt blind
+  weiterzuschreiben.
+- Der frühere Reiter „Steuerung“ geht darin auf. Wer einen bestimmten Parameter
+  sucht statt in Kategorien zu blättern, findet ihn weiterhin unter *Auswahl*.
+
 ## 1.2.0
 
 - **Behoben: In der Steuerung stand fast überall „–“.** Angezeigt wurden dort

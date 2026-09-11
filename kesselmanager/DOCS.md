@@ -57,6 +57,22 @@ lands there with no further effort.
 The entity is tied to the **parameter number**, not the name. Rename the label
 and you keep your history.
 
+## The “Controller” tab
+
+Here you operate the system the way you would at the unit on the boiler –
+**with the same structure**. The 27 categories are not mine, they come from the
+controller itself: *Time*, *Setpoints*, *Holiday*, *Operating mode*, *Heating
+circuit*, *Hot water*, *Boiler* and so on. Nobody has to sort anything; the
+system knows best what belongs together.
+
+Pick a category and the manager reads its values and shows them. Categories are
+small – usually between two and thirty parameters – so it takes seconds.
+Writable parameters get a fitting control: a number field for temperatures, a
+dropdown for operating modes, a text field otherwise.
+
+The four time programmes have a **tab of their own** – a line of text would be
+no way to set them.
+
 ## Values in the control tab: on demand
 
 The *Control* tab lists every parameter the controller reports as writable –
@@ -77,21 +93,27 @@ parameters run on the cycle and become entities.
 
 ## Time programmes
 
-A time programme is not a measurement but a string holding **three switching
-windows** per day:
+Four programmes – heating circuits 1, 2, 3 and hot water – each with seven days
+and **three switching windows per day**. The tab shows them as a table of time
+fields: one row per day, three from–to pairs side by side.
+
+An empty window means “not used”. The ✕ at the end of a row clears a whole day.
+
+Two buttons save most of the typing: **copy Monday to Mon–Fri** and **copy
+Monday to all days**.
+
+Nothing changes until you save, and even then only the days you touched – they
+are highlighted while you edit. A confirmation shows the times in plain text
+before writing. If the controller rejects a day, the manager stops at once
+instead of writing on blindly.
+
+Technically each day is a string, exactly as BSB-LAN delivers and expects it:
 
 ```
 06:00-22:00 ##:##-##:## ##:##-##:##
 ```
 
-`##:##` means “unused”. For readability the control tab shows only the windows
-in use; the input field holds the full string, because that is exactly what is
-expected when writing. To add a second window, replace the hashes:
-
-```
-06:00-08:00 16:00-22:00 ##:##-##:##
-```
-
+Fine to read, impossible to edit – hence the editor.
 ## Setting: the two switches
 
 A wrong setpoint lets a flat go cold in winter. Setting therefore requires

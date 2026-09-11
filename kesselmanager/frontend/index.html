@@ -102,6 +102,22 @@
     margin-top:var(--l2)}
   .balken div{height:100%; background:var(--warm); width:0; transition:width .3s}
   .leer{color:var(--sehr-leise); font-size:.82rem; padding:var(--l4) 0}
+  .kachelleiste{display:flex; flex-wrap:wrap; gap:var(--l2)}
+  .kachelleiste button{background:var(--flaeche2); color:var(--text);
+    border:1px solid var(--linie); font-weight:500; font-size:.84rem}
+  .kachelleiste button.an{background:var(--warm); color:#171105; border-color:var(--warm)}
+  table.zp td{vertical-align:middle}
+  table.zp input[type=time]{width:96px; background:var(--flaeche2); color:var(--text);
+    border:1px solid var(--linie); border-radius:var(--rund);
+    padding:var(--l1) var(--l2); font-family:inherit; font-size:.84rem;
+    font-variant-numeric:tabular-nums}
+  table.zp input[type=time]:focus{outline:none; border-color:var(--warm)}
+  table.zp .spanne{display:flex; align-items:center; gap:var(--l1)}
+  table.zp .spanne span{color:var(--sehr-leise)}
+  tr.geaendert td{background:rgba(232,162,61,.08)}
+  tr.geaendert td:first-child{box-shadow:inset 3px 0 0 var(--warm)}
+  .regelzeile input,.regelzeile select{width:120px}
+  .regelzeile{display:flex; gap:var(--l1); align-items:center; justify-content:flex-end}
   @media(max-width:640px){ main{padding:var(--l3)} .kopf,nav{padding-left:var(--l3);
     padding-right:var(--l3)} }
 </style>
@@ -123,9 +139,10 @@
 
 <nav>
   <button data-blatt="uebersicht" class="an">Übersicht</button>
+  <button data-blatt="regler">Regler</button>
+  <button data-blatt="zeitprogramme">Zeitprogramme</button>
   <button data-blatt="werte">Werte</button>
   <button data-blatt="auswahl">Auswahl</button>
-  <button data-blatt="steuerung">Steuerung</button>
   <button data-blatt="einstellungen">Einstellungen</button>
 </nav>
 
@@ -201,37 +218,51 @@
   </div>
 </section>
 
-<!-- ══════════════════════════════════════════════ Steuerung ═══ -->
-<section id="steuerung">
-  <div class="hinweis warn" id="schreib-hinweis"></div>
+<!-- ═════════════════════════════════════════════════ Regler ═══ -->
+<section id="regler">
+  <div class="hinweis" id="regler-hinweis"></div>
   <div class="tafel">
-    <h2>Sollwerte stellen</h2>
-    <div class="notiz">Nur Parameter, welche die Regelung selbst als
-      beschreibbar meldet. Jede Änderung geht unmittelbar an die Heizung –
-      es gibt kein Rückgängig.</div>
-    <div class="felder" style="margin-top:var(--l3)">
-      <div class="feld"><label>Suche</label>
-        <input type="text" id="such-st" placeholder="Name oder Nummer …"></div>
-      <div class="feld"><label>Kategorie</label>
-        <select id="kat-st"><option value="">alle</option></select></div>
-    </div>
-    <div class="zeile-aktionen">
-      <button class="leise" id="btn-st-lesen">Werte der angezeigten Parameter lesen</button>
-      <span class="notiz" id="st-stand"></span>
-      <span class="meldung" id="m-steuerung"></span>
-    </div>
-    <div class="notiz">Gelesen wird nur auf Zuruf: Die Steuerung zeigt 161
-      stellbare Parameter, und die alle im Takt abzufragen würde den Bus
-      dauerhaft belegen. Was du dauerhaft sehen willst, gehört unter
-      <b>Auswahl</b>.</div>
+    <h2>Die Regelung, Kategorie für Kategorie</h2>
+    <div class="notiz">Dieselbe Gliederung, die auch am Gerät auf dem Kessel
+      steht. Wählst du eine Kategorie, liest der Manager ihre Werte und zeigt
+      sie an – stellbare gleich zum Ändern.</div>
+    <div class="kachelleiste" id="kategorienliste"></div>
   </div>
+  <div class="tafel" id="regler-tafel" hidden>
+    <h2 id="regler-titel"></h2>
+    <table><tbody id="reglertabelle"></tbody></table>
+    <div class="zeile-aktionen">
+      <button class="leise" id="btn-regler-lesen">Neu lesen</button>
+      <span class="notiz" id="regler-stand"></span>
+      <span class="meldung" id="m-regler"></span>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════ Zeitprogramme ═══ -->
+<section id="zeitprogramme">
+  <div class="hinweis" id="zp-hinweis"></div>
   <div class="tafel">
-    <table>
-      <thead><tr><th>Nr</th><th>Name</th><th style="text-align:right">Wert</th>
-        <th style="width:190px">Neu</th></tr></thead>
-      <tbody id="steuertabelle"></tbody>
+    <h2>Zeitschaltprogramme</h2>
+    <div class="notiz">Je Tag drei Schaltfenster. Ein leeres Fenster heißt:
+      wird nicht benutzt. Geändert wird erst beim Speichern, und auch dann nur
+      die Tage, die du angefasst hast.</div>
+    <div class="kachelleiste" id="zp-auswahl" style="margin-top:var(--l3)"></div>
+  </div>
+  <div class="tafel" id="zp-tafel" hidden>
+    <h2 id="zp-titel"></h2>
+    <table class="zp">
+      <thead><tr><th style="width:110px">Tag</th><th>Fenster 1</th>
+        <th>Fenster 2</th><th>Fenster 3</th><th style="width:54px"></th></tr></thead>
+      <tbody id="zp-tabelle"></tbody>
     </table>
-    <div class="leer" id="steuer-leer" hidden>Keine Treffer.</div>
+    <div class="zeile-aktionen">
+      <button id="btn-zp-speichern">Geänderte Tage speichern</button>
+      <button class="leise" id="btn-zp-mofr">Montag auf Mo–Fr übertragen</button>
+      <button class="leise" id="btn-zp-alle">Montag auf alle Tage übertragen</button>
+      <button class="leise" id="btn-zp-neu">Verwerfen und neu lesen</button>
+      <span class="meldung" id="m-zp"></span>
+    </div>
   </div>
 </section>
 
@@ -331,7 +362,8 @@ document.querySelectorAll('nav button[data-blatt]').forEach(knopf => {
     $(knopf.dataset.blatt).classList.add('an');
     window.scrollTo(0, 0);
     if (knopf.dataset.blatt === 'auswahl') katalogZeichnen();
-    if (knopf.dataset.blatt === 'steuerung') steuerungZeichnen();
+    if (knopf.dataset.blatt === 'regler') kategorienZeichnen();
+    if (knopf.dataset.blatt === 'zeitprogramme') zpAuswahlZeichnen();
     if (knopf.dataset.blatt === 'werte') werteZeichnen();
   };
 });
@@ -432,7 +464,6 @@ function kategorienFuellen(select) {
 async function katalogLaden() {
   katalog = await hole('katalog');
   kategorienFuellen($('kat-filter'));
-  kategorienFuellen($('kat-st'));
   $('katalog-stand').textContent = katalog.anzahl
     ? `${katalog.anzahl} Parameter, eingelesen am ${zeit(katalog.gebaut_am)}`
     : 'Noch kein Katalog eingelesen.';
@@ -514,129 +545,275 @@ $('btn-speichern-auswahl').onclick = async () => {
   } catch (err) { meldung('m-auswahl', err.message); }
 };
 
-// ─────────────────────────────────────────────────── Steuerung ──
-async function steuerungZeichnen() {
-  // Gesperrt wird allein über den Schalter dieses Add-ons. Die Angabe
-  // „buswritable“ aus BSB-LAN ist nur ein Hinweis: Sie kann eine Null melden,
-  // obwohl die Anlage Änderungen annimmt – die beiden Werte entstehen dort aus
-  // verschiedenen Rechnungen. Ein Verbot darauf zu bauen hieße, den Benutzer
-  // aus seiner eigenen Heizung auszusperren.
-  const frei = !!status.schreiben_erlaubt;
-  const bsbSagt = (status.bsb || {}).buswritable;
-  $('schreib-hinweis').innerHTML = frei
-    ? '<b>Stellen ist freigegeben.</b> Änderungen gehen unmittelbar an die Heizung.'
-      + (bsbSagt ? '' : '<br><span class="notiz">BSB-LAN meldet zwar „nur lesen“ – '
-        + 'diese Angabe ist dort aber nicht dieselbe wie die tatsächliche Sperre. '
-        + 'Nimmt die Regelung eine Änderung nicht an, sagt sie es beim Versuch.</span>')
-    : `<b>Stellen ist gesperrt.</b> Setz unter „Einstellungen“ den Haken
-       <i>Stellen von Parametern erlauben</i>. In BSB-LAN selbst steht der
-       Schreibzugriff unter <i>Einstellungen → Schreibzugriff (Ebene)</i>;
-       dort meldet es gerade
-       <i>${bsbSagt ? 'frei' : 'nur lesen'}</i>.`;
-  $('schreib-hinweis').className = frei ? 'hinweis' : 'hinweis warn';
+// ─────────────────────────────────────────────────────── Regler ──
+// Die Gliederung übernimmt der Manager von der Regelung: Es sind dieselben
+// Kategorien, die auch am Gerät auf dem Kessel durchgeblättert werden. Damit
+// muss niemand etwas gruppieren – die Anlage weiß selbst am besten, was
+// zusammengehört.
 
-  const args = new URLSearchParams({q: $('such-st').value,
-                                    kat: $('kat-st').value, rw: '1'});
+// Kategorien der Zeitschaltprogramme. Die haben einen eigenen Reiter, weil
+// eine Zeile Text dort keine brauchbare Bedienung wäre.
+const ZP_KATEGORIEN = ['1', '2', '3', '4'];
+let reglerKat = null;
+
+function kategorienZeichnen() {
+  const leiste = $('kategorienliste'); leiste.innerHTML = '';
+  const eintraege = Object.entries(katalog.kategorien || {})
+    .sort((a, b) => parseFloat(a[0]) - parseFloat(b[0]));
+  if (!eintraege.length) {
+    $('regler-hinweis').innerHTML = `<b>Noch kein Katalog.</b> Lies ihn unter
+      „Einstellungen“ einmal ein – danach steht hier die Gliederung deiner
+      Regelung.`;
+    return;
+  }
+  $('regler-hinweis').innerHTML = `<b>${eintraege.length} Kategorien</b>, wie sie
+    auch am Gerät stehen. Zeitschaltprogramme haben einen eigenen Reiter.`;
+  eintraege.forEach(([id, k]) => {
+    const knopf = document.createElement('button');
+    knopf.textContent = k.name;
+    knopf.className = id === reglerKat ? 'an' : '';
+    knopf.onclick = () => reglerOeffnen(id);
+    leiste.appendChild(knopf);
+  });
+}
+
+async function reglerOeffnen(id) {
+  reglerKat = id;
+  kategorienZeichnen();
+  if (ZP_KATEGORIEN.includes(String(id))) {
+    // Zeitprogramme gehören in ihren eigenen Reiter – dort kann man sie
+    // wirklich einstellen statt nur anzusehen.
+    document.querySelector('nav button[data-blatt="zeitprogramme"]').click();
+    zpOeffnen(String(id));
+    return;
+  }
+  $('regler-tafel').hidden = false;
+  $('regler-titel').textContent = (katalog.kategorien[id] || {}).name || '';
+  $('reglertabelle').innerHTML =
+    '<tr><td class="kat">wird gelesen …</td></tr>';
+  await reglerLesen();
+}
+
+async function reglerLesen() {
+  if (reglerKat === null) return;
+  const nummern = ((katalog.kategorien[reglerKat] || {}).parameter) || [];
+  try {
+    const d = await sendeJSON('lesen', 'POST', {nr: nummern});
+    werte = d.werte || werte;
+    if (d.hinweis) meldung('m-regler', d.hinweis);
+    $('regler-stand').textContent = `${nummern.length} Parameter, gelesen ${
+      new Date().toLocaleTimeString('de-DE', {hour:'2-digit', minute:'2-digit'})}`;
+  } catch (err) { meldung('m-regler', err.message); }
+  await reglerZeichnen();
+}
+
+async function reglerZeichnen() {
+  const args = new URLSearchParams({kat: reglerKat});
   const d = await hole('katalog/suche?' + args);
-  const koerper = $('steuertabelle'); koerper.innerHTML = '';
+  const koerper = $('reglertabelle'); koerper.innerHTML = '';
+  const frei = !!status.schreiben_erlaubt;
+
   (d.parameter || []).forEach(p => {
     const w = werte[p.nr] || {};
+    const roh = w.value === undefined || w.value === null || w.value === ''
+      ? '' : String(w.value);
     const zeile = document.createElement('tr');
-    const zeitprogramm = (p.dataType_name || '') === 'TIMEPROG';
-    const roh = w.value !== undefined && w.value !== null && w.value !== ''
-      ? String(w.value) : '';
-    // Ein Zeitprogramm sind drei Schaltfenster; "##:##" heißt ungenutzt.
-    // Ungenutzte wegzulassen macht aus einer Wüste aus Rauten eine Zeile,
-    // die man lesen kann.
-    const jetzt = !roh ? '–'
-      : zeitprogramm
-        ? (roh.split(' ').filter(f => !f.includes('#')).join('  ') || 'aus')
-        : `${roh} ${w.unit || ''}`;
-    const eingabe = (p.possibleValues && p.possibleValues.length)
-      ? `<select data-nr="${p.nr}">` + p.possibleValues.map(v =>
-          `<option value="${v.enumValue}">${v.desc}</option>`).join('') + '</select>'
-      : `<input type="text" data-nr="${p.nr}" placeholder="${
-          zeitprogramm ? '06:00-22:00 ##:##-##:## ##:##-##:##' : (p.unit || '')}"
-          ${zeitprogramm ? `value="${roh}" title="Drei Schaltfenster, ungenutzte als ##:##-##:##"` : ''}>`;
+    let bedienung = '<span class="notiz">nur lesen</span>';
+    if (p.schreibbar) {
+      if (p.possibleValues && p.possibleValues.length) {
+        bedienung = `<select data-nr="${p.nr}">` + p.possibleValues.map(v =>
+          `<option value="${v.enumValue}"${
+            (w.desc || '') === v.desc ? ' selected' : ''}>${v.desc}</option>`
+          ).join('') + '</select>';
+      } else {
+        const zahl = p.unit === '°C' || p.unit === 'K' || p.unit === '%';
+        bedienung = `<input type="${zahl ? 'number' : 'text'}" data-nr="${p.nr}"
+          value="${roh}" ${zahl ? 'step="0.5"' : ''}>`;
+      }
+      bedienung = `<div class="regelzeile">${bedienung}
+        <button class="leise" data-setzen="${p.nr}" ${frei ? '' : 'disabled'}
+          title="${frei ? 'stellen' : 'unter Einstellungen freigeben'}">→</button></div>`;
+    }
     zeile.innerHTML = `<td class="nr">${p.nr}</td>
-      <td>${p.name}<div class="notiz">${p.kategorie_name}</div></td>
-      <td class="wert">${jetzt}</td>
-      <td><div style="display:flex; gap:var(--l1)">${eingabe}
-        <button class="leise" data-setzen="${p.nr}" ${frei ? '' : 'disabled'}>→</button>
+      <td>${p.name}${p.unit ? ` <span class="notiz">(${p.unit})</span>` : ''}</td>
+      <td class="wert">${roh === '' ? '–' : (w.desc || roh)} ${
+        w.desc ? '' : (p.unit || '')}</td>
+      <td style="width:200px">${bedienung}</td>`;
+    const knopf = zeile.querySelector('button[data-setzen]');
+    if (knopf) knopf.onclick = () => parameterStellen(p, zeile, 'm-regler',
+                                                      reglerLesen);
+    koerper.appendChild(zeile);
+  });
+  if (!koerper.children.length) {
+    koerper.innerHTML = '<tr><td class="kat">Diese Kategorie ist leer.</td></tr>';
+  }
+}
+
+$('btn-regler-lesen').onclick = reglerLesen;
+
+async function parameterStellen(p, zeile, meldungsfeld, danach) {
+  const feld = zeile.querySelector(`[data-nr="${p.nr}"]`);
+  const wert = feld.value;
+  if (wert === '') return meldung(meldungsfeld, 'Erst einen Wert eingeben');
+  if (!confirm(`Parameter ${p.nr} „${p.name}“ auf ${wert} stellen?\n\n`
+             + `Das geht unmittelbar an die Heizung.`)) return;
+  const knopf = zeile.querySelector('button[data-setzen]');
+  knopf.disabled = true;
+  try {
+    await sendeJSON('setzen', 'POST', {nr: p.nr, wert});
+    meldung(meldungsfeld, `Parameter ${p.nr} gestellt`, true);
+    setTimeout(async () => {
+      try { const d = await sendeJSON('lesen', 'POST', {nr: [p.nr]});
+            werte = d.werte || werte; } catch (e) {}
+      if (danach) danach();
+    }, 1800);
+  } catch (err) { meldung(meldungsfeld, err.message); }
+  finally { knopf.disabled = false; }
+}
+
+// ────────────────────────────────────────────── Zeitprogramme ──
+// BSB-LAN liefert je Tag eine Zeichenkette mit drei Fenstern:
+//     "06:00-22:00 ##:##-##:## ##:##-##:##"
+// Das ist zum Ablesen brauchbar und zum Einstellen unzumutbar. Hier wird
+// daraus eine Tabelle mit Uhrzeitfeldern – und beim Speichern wieder die
+// Zeichenkette, die die Regelung erwartet.
+const TAGE = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag',
+              'Samstag', 'Sonntag'];
+const LEER = '##:##';
+let zpKat = null;
+let zpTage = [];          // [{nr, name, fenster:[{von,bis}], urtext}]
+
+function fensterLesen(text) {
+  // Drei Paare, notfalls aufgefüllt: Eine kürzere Antwort darf die Tabelle
+  // nicht zerlegen.
+  const raus = [];
+  (String(text || '').trim().split(/\s+/)).forEach(stueck => {
+    const [von, bis] = stueck.split('-');
+    raus.push({von: (von || '').includes('#') ? '' : (von || ''),
+               bis: (bis || '').includes('#') ? '' : (bis || '')});
+  });
+  while (raus.length < 3) raus.push({von: '', bis: ''});
+  return raus.slice(0, 3);
+}
+
+function fensterSchreiben(fenster) {
+  return fenster.map(f => (f.von && f.bis) ? `${f.von}-${f.bis}`
+                                           : `${LEER}-${LEER}`).join(' ');
+}
+
+function zpAuswahlZeichnen() {
+  const leiste = $('zp-auswahl'); leiste.innerHTML = '';
+  const vorhanden = ZP_KATEGORIEN.filter(id => (katalog.kategorien || {})[id]);
+  if (!vorhanden.length) {
+    $('zp-hinweis').innerHTML = `<b>Noch kein Katalog.</b> Lies ihn unter
+      „Einstellungen“ ein, dann erscheinen hier die Programme.`;
+    return;
+  }
+  $('zp-hinweis').innerHTML = `<b>${vorhanden.length} Programme</b> mit je sieben
+    Tagen und drei Schaltfenstern.`;
+  vorhanden.forEach(id => {
+    const knopf = document.createElement('button');
+    knopf.textContent = katalog.kategorien[id].name;
+    knopf.className = id === zpKat ? 'an' : '';
+    knopf.onclick = () => zpOeffnen(id);
+    leiste.appendChild(knopf);
+  });
+}
+
+async function zpOeffnen(id) {
+  zpKat = String(id);
+  zpAuswahlZeichnen();
+  $('zp-tafel').hidden = false;
+  $('zp-titel').textContent = (katalog.kategorien[zpKat] || {}).name || '';
+  $('zp-tabelle').innerHTML = '<tr><td class="kat">wird gelesen …</td></tr>';
+  const nummern = ((katalog.kategorien[zpKat] || {}).parameter) || [];
+  try {
+    const d = await sendeJSON('lesen', 'POST', {nr: nummern});
+    werte = d.werte || werte;
+  } catch (err) { meldung('m-zp', err.message); }
+
+  zpTage = nummern.slice(0, 7).map((nr, i) => {
+    const w = werte[nr] || {};
+    return {nr, name: w.name || TAGE[i] || nr,
+            urtext: String(w.value || ''),
+            fenster: fensterLesen(w.value)};
+  });
+  zpZeichnen();
+}
+
+function zpZeichnen() {
+  const koerper = $('zp-tabelle'); koerper.innerHTML = '';
+  zpTage.forEach((tag, index) => {
+    const zeile = document.createElement('tr');
+    const geaendert = fensterSchreiben(tag.fenster) !== tag.urtext;
+    if (geaendert) zeile.className = 'geaendert';
+    let zellen = `<td><b>${tag.name}</b><div class="notiz">${tag.nr}</div></td>`;
+    tag.fenster.forEach((f, fi) => {
+      zellen += `<td><div class="spanne">
+        <input type="time" value="${f.von}" data-tag="${index}" data-f="${fi}" data-teil="von">
+        <span>–</span>
+        <input type="time" value="${f.bis}" data-tag="${index}" data-f="${fi}" data-teil="bis">
       </div></td>`;
-    zeile.querySelector('button[data-setzen]').onclick = async (ev) => {
-      const nr = ev.target.dataset.setzen;
-      const feld = zeile.querySelector(`[data-nr="${nr}"]`);
-      const wert = feld.value;
-      if (wert === '') return meldung('m-steuerung', 'Erst einen Wert eingeben');
-      if (!confirm(`Parameter ${nr} „${p.name}“ auf ${wert} stellen?\n\n`
-                 + `Das geht unmittelbar an die Heizung.`)) return;
-      ev.target.disabled = true;
-      try {
-        await sendeJSON('setzen', 'POST', {nr, wert});
-        meldung('m-steuerung', `Parameter ${nr} gestellt`, true);
-        // Nur diesen einen nachlesen: Er ist der Beweis, dass die Regelung
-        // den Wert wirklich übernommen hat.
-        setTimeout(async () => {
-          try { const d = await sendeJSON('lesen', 'POST', {nr: [nr]});
-                werte = d.werte || werte; } catch (e) {}
-          steuerungZeichnen();
-        }, 1800);
-      } catch (err) { meldung('m-steuerung', err.message); }
-      finally { ev.target.disabled = false; }
+    });
+    zellen += `<td><button class="leise" data-leeren="${index}"
+      title="alle Fenster dieses Tages leeren">✕</button></td>`;
+    zeile.innerHTML = zellen;
+    zeile.querySelectorAll('input[type=time]').forEach(feld => {
+      feld.onchange = () => {
+        zpTage[feld.dataset.tag].fenster[feld.dataset.f][feld.dataset.teil] = feld.value;
+        zpZeichnen();
+      };
+    });
+    zeile.querySelector('button[data-leeren]').onclick = () => {
+      zpTage[index].fenster = [0, 1, 2].map(() => ({von: '', bis: ''}));
+      zpZeichnen();
     };
     koerper.appendChild(zeile);
   });
-  $('steuer-leer').hidden = (d.parameter || []).length > 0;
-
-  steuerSichtbar = (d.parameter || []).map(p => p.nr);
-  // Nur solche, die noch nie versucht wurden. Ohne dieses Gedächtnis riefe
-  // sich das Nachlesen endlos selbst auf, sobald ein Parameter gar nicht
-  // antwortet – er bliebe ja für immer ohne Wert.
-  const fehlen = steuerSichtbar.filter(nr => !werte[nr] && !steuerVersucht.has(nr));
-  $('btn-st-lesen').disabled = steuerSichtbar.length === 0;
-  $('st-stand').textContent = steuerSichtbar.length > AUTO_LESEN_BIS
-    ? `${steuerSichtbar.length} Parameter – zum Lesen bitte eingrenzen oder den Knopf drücken`
-    : (fehlen.length ? `${fehlen.length} ohne Wert` : '');
-  // Kurze Listen liest der Manager von selbst – das ist der Fall, sobald
-  // jemand nach etwas Bestimmtem sucht, und genau dann will er auch Zahlen
-  // sehen statt Striche.
-  if (fehlen.length && steuerSichtbar.length <= AUTO_LESEN_BIS) steuerWerteLesen();
+  const offen = zpTage.filter(t => fensterSchreiben(t.fenster) !== t.urtext).length;
+  $('btn-zp-speichern').disabled = offen === 0 || !status.schreiben_erlaubt;
+  $('btn-zp-speichern').textContent = offen
+    ? `${offen} geänderte${offen === 1 ? 'n' : ''} Tag${offen === 1 ? '' : 'e'} speichern`
+    : 'Keine Änderungen';
+  if (!status.schreiben_erlaubt) {
+    meldung('m-zp', 'Zum Speichern das Stellen unter „Einstellungen“ freigeben');
+  }
 }
 
-// Bis zu so vielen Parametern liest die Steuerung ungefragt. Darüber wartet
-// sie auf einen Knopfdruck: Jeder Wert ist ein Telegramm auf dem Bus.
-const AUTO_LESEN_BIS = 25;
-let steuerSichtbar = [];
-const steuerVersucht = new Set();
-
-async function steuerWerteLesen() {
-  const knopf = $('btn-st-lesen');
-  if (!steuerSichtbar.length || knopf.dataset.laeuft) return;
-  knopf.dataset.laeuft = '1'; knopf.disabled = true;
-  const vorher = knopf.textContent;
-  knopf.textContent = 'liest …';
-  steuerSichtbar.forEach(nr => steuerVersucht.add(nr));
-  try {
-    const d = await sendeJSON('lesen', 'POST', {nr: steuerSichtbar});
-    werte = d.werte || werte;
-    if (d.hinweis) meldung('m-steuerung', d.hinweis);
-    delete knopf.dataset.laeuft; knopf.textContent = vorher;
-    steuerungZeichnen();
-    return;
-  } catch (err) { meldung('m-steuerung', err.message); }
-  finally { delete knopf.dataset.laeuft; knopf.disabled = false;
-            knopf.textContent = vorher; }
+function zpUebertragen(bis) {
+  if (!zpTage.length) return;
+  const quelle = zpTage[0].fenster;
+  for (let i = 1; i <= bis; i++) {
+    if (!zpTage[i]) continue;
+    zpTage[i].fenster = quelle.map(f => ({von: f.von, bis: f.bis}));
+  }
+  zpZeichnen();
 }
-$('btn-st-lesen').onclick = () => {
-  // Ein Knopfdruck hebt das Gedächtnis auf: Wer ihn drückt, will es
-  // ausdrücklich noch einmal wissen.
-  steuerSichtbar.forEach(nr => steuerVersucht.delete(nr));
-  steuerWerteLesen();
+$('btn-zp-mofr').onclick = () => zpUebertragen(4);
+$('btn-zp-alle').onclick = () => zpUebertragen(6);
+$('btn-zp-neu').onclick = () => zpOeffnen(zpKat);
+
+$('btn-zp-speichern').onclick = async () => {
+  const offen = zpTage.filter(t => fensterSchreiben(t.fenster) !== t.urtext);
+  if (!offen.length) return;
+  const liste = offen.map(t => `${t.name}: ${fensterSchreiben(t.fenster)}`).join('\n');
+  if (!confirm(`${offen.length} Tag(e) an die Heizung schicken?\n\n${liste}`)) return;
+
+  const knopf = $('btn-zp-speichern'); knopf.disabled = true;
+  let fertig = 0;
+  for (const tag of offen) {
+    try {
+      await sendeJSON('setzen', 'POST', {nr: tag.nr,
+                                         wert: fensterSchreiben(tag.fenster)});
+      fertig++;
+    } catch (err) {
+      meldung('m-zp', `${tag.name}: ${err.message}`);
+      break;     // beim ersten Nein aufhören, statt blind weiterzuschreiben
+    }
+  }
+  if (fertig) meldung('m-zp', `${fertig} Tag(e) gespeichert`, true);
+  setTimeout(() => zpOeffnen(zpKat), 1800);
 };
-['such-st','kat-st'].forEach(id => {
-  const el = $(id); el.oninput = el.onchange = () => steuerungZeichnen();
-});
 
 // ───────────────────────────────────────────────── Einstellungen ──
 function einstellungenZeichnen(e) {
@@ -704,6 +881,8 @@ async function anlauf() {
   await werteLaden();
   await katalogLaden();
   await statusLaden();
+  kategorienZeichnen();
+  zpAuswahlZeichnen();
   katalogLauf();
   setInterval(async () => { await werteLaden(); await statusLaden();
     if ($('werte').classList.contains('an')) werteZeichnen(); }, 30000);
