@@ -19,6 +19,18 @@ A running BSB-LAN on the same network and an MQTT broker in Home Assistant.
 Both are checked at startup; without the broker the interface still works, you
 simply get no entities.
 
+**Which systems?** Every controller BSB-LAN speaks to – BSB, LPB and PPS, that
+is the Siemens controllers behind Brötje, Elco, Weishaupt, Atlantic, Baxi and
+others. The Boiler Manager knows no parameter number by heart: what appears on
+the overview, and which categories hold switching times, is derived from your
+own system's catalogue – from the names, and from the data type BSB-LAN
+assigns. If nothing matches a tile, the tile is left out rather than showing a
+number from someone else's boiler.
+
+What it cannot do is know more than BSB-LAN: if your firmware does not carry a
+parameter, it does not exist here either. And whether a value can be set is
+decided by the controller itself.
+
 ## The parameter catalogue
 
 Which parameters a controller knows depends on the device. With Siemens

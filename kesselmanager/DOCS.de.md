@@ -20,6 +20,18 @@ Ein laufendes BSB-LAN im selben Netz und ein MQTT-Broker in Home Assistant.
 Beides wird beim Start geprüft; fehlt der Broker, läuft die Oberfläche
 trotzdem, es entstehen nur keine Entitäten.
 
+**Welche Anlagen?** Alle, die BSB-LAN bedient – BSB, LPB und PPS, also die
+Siemens-Regelungen hinter Brötje, Elco, Weishaupt, Atlantic, Baxi und
+anderen. Der Kesselmanager kennt keine einzige Parameternummer auswendig: Was
+auf der Übersicht steht und welche Kategorien Schaltzeiten führen, leitet er
+aus dem Katalog deiner eigenen Anlage ab – aus den Namen und aus dem
+Datentyp, den BSB-LAN vergibt. Findet er für eine Kachel nichts, bleibt sie
+weg, statt eine fremde Zahl anzuzeigen.
+
+Was der Manager **nicht** leisten kann, ist mehr zu wissen als BSB-LAN: Führt
+deine Firmware einen Parameter nicht, gibt es ihn hier auch nicht. Und ob
+sich ein Wert stellen lässt, entscheidet am Ende die Regelung selbst.
+
 ## Der Parameterkatalog
 
 Welche Parameter eine Regelung kennt, hängt am Gerät. Bei Siemens-Reglern –

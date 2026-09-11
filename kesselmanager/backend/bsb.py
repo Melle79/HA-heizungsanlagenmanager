@@ -57,6 +57,12 @@ class Bsb:
         return f"{self.basis}{vorn}/{befehl.lstrip('/')}"
 
     def _holen(self, befehl: str) -> dict:
+        if not self.basis:
+            # Beim ersten Start steht hier nichts. Das ist kein Fehler der
+            # Technik, sondern eine offene Frage an den Benutzer – und die
+            # verdient einen Satz, der sie beantwortet.
+            raise BsbFehler("Noch keine Adresse für BSB-LAN eingetragen. "
+                            "Sie steht unter „Einstellungen“.")
         url = self._pfad(befehl)
         try:
             antwort = requests.get(url, timeout=self.zeitlimit)
@@ -131,6 +137,9 @@ class Bsb:
         Auskunft, die zählt – BSB-LAN meldet je Parameter einen Status, und
         eine abgelehnte Änderung wird hier zum Fehler.
         """
+        if not self.basis:
+            raise BsbFehler("Noch keine Adresse für BSB-LAN eingetragen. "
+                            "Sie steht unter „Einstellungen“.")
         url = self._pfad("JS")
         nutzlast = {"Parameter": str(parameter), "Value": str(wert), "Type": str(typ)}
         try:

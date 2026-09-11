@@ -34,7 +34,11 @@ class ValidationError(ValueError):
 
 STANDARD_EINSTELLUNGEN = {
     # Adresse von BSB-LAN. Ohne die geht nichts, deshalb steht sie ganz oben.
-    "bsb_url": "http://192.168.0.170",
+    # Ab Werk leer: Jede Anlage steht woanders im Netz, und eine fremde
+    # Adresse als Vorgabe führt nur dazu, dass jemand minutenlang sucht,
+    # warum nichts kommt. Ohne Adresse meldet der Manager offen "keine
+    # Verbindung" und zeigt auf die Einstellungen.
+    "bsb_url": "",
     "passkey": "",
     # Wie oft die ausgewählten Parameter gelesen werden. Fünf Minuten sind für
     # eine Heizung reichlich – ihre Trägheit misst sich in Stunden, nicht in

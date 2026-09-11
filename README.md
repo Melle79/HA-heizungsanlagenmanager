@@ -28,6 +28,10 @@ Alles Weitere steht in der [Dokumentation](kesselmanager/DOCS.de.md)
   `total_increasing` und damit eine Langzeitstatistik
 * Sollwerte stellen – hinter zwei Schaltern, beide ab Werk aus
 * Schonender Umgang mit dem Bus: Bündel statt Einzelabfragen, Pausen dazwischen
+* Zeitschaltprogramme als Wochentabelle statt als Zeichenkette
+* Keine fest eingebauten Parameternummern: Übersicht und Zeitprogramme leitet
+  der Manager aus dem Katalog der jeweiligen Anlage ab. Damit läuft er auf
+  jeder Regelung, die BSB-LAN bedient – BSB, LPB und PPS.
 
 ## Selber daran arbeiten
 

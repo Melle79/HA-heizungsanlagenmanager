@@ -255,10 +255,16 @@ def api_einstellungen():
 @app.route("/api/katalog")
 def api_katalog():
     katalog = store.load_katalog()
+    # Zeitprogramme und Übersichtskacheln werden hier abgeleitet und nicht
+    # mitgespeichert: So bekommt auch ein Katalog, der unter einer älteren
+    # Fassung entstanden ist, die Erkennung – ohne ihn über den Bus neu
+    # einlesen zu müssen. Das Rechnen kostet nichts, es ist reines Sortieren.
     return jsonify({
         "gebaut_am": katalog.get("gebaut_am"),
         "geraete": katalog.get("geraete") or [],
         "kategorien": katalog.get("kategorien") or {},
+        "zeitprogramme": katalog_modul.zeitprogramme(katalog),
+        "kacheln": katalog_modul.kacheln(katalog),
         "anzahl": len(katalog.get("parameter") or {}),
     })
 

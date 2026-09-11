@@ -1,5 +1,31 @@
 # Änderungen
 
+## 1.4.0
+
+- **Der Manager passt jetzt auf jede BSB-LAN-Anlage, nicht nur auf eine.**
+  Drei Stellen waren auf die Parameterliste eines einzigen Kessels getippt:
+  die sechs Kacheln der Übersicht (115, 116, 110, 111, 72, 73), die
+  Kategorien der Zeitprogramme (1 bis 4) und die Annahme, die ersten sieben
+  Parameter einer solchen Kategorie seien die Wochentage. Auf einer
+  Standard-BSB-Regelung heißt die Kesseltemperatur 8310, und die Programme
+  sitzen ganz woanders.
+- Die Übersicht sucht ihre Kacheln nun über die **Namen** im Katalog und
+  unterscheidet dabei Ist- von Sollwerten. Die Zeitprogramme erkennt der
+  Manager am **Datentyp TIMEPROG**, den BSB-LAN vergibt – damit findet er in
+  einer Kategorie auch nur die Tage und nicht die „Standardwerte“ daneben.
+  Was BSB-LAN selbst mitbringt (PPS-Emulation, One-Wire-Fühler), bleibt
+  draußen: Das sind keine Programme der Heizung.
+- Beides wird beim Ausliefern aus dem gespeicherten Katalog abgeleitet. Ein
+  Katalog aus einer älteren Fassung muss dafür **nicht** neu über den Bus
+  eingelesen werden.
+- **Behoben: Breite Tabellen schoben die ganze Seite zur Seite.** Die
+  Wochentabelle der Zeitprogramme passt auf einem Tablet nicht nebeneinander;
+  bisher wanderte deshalb auch die Kopfzeile aus dem Bild. Jetzt rollt jede
+  Tabelle in ihrem eigenen Kasten.
+- Ab Werk steht **keine** Adresse mehr drin. Eine fremde IP als Vorgabe führt
+  nur dazu, dass jemand sucht, warum nichts ankommt; ohne Adresse sagt der
+  Manager offen, dass sie fehlt, und zeigt auf die Einstellungen.
+
 ## 1.3.2
 
 - **Meldungen bleiben stehen, bis man sie wegklickt.** Vorher verschwanden sie

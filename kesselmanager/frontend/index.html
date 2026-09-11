@@ -96,6 +96,7 @@
     padding:var(--l3); border-radius:0 var(--rund) var(--rund) 0;
     font-size:.82rem; margin-bottom:var(--l4)}
   .hinweis.warn{border-left-color:var(--achtung)}
+  .rollbar{overflow-x:auto; -webkit-overflow-scrolling:touch}
   .meldung{font-size:.8rem; color:var(--achtung); margin-left:var(--l3)}
   .meldung.gut{color:var(--ok)}
   .meldung:not(:empty){display:flex; align-items:flex-start; gap:var(--l2);
@@ -167,7 +168,7 @@
   </div>
   <div class="tafel">
     <h2>Am Bus</h2>
-    <table><tbody id="geraete"></tbody></table>
+    <div class="rollbar"><table><tbody id="geraete"></tbody></table></div>
   </div>
 </section>
 
@@ -178,10 +179,10 @@
     <div class="notiz">Jeder Eintrag hier ist eine Entität. Der Name in Klammern
       ist die Parameternummer in der Regelung – sie bleibt gleich, auch wenn du
       die Anzeige umbenennst.</div>
-    <table>
+    <div class="rollbar"><table>
       <thead><tr><th>Nr</th><th>Name</th><th>Kategorie</th><th style="text-align:right">Wert</th></tr></thead>
       <tbody id="wertetabelle"></tbody>
-    </table>
+    </table></div>
     <div class="zeile-aktionen">
       <button id="btn-lesen">Jetzt lesen</button>
       <span class="notiz" id="werte-stand"></span>
@@ -219,11 +220,11 @@
     </div>
   </div>
   <div class="tafel">
-    <table>
+    <div class="rollbar"><table>
       <thead><tr><th style="width:34px"></th><th>Nr</th><th>Name</th>
         <th>Kategorie</th><th>Einheit</th></tr></thead>
       <tbody id="katalogtabelle"></tbody>
-    </table>
+    </table></div>
     <div class="leer" id="katalog-leer" hidden>Keine Treffer.</div>
   </div>
 </section>
@@ -240,7 +241,7 @@
   </div>
   <div class="tafel" id="regler-tafel" hidden>
     <h2 id="regler-titel"></h2>
-    <table><tbody id="reglertabelle"></tbody></table>
+    <div class="rollbar"><table><tbody id="reglertabelle"></tbody></table></div>
     <div class="zeile-aktionen">
       <button class="leise" id="btn-regler-lesen">Neu lesen</button>
       <span class="notiz" id="regler-stand"></span>
@@ -263,11 +264,11 @@
   </div>
   <div class="tafel" id="zp-tafel" hidden>
     <h2 id="zp-titel"></h2>
-    <table class="zp">
+    <div class="rollbar"><table class="zp">
       <thead><tr><th style="width:110px">Tag</th><th>Fenster 1</th>
         <th>Fenster 2</th><th>Fenster 3</th><th style="width:54px"></th></tr></thead>
       <tbody id="zp-tabelle"></tbody>
-    </table>
+    </table></div>
     <div class="zeile-aktionen">
       <button id="btn-zp-speichern">Geänderte Tage speichern</button>
       <button class="leise" id="btn-zp-mofr">Montag auf Mo–Fr übertragen</button>
@@ -284,7 +285,10 @@
     <h2>Verbindung zu BSB-LAN</h2>
     <div class="felder">
       <div class="feld"><label>Adresse</label>
-        <input type="text" id="e-url" placeholder="http://192.168.0.170"></div>
+        <input type="text" id="e-url" placeholder="http://192.168.1.50">
+        <div class="notiz">Die Adresse, unter der die Weboberfläche von
+          BSB-LAN erreichbar ist – meist die IP, oft auch
+          <code>http://bsb-lan.local</code>.</div></div>
       <div class="feld"><label>Passkey (falls gesetzt)</label>
         <input type="text" id="e-passkey"></div>
       <div class="feld"><label>Abfrageintervall (Sekunden)</label>
@@ -395,11 +399,11 @@ document.querySelectorAll('nav button[data-blatt]').forEach(knopf => {
 });
 
 // ─────────────────────────────────────────────────── Übersicht ──
-const KACHELN = [
-  {nr:'115', titel:'Kessel'},      {nr:'116', titel:'Vorlauf'},
-  {nr:'110', titel:'Außen'},       {nr:'111', titel:'Außen gedämpft'},
-  {nr:'72',  titel:'Betriebsstunden'}, {nr:'73', titel:'Brennerstarts'},
-];
+// Welche Parameter hier stehen, bestimmt der Katalog, nicht der Quelltext.
+// Fest getippte Nummern galten nur für eine einzige Parameterliste: Was hier
+// „115“ hieß, heißt auf einer Standard-BSB-Anlage 8310. Das Backend sucht die
+// Kacheln über die Namen; bis der Katalog da ist, bleibt die Liste leer.
+let KACHELN = [];
 
 function uebersichtZeichnen() {
   const lage = $('lage');
@@ -413,6 +417,11 @@ function uebersichtZeichnen() {
   } else { lage.innerHTML = ''; }
 
   const k = $('kacheln'); k.innerHTML = '';
+  if (!KACHELN.length && status.verbunden) {
+    k.innerHTML = `<div class="notiz">Sobald der Parameterkatalog eingelesen
+      ist, sucht der Manager hier die üblichen Messwerte deiner Anlage
+      zusammen.</div>`;
+  }
   KACHELN.forEach(def => {
     const w = werte[def.nr];
     const el = document.createElement('div');
@@ -420,9 +429,10 @@ function uebersichtZeichnen() {
     const roh = w && w.value !== null && w.value !== '' ? w.value : null;
     el.innerHTML = `<div class="titel">${def.titel}</div>
       <div class="wert">${roh === null ? '–' : roh}
-        <small>${(w && w.unit) || ''}</small></div>
-      <div class="zusatz">${auswahlNr.has(def.nr) ? 'Parameter ' + def.nr
-        : 'nicht ausgewählt'}</div>`;
+        <small>${(w && w.unit) || def.einheit || ''}</small></div>
+      <div class="zusatz" title="${def.name || ''}">${
+        auswahlNr.has(def.nr) ? 'Parameter ' + def.nr
+                              : 'Parameter ' + def.nr + ' – nicht ausgewählt'}</div>`;
     k.appendChild(el);
   });
 
@@ -489,6 +499,10 @@ function kategorienFuellen(select) {
 
 async function katalogLaden() {
   katalog = await hole('katalog');
+  // Beides hat das Backend aus dem Katalog abgeleitet – aus den Namen und
+  // Datentypen, die die Anlage selbst mitliefert.
+  zeitprogramme = katalog.zeitprogramme || {};
+  KACHELN = katalog.kacheln || [];
   kategorienFuellen($('kat-filter'));
   $('katalog-stand').textContent = katalog.anzahl
     ? `${katalog.anzahl} Parameter, eingelesen am ${zeit(katalog.gebaut_am)}`
@@ -577,9 +591,12 @@ $('btn-speichern-auswahl').onclick = async () => {
 // muss niemand etwas gruppieren – die Anlage weiß selbst am besten, was
 // zusammengehört.
 
-// Kategorien der Zeitschaltprogramme. Die haben einen eigenen Reiter, weil
-// eine Zeile Text dort keine brauchbare Bedienung wäre.
-const ZP_KATEGORIEN = ['1', '2', '3', '4'];
+// Die Kategorien mit Schaltzeiten. Sie kommen aus dem Katalog – erkannt am
+// Datentyp TIMEPROG, den BSB-LAN vergibt, und nicht an Kategorienummern:
+// Die stehen auf jeder Anlage woanders. Aufbau je Eintrag:
+//     {"1": {name: "Zeitschaltprogramm 1", tage: ["11", "11.1", …]}}
+let zeitprogramme = {};
+const istZeitprogramm = (id) => Object.hasOwn(zeitprogramme, String(id));
 let reglerKat = null;
 
 function kategorienZeichnen() {
@@ -606,7 +623,7 @@ function kategorienZeichnen() {
 async function reglerOeffnen(id) {
   reglerKat = id;
   kategorienZeichnen();
-  if (ZP_KATEGORIEN.includes(String(id))) {
+  if (istZeitprogramm(id)) {
     // Zeitprogramme gehören in ihren eigenen Reiter – dort kann man sie
     // wirklich einstellen statt nur anzusehen.
     document.querySelector('nav button[data-blatt="zeitprogramme"]').click();
@@ -729,17 +746,22 @@ function fensterSchreiben(fenster) {
 
 function zpAuswahlZeichnen() {
   const leiste = $('zp-auswahl'); leiste.innerHTML = '';
-  const vorhanden = ZP_KATEGORIEN.filter(id => (katalog.kategorien || {})[id]);
+  const vorhanden = Object.keys(zeitprogramme)
+    .sort((a, b) => parseFloat(a) - parseFloat(b));
   if (!vorhanden.length) {
-    $('zp-hinweis').innerHTML = `<b>Noch kein Katalog.</b> Lies ihn unter
-      „Einstellungen“ ein, dann erscheinen hier die Programme.`;
+    $('zp-hinweis').innerHTML = (katalog.anzahl
+      ? `<b>Keine Schaltzeiten gefunden.</b> Deine Regelung führt keine
+         Parameter vom Typ TIMEPROG – dann gibt es hier nichts einzustellen.`
+      : `<b>Noch kein Katalog.</b> Lies ihn unter „Einstellungen“ ein, dann
+         erscheinen hier die Programme.`);
     return;
   }
-  $('zp-hinweis').innerHTML = `<b>${vorhanden.length} Programme</b> mit je sieben
-    Tagen und drei Schaltfenstern.`;
+  const tage = zeitprogramme[vorhanden[0]].tage.length;
+  $('zp-hinweis').innerHTML = `<b>${vorhanden.length} Programme</b> mit je
+    ${tage} Tagen und drei Schaltfenstern.`;
   vorhanden.forEach(id => {
     const knopf = document.createElement('button');
-    knopf.textContent = katalog.kategorien[id].name;
+    knopf.textContent = zeitprogramme[id].name;
     knopf.className = id === zpKat ? 'an' : '';
     knopf.onclick = () => zpOeffnen(id);
     leiste.appendChild(knopf);
@@ -750,15 +772,18 @@ async function zpOeffnen(id) {
   zpKat = String(id);
   zpAuswahlZeichnen();
   $('zp-tafel').hidden = false;
-  $('zp-titel').textContent = (katalog.kategorien[zpKat] || {}).name || '';
+  $('zp-titel').textContent = (zeitprogramme[zpKat] || {}).name || '';
   $('zp-tabelle').innerHTML = '<tr><td class="kat">wird gelesen …</td></tr>';
-  const nummern = ((katalog.kategorien[zpKat] || {}).parameter) || [];
+  // Nur die Schaltzeitenparameter, nicht die ganze Kategorie: Neben den
+  // Tagen stehen dort auf manchen Anlagen noch „Standardwerte“ und
+  // „Vorwahl“, und die gehören nicht in eine Wochentabelle.
+  const nummern = (zeitprogramme[zpKat] || {}).tage || [];
   try {
     const d = await sendeJSON('lesen', 'POST', {nr: nummern});
     werte = d.werte || werte;
   } catch (err) { meldung('m-zp', err.message); }
 
-  zpTage = nummern.slice(0, 7).map((nr, i) => {
+  zpTage = nummern.map((nr, i) => {
     const w = werte[nr] || {};
     return {nr, name: w.name || TAGE[i] || nr,
             urtext: String(w.value || ''),

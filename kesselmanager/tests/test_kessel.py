@@ -64,9 +64,21 @@ ANLAGE = {
     "status": 1,             # 1 = gesetzt, 2 = nur lesbar, 0 = fehlgeschlagen
 }
 
-KATEGORIEN = {"5": {"name": "Einstellwerte", "min": 50, "max": 55},
+KATEGORIEN = {"1": {"name": "Zeitschaltprogramm 1", "min": 11, "max": 11.7},
+              "5": {"name": "Einstellwerte", "min": 50, "max": 55},
               "13": {"name": "Kessel", "min": 190, "max": 196}}
 PARAMETER = {
+    "1": {
+        "11": {"name": "Montag", "unit": "", "dataType_name": "TIMEPROG",
+               "readwrite": 0, "possibleValues": []},
+        "11.1": {"name": "Dienstag", "unit": "", "dataType_name": "TIMEPROG",
+                 "readwrite": 0, "possibleValues": []},
+        # Der Nachbar, der keine Schaltzeit ist – und der früher als achter
+        # „Tag“ in der Wochentabelle gelandet wäre.
+        "11.9": {"name": "Standardwerte", "unit": "", "dataType_name": "ENUM",
+                 "readwrite": 0,
+                 "possibleValues": [{"enumValue": "0", "desc": "Nein"}]},
+    },
     "5": {
         "50": {"name": "Raumtemperatur Komfortsollwert", "unit": "°C",
                "dataType_name": "TEMP", "readwrite": 0, "precision": 0.1,
@@ -125,13 +137,82 @@ client = bsb.Bsb("http://kessel.test")
 
 print("=== Der Katalog ===")
 k = katalog.aufbauen(client)
-pruefe(len(k["kategorien"]) == 2, "beide Kategorien sind drin")
-pruefe(len(k["parameter"]) == 5, "fünf Parameter insgesamt")
+pruefe(len(k["kategorien"]) == 3, "alle drei Kategorien sind drin")
+pruefe(len(k["parameter"]) == 8, "acht Parameter insgesamt")
 pruefe(k["parameter"]["50"]["schreibbar"] is True,
        "readwrite 0 heißt schreibbar – die Umkehrung ist die Falle")
 pruefe(k["parameter"]["72"]["schreibbar"] is False, "readwrite 1 heißt nur lesen")
 pruefe(k["parameter"]["72"]["kategorie_name"] == "Kessel",
        "der Kategoriename hängt am Parameter")
+
+print("\n=== Die Anlage verrät sich selbst ===")
+# Der Kern der Frage „taugt das auch für andere?“. Früher standen die
+# Parameternummern der Übersicht und die Kategorien der Zeitprogramme fest im
+# Quelltext – und galten damit für genau eine geflashte Parameterliste.
+zp = katalog.zeitprogramme(k)
+pruefe(list(zp) == ["1"], "die Kategorie mit Schaltzeiten wird gefunden")
+pruefe(zp["1"]["tage"] == ["11", "11.1"],
+       "und darin nur die Tage – „Standardwerte“ gehört nicht dazu")
+pruefe(zp["1"]["name"] == "Zeitschaltprogramm 1", "mit ihrem eigenen Namen")
+
+# BSB-LAN fuehrt eigene Schaltzeiten fuer seine PPS-Emulation. Die sind echt,
+# stehen aber im Adapter und nicht in der Heizung - im Reiter waeren sie ein
+# fuenftes Programm, das nichts schaltet.
+EIGENE = {"kategorien": {"25": {"name": "PPS-Bus", "parameter": ["15050"]}},
+          "parameter": {"15050": {"nr": "15050", "name": "Montag",
+                                  "dataType_name": "TIMEPROG"}}}
+pruefe(katalog.zeitprogramme(EIGENE) == {},
+       "was BSB-LAN selbst mitbringt, ist kein Programm der Regelung")
+
+ka = {kachel["titel"]: kachel["nr"] for kachel in katalog.kacheln(k)}
+pruefe(ka.get("Betriebsstunden") == "72", "Betriebsstunden über den Namen")
+pruefe("Kessel" not in ka,
+       "was die Anlage nicht führt, bekommt auch keine Kachel")
+
+print("\n=== Dieselbe Rechnung auf einer fremden Anlage ===")
+# Eine Standard-BSB-Anlage: andere Nummern, andere Kategorien, andere Namen.
+# Findet der Manager sich hier zurecht, findet er sich überall zurecht.
+FREMD = {
+    "kategorien": {
+        "3": {"name": "Zeitprogramm Heizkreis 1",
+              "parameter": ["500", "501", "516"]},
+        "20": {"name": "Kessel", "parameter": ["8310", "8330", "8700"]},
+    },
+    "parameter": {
+        "500": {"nr": "500", "name": "Montag", "dataType_name": "TIMEPROG"},
+        "501": {"nr": "501", "name": "Dienstag", "dataType_name": "TIMEPROG"},
+        "516": {"nr": "516", "name": "Standardwerte", "dataType_name": "ENUM",
+                "possibleValues": [{"enumValue": "0", "desc": "Nein"}]},
+        "8310": {"nr": "8310", "name": "Kesseltemperatur Istwert",
+                 "unit": "°C", "dataType_name": "TEMP"},
+        "8330": {"nr": "8330", "name": "Brenner Betriebsstunden Stufe 1",
+                 "unit": "h", "dataType_name": "HOURS"},
+        "8700": {"nr": "8700", "name": "Außentemperatur", "unit": "°C",
+                 "dataType_name": "TEMP"},
+    },
+}
+fzp = katalog.zeitprogramme(FREMD)
+pruefe(list(fzp) == ["3"], "das fremde Zeitprogramm sitzt in Kategorie 3")
+pruefe(fzp["3"]["tage"] == ["500", "501"], "und führt seine eigenen Nummern")
+fka = {kachel["titel"]: kachel["nr"] for kachel in katalog.kacheln(FREMD)}
+pruefe(fka.get("Kessel") == "8310", "Kesseltemperatur heißt dort 8310")
+pruefe(fka.get("Außen") == "8700", "Außentemperatur 8700 – mit scharfem ß")
+pruefe(fka.get("Betriebsstunden") == "8330", "Betriebsstunden 8330")
+
+print("\n=== Was eine Kachel nicht sein darf ===")
+VERWECHSLUNG = {"kategorien": {"1": {"name": "x", "parameter": ["a", "b", "c"]}},
+                "parameter": {
+                    "a": {"nr": "8311", "name": "Kesseltemperatur Sollwert",
+                          "unit": "°C"},
+                    "b": {"nr": "8310", "name": "Kesseltemperatur Istwert",
+                          "unit": "°C"},
+                    "c": {"nr": "8703", "name": "Außentemperatur gedämpft",
+                          "unit": "°C"}}}
+v = {kachel["titel"]: kachel["nr"] for kachel in katalog.kacheln(VERWECHSLUNG)}
+pruefe(v.get("Kessel") == "8310", "der Sollwert wird nicht für den Istwert gehalten")
+pruefe(v.get("Außen") is None,
+       "und die gedämpfte Außentemperatur nicht für die Außentemperatur")
+pruefe(v.get("Außen gedämpft") == "8703", "die bekommt ihre eigene Kachel")
 
 print("\n=== Was Home Assistant bekommen soll ===")
 p = k["parameter"]
@@ -146,7 +227,7 @@ pruefe(p["192"]["device_class"] == "" and p["192"]["state_class"] == "",
 
 print("\n=== Suchen ===")
 pruefe(len(katalog.suchen(k, "start")) == 1, "Suche nach Namen")
-pruefe(len(katalog.suchen(k, "", nur_schreibbar=True)) == 3, "nur schreibbare")
+pruefe(len(katalog.suchen(k, "", nur_schreibbar=True)) == 6, "nur schreibbare")
 pruefe(len(katalog.suchen(k, "", kategorie="13")) == 3, "nach Kategorie")
 pruefe([e["nr"] for e in katalog.suchen(k, "", kategorie="13")] == ["72", "73", "192"],
        "sortiert nach Parameternummer, nicht alphabetisch")

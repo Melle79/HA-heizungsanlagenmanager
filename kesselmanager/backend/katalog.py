@@ -116,3 +116,105 @@ def _zahl(text) -> bool:
         return True
     except (TypeError, ValueError):
         return False
+
+
+# ─────────────────────────────────────── Was die Anlage von selbst verrät ────
+#
+# Alles hier drunter ersetzt Zahlen, die einmal fest im Quelltext standen.
+# Das war bequem und falsch: „115 ist die Kesseltemperatur“ gilt nur für die
+# Parameterliste, die auf *einem* Gerät geflasht ist. Eine Standard-BSB-Anlage
+# nennt dieselbe Größe 8310, und die Zeitprogramme sitzen dort in ganz anderen
+# Kategorien. Wer den Manager auf seine eigene Heizung setzt, soll ihn nicht
+# erst umschreiben müssen.
+#
+# Also wird gefragt statt angenommen – der Katalog kommt ohnehin aus dem Gerät.
+
+# Der Datentyp, den BSB-LAN einem Schaltzeitenparameter gibt. Er steht in der
+# Firmware, nicht in der Geräteliste, und ist damit über alle Anlagen gleich.
+TIMEPROG = "TIMEPROG"
+
+# Ab dieser Nummer hört die Regelung auf und BSB-LAN fängt an: 10000–11999
+# sind selbst angelegte Parameter, 15000er die PPS-Emulation, 20000er
+# angeklemmte One-Wire- und DHT-Fühler. Auch die führen Schaltzeiten, aber
+# sie stehen nicht in der Heizung – wer den Reiter „Zeitprogramme“ öffnet,
+# sucht die Programme seines Kessels und nicht die des Adapters.
+EIGENE_AB = 10000
+
+
+def _nummer(nr) -> float:
+    try:
+        return float(nr)
+    except (TypeError, ValueError):
+        return float("inf")
+
+# Die sechs Kacheln der Übersicht, gesucht über den Namen. ``weg`` hält
+# Nachbarn heraus, die sonst zuerst treffen würden – „Kesseltemperatur-
+# Sollwert“ ist nicht der Istwert, und „Aussentemperatur gedämpft“ nicht die
+# Außentemperatur.
+KACHEL_MUSTER = [
+    {"titel": "Kessel", "worte": ["kesseltemperatur"],
+     "weg": ["soll", "kaskade", "maximum", "minimum", "korrektur"]},
+    {"titel": "Vorlauf", "worte": ["vorlauftemperatur"],
+     "weg": ["soll", "kaskade", "maximum", "minimum", "korrektur"]},
+    {"titel": "Außen", "worte": ["aussentemperatur", "außentemperatur"],
+     "weg": ["gedämpft", "gedaempft", "gemischt", "korrektur", "quelle",
+             "minimum", "maximum", "lieferant"]},
+    {"titel": "Außen gedämpft", "worte": ["gedämpft", "gedaempft"], "weg": []},
+    {"titel": "Betriebsstunden", "worte": ["betriebsstunden", "betriebszeit"],
+     "weg": ["wartung", "seit", "pumpe", "brenner stufe 2"]},
+    {"titel": "Brennerstarts", "worte": ["starts", "startzähler",
+                                         "startzaehler"],
+     "weg": ["wartung", "seit", "stufe 2"]},
+]
+
+
+def _klein(text) -> str:
+    return str(text or "").lower()
+
+
+def zeitprogramme(katalog: dict) -> dict:
+    """Welche Kategorien Schaltzeiten enthalten – und welche Parameter darin.
+
+    Erkannt am Datentyp ``TIMEPROG``, nicht an der Kategorienummer. Damit
+    findet der Manager die Programme auf jeder Anlage, und er findet in einer
+    Kategorie auch nur die Tage: Nachbarn wie „Standardwerte“ oder
+    „Vorwahl“ stehen oft daneben und sind keine Schaltzeiten.
+    """
+    raus = {}
+    parameter = katalog.get("parameter") or {}
+    for kid, kopf in (katalog.get("kategorien") or {}).items():
+        tage = [nr for nr in (kopf.get("parameter") or [])
+                if _klein((parameter.get(nr) or {}).get("dataType_name")) ==
+                _klein(TIMEPROG) and _nummer(nr) < EIGENE_AB]
+        if tage:
+            raus[str(kid)] = {"name": kopf.get("name") or f"Kategorie {kid}",
+                              "tage": tage}
+    return raus
+
+
+def kacheln(katalog: dict) -> list:
+    """Die Parameter für die Übersicht – gesucht über den Namen.
+
+    Gefunden wird der mit der kleinsten Nummer, der passt; findet sich für
+    eine Kachel nichts, fällt sie weg. Eine leere Übersicht ist ehrlicher als
+    eine, die Zahlen einer fremden Anlage anzeigt.
+    """
+    parameter = list((katalog.get("parameter") or {}).values())
+    parameter.sort(key=lambda e: _nummer(e.get("nr")))
+    raus = []
+    for muster in KACHEL_MUSTER:
+        for eintrag in parameter:
+            name = _klein(eintrag.get("name"))
+            if not any(wort in name for wort in muster["worte"]):
+                continue
+            if any(wort in name for wort in muster["weg"]):
+                continue
+            # Ein Sollwert ist kein Messwert, und eine Aufzählung erst recht
+            # nicht – beides taugt nicht als Kachel.
+            if eintrag.get("possibleValues"):
+                continue
+            raus.append({"titel": muster["titel"], "nr": eintrag.get("nr"),
+                         "name": eintrag.get("name"),
+                         "einheit": eintrag.get("unit") or ""})
+            break
+    return raus
