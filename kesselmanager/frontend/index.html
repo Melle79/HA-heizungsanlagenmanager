@@ -277,7 +277,14 @@
 </main>
 
 <script>
-const API = '';
+// Unter Ingress läuft die Seite nicht unter "/", sondern unter
+// "/api/hassio_ingress/<token>/". Ein Aufruf mit führendem Schrägstrich
+// landete damit bei Home Assistant selbst – das antwortet mit HTML, und das
+// Einzige, was man davon sieht, ist ein "JSON Parse error".
+//
+// Deshalb alle Aufrufe **relativ**: Sie hängen sich an den aktuellen Pfad an
+// und treffen das Add-on, egal unter welcher Adresse es gerade läuft.
+const API = 'api/';
 const $ = (id) => document.getElementById(id);
 
 let katalog = {kategorien:{}, anzahl:0};
@@ -394,7 +401,7 @@ function werteZeichnen() {
 $('btn-lesen').onclick = async () => {
   const knopf = $('btn-lesen'); knopf.disabled = true;
   knopf.textContent = 'liest …';
-  try { const d = await hole('/api/lesen', {method:'POST'});
+  try { const d = await hole('lesen', {method:'POST'});
         werte = d.werte || werte; await statusLaden(); werteZeichnen(); }
   catch (err) { meldung('werte-stand', err.message); }
   finally { knopf.disabled = false; knopf.textContent = 'Jetzt lesen'; }
@@ -415,7 +422,7 @@ function kategorienFuellen(select) {
 }
 
 async function katalogLaden() {
-  katalog = await hole('/api/katalog');
+  katalog = await hole('katalog');
   kategorienFuellen($('kat-filter'));
   kategorienFuellen($('kat-st'));
   $('katalog-stand').textContent = katalog.anzahl
@@ -435,7 +442,7 @@ async function katalogZeichnen() {
     kat: $('kat-filter').value,
     rw: $('rw-filter').value === '1' ? '1' : '',
   });
-  const d = await hole('/api/katalog/suche?' + args);
+  const d = await hole('katalog/suche?' + args);
   parameterListe = d.parameter || [];
   const liste = nurAusgewaehlt
     ? parameterListe.filter(p => auswahlNr.has(p.nr)) : parameterListe;
@@ -492,7 +499,7 @@ $('btn-speichern-auswahl').onclick = async () => {
             state_class: p.state_class !== undefined ? p.state_class : (alt.state_class||'')};
   });
   try {
-    auswahl = await sendeJSON('/api/auswahl', 'PUT', koerper);
+    auswahl = await sendeJSON('auswahl', 'PUT', koerper);
     auswahlNr = new Set(auswahl.map(a => a.nr));
     meldung('m-auswahl', `${auswahl.length} Parameter gespeichert`, true);
     await statusLaden();
@@ -501,18 +508,28 @@ $('btn-speichern-auswahl').onclick = async () => {
 
 // ─────────────────────────────────────────────────── Steuerung ──
 async function steuerungZeichnen() {
-  const frei = status.schreiben_erlaubt && (status.bsb || {}).buswritable;
+  // Gesperrt wird allein über den Schalter dieses Add-ons. Die Angabe
+  // „buswritable“ aus BSB-LAN ist nur ein Hinweis: Sie kann eine Null melden,
+  // obwohl die Anlage Änderungen annimmt – die beiden Werte entstehen dort aus
+  // verschiedenen Rechnungen. Ein Verbot darauf zu bauen hieße, den Benutzer
+  // aus seiner eigenen Heizung auszusperren.
+  const frei = !!status.schreiben_erlaubt;
+  const bsbSagt = (status.bsb || {}).buswritable;
   $('schreib-hinweis').innerHTML = frei
     ? '<b>Stellen ist freigegeben.</b> Änderungen gehen unmittelbar an die Heizung.'
-    : `<b>Stellen ist gesperrt.</b> Dafür müssen zwei Schalter stehen:
-       in BSB-LAN selbst (dort steht er auf
-       <i>${(status.bsb||{}).buswritable ? 'frei' : 'nur lesen'}</i>) und hier
-       unter „Einstellungen“ (dort: <i>${status.schreiben_erlaubt ? 'erlaubt' : 'gesperrt'}</i>).`;
+      + (bsbSagt ? '' : '<br><span class="notiz">BSB-LAN meldet zwar „nur lesen“ – '
+        + 'diese Angabe ist dort aber nicht dieselbe wie die tatsächliche Sperre. '
+        + 'Nimmt die Regelung eine Änderung nicht an, sagt sie es beim Versuch.</span>')
+    : `<b>Stellen ist gesperrt.</b> Setz unter „Einstellungen“ den Haken
+       <i>Stellen von Parametern erlauben</i>. In BSB-LAN selbst steht der
+       Schreibzugriff unter <i>Einstellungen → Schreibzugriff (Ebene)</i>;
+       dort meldet es gerade
+       <i>${bsbSagt ? 'frei' : 'nur lesen'}</i>.`;
   $('schreib-hinweis').className = frei ? 'hinweis' : 'hinweis warn';
 
   const args = new URLSearchParams({q: $('such-st').value,
                                     kat: $('kat-st').value, rw: '1'});
-  const d = await hole('/api/katalog/suche?' + args);
+  const d = await hole('katalog/suche?' + args);
   const koerper = $('steuertabelle'); koerper.innerHTML = '';
   (d.parameter || []).forEach(p => {
     const w = werte[p.nr] || {};
@@ -538,7 +555,7 @@ async function steuerungZeichnen() {
                  + `Das geht unmittelbar an die Heizung.`)) return;
       ev.target.disabled = true;
       try {
-        await sendeJSON('/api/setzen', 'POST', {nr, wert});
+        await sendeJSON('setzen', 'POST', {nr, wert});
         meldung('m-steuerung', `Parameter ${nr} gestellt`, true);
         setTimeout(async () => { await werteLaden(); steuerungZeichnen(); }, 1500);
       } catch (err) { meldung('m-steuerung', err.message); }
@@ -561,7 +578,7 @@ function einstellungenZeichnen(e) {
 
 $('btn-speichern-einst').onclick = async () => {
   try {
-    const e = await sendeJSON('/api/einstellungen', 'PUT', {
+    const e = await sendeJSON('einstellungen', 'PUT', {
       bsb_url: $('e-url').value, passkey: $('e-passkey').value,
       intervall_s: parseInt($('e-intervall').value, 10),
       praefix: $('e-praefix').value,
@@ -573,12 +590,12 @@ $('btn-speichern-einst').onclick = async () => {
 };
 
 $('btn-katalog').onclick = async () => {
-  try { await hole('/api/katalog/aufbauen', {method:'POST'}); katalogLauf(); }
+  try { await hole('katalog/aufbauen', {method:'POST'}); katalogLauf(); }
   catch (err) { meldung('m-einst', err.message); }
 };
 
 async function katalogLauf() {
-  const s = await hole('/api/status');
+  const s = await hole('status');
   const lauf = s.katalog_lauf || {};
   $('katalog-balken').hidden = !lauf.laeuft;
   $('btn-katalog').disabled = !!lauf.laeuft;
@@ -596,7 +613,7 @@ async function katalogLauf() {
 
 // ───────────────────────────────────────────────────── Anlauf ──
 async function statusLaden() {
-  status = await hole('/api/status');
+  status = await hole('status');
   $('fassung').textContent = 'v' + (status.version || '');
   $('punkt-bsb').className = 'punkt' + (status.verbunden ? ' ok' : '');
   $('zustand-bsb').textContent = status.verbunden ? 'BSB-LAN verbunden' : 'BSB-LAN fehlt';
@@ -606,14 +623,14 @@ async function statusLaden() {
 }
 
 async function werteLaden() {
-  const d = await hole('/api/werte');
+  const d = await hole('werte');
   werte = d.werte || {};
 }
 
 async function anlauf() {
-  const e = await hole('/api/einstellungen');
+  const e = await hole('einstellungen');
   einstellungenZeichnen(e);
-  auswahl = await hole('/api/auswahl');
+  auswahl = await hole('auswahl');
   auswahlNr = new Set(auswahl.map(a => a.nr));
   await werteLaden();
   await katalogLaden();

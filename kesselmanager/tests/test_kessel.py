@@ -10,10 +10,15 @@ jemand daran arbeiten kann, ist BSB-LAN hier gefälscht: ``requests.get`` und
 ``requests.post`` werden ersetzt, und die Antworten sind dieselben JSON-
 Strukturen, die ein echtes Gerät liefert.
 
-Geprüft wird vor allem, was in der Praxis schiefgeht: ein Schreibversuch bei
-gesperrtem Bus, ein abgelehnter Wert, ein Aussetzer mitten in einer Abfrage,
-und die Ableitung der Geräteklassen – denn eine falsche macht aus einem
-Betriebsstundenzähler einen Messwert ohne Statistik.
+Geprüft wird vor allem, was in der Praxis schiefgeht: ein abgelehnter Wert,
+ein Aussetzer mitten in einer Abfrage, und die Ableitung der Geräteklassen –
+denn eine falsche macht aus einem Betriebsstundenzähler einen Messwert ohne
+Statistik.
+
+Ein Fall steht hier, weil er einmal falsch war: ``buswritable`` aus ``/JI``
+taugt **nicht** als Verbot. Die Zahl und die tatsächliche Sperre entstehen in
+BSB-LAN aus verschiedenen Rechnungen, und eine willige Anlage meldet dort
+durchaus eine Null.
 """
 import os
 import sys
@@ -164,30 +169,41 @@ ANLAGE["aussetzer"] = set()
 ergebnis = client.werte(["50", "72"])
 pruefe(set(ergebnis) == {"50", "72"}, "danach geht es normal weiter")
 
-print("\n=== Schreiben ist gesperrt, solange BSB-LAN es sagt ===")
-ANLAGE["schreibbar"] = False
+print("\n=== buswritable ist kein Tuersteher ===")
+# Der Fehler, der das ausgeloest hat: /JI meldet eine Null, obwohl die Anlage
+# Aenderungen annimmt. Die beiden Werte entstehen in BSB-LAN aus verschiedenen
+# Rechnungen - ein Verbot darauf zu bauen sperrt den Benutzer aus.
+ANLAGE["schreibbar"] = False        # BSB-LAN sagt "nur lesen"
 ANLAGE["gesetzt"].clear()
-try:
-    client.setzen("50", "21.5")
-    pruefe(False, "bei gesperrtem Bus wird nicht geschrieben")
-except bsb.BsbFehler as err:
-    pruefe("nur lesen" in str(err), "bei gesperrtem Bus wird nicht geschrieben")
-pruefe(ANLAGE["gesetzt"] == [], "und es geht auch wirklich nichts hinaus")
-
-print("\n=== Schreiben, wenn es erlaubt ist ===")
-ANLAGE["schreibbar"] = True
 client.setzen("50", "21.5")
 pruefe(ANLAGE["gesetzt"][-1] == {"Parameter": "50", "Value": "21.5", "Type": "1"},
-       "Parameter, Wert und Typ 1 – eine SET-Nachricht")
+       "trotz gemeldeter Null wird geschrieben - die Regelung entscheidet")
 
-print("\n=== Eine abgelehnte Änderung wird gemeldet ===")
+print("\n=== Schreiben ===")
+ANLAGE["schreibbar"] = True
+ANLAGE["gesetzt"].clear()
+client.setzen("50", "21.5")
+pruefe(ANLAGE["gesetzt"][-1] == {"Parameter": "50", "Value": "21.5", "Type": "1"},
+       "Parameter, Wert und Typ 1 - eine SET-Nachricht")
+
+print("\n=== Eine abgelehnte Aenderung wird gemeldet ===")
 ANLAGE["status"] = 1
 try:
     client.setzen("50", "99")
     pruefe(False, "ein abgelehnter Wert wirft einen Fehler")
 except bsb.BsbFehler as err:
     pruefe("abgelehnt" in str(err), "ein abgelehnter Wert wirft einen Fehler")
+
+# Und wenn BSB-LAN zusaetzlich "nur lesen" meldet, steht das als Hinweis dabei -
+# hinterher als Erklaerung, nicht vorher als Verbot.
+ANLAGE["schreibbar"] = False
+try:
+    client.setzen("50", "99")
+except bsb.BsbFehler as err:
+    pruefe("Schreibzugriff" in str(err),
+           "bei Ablehnung nennt die Meldung den BSB-LAN-Schalter als moegliche Ursache")
 ANLAGE["status"] = 0
+ANLAGE["schreibbar"] = True
 
 print("\n=== Einstellungen werden geprüft ===")
 e = store.validate_einstellungen({"bsb_url": "192.168.0.170"})

@@ -11,8 +11,14 @@ Zwei Dinge stehen über allem:
   Parameter im Sekundentakt abfragt, legt den Bus lahm. Deshalb fragt der
   Manager in Häppchen und mit Pausen.
 * **Schreiben ist etwas anderes als Lesen.** Ein falscher Sollwert lässt im
-  Winter eine Wohnung auskühlen. BSB-LAN hat dafür einen eigenen Schalter
-  (``buswritable``); ist er aus, wird hier gar nicht erst gesendet.
+  Winter eine Wohnung auskühlen. Die Bremse dafür sitzt im Add-on, nicht hier:
+  Ohne ``schreiben_erlaubt`` kommt dieses Modul gar nicht erst zum Zuge.
+
+  Was hier bewusst **nicht** geprüft wird, ist ``buswritable`` aus ``/JI``.
+  Diese Zahl und die Sperre, die beim Schreiben wirklich greift, stammen in
+  BSB-LAN aus zwei verschiedenen Rechnungen und können sich widersprechen –
+  eine willige Anlage meldet dort durchaus eine Null. Wer darauf ein Verbot
+  baut, sperrt den Benutzer aus seiner eigenen Heizung aus.
 """
 from __future__ import annotations
 
@@ -113,16 +119,18 @@ class Bsb:
         ``typ`` 0 wäre eine INF-Nachricht, mit der ein Raumgerät seine
         Temperatur verkündet; die braucht hier niemand.
 
-        Vor jedem Schreiben wird ``buswritable`` geprüft. Das kostet eine
-        zusätzliche Abfrage und ist es wert: Steht der Schalter in BSB-LAN auf
-        "nur lesen", ginge der Befehl sonst ins Leere, und die Oberfläche
-        meldete fälschlich einen Erfolg.
+        **Kein Vorab-Urteil über ``buswritable``.** Das war einmal anders und
+        war falsch: Die Zahl aus ``/JI`` und die Sperre, die beim Schreiben
+        wirklich greift, kommen in BSB-LAN aus zwei verschiedenen Rechnungen.
+        Ist ``DEFAULT_FLAG`` auf ``FL_RONLY`` gesetzt, meldet ``/JI`` eine
+        Null, während die eigentliche Prüfung jeden Parameter durchlässt, der
+        nicht selbst als nur-lesbar markiert ist. Wer sich auf die Null
+        verlässt, sperrt eine Anlage aus, die willig wäre.
+
+        Also: fragen, nicht raten. Die Antwort auf den Schreibversuch ist die
+        Auskunft, die zählt – BSB-LAN meldet je Parameter einen Status, und
+        eine abgelehnte Änderung wird hier zum Fehler.
         """
-        if not self.schreibbar():
-            raise BsbFehler(
-                "BSB-LAN steht auf „nur lesen“. Der Schreibzugriff lässt sich "
-                "in dessen eigener Oberfläche freischalten – erst danach nimmt "
-                "die Heizung Änderungen an.")
         url = self._pfad("JS")
         nutzlast = {"Parameter": str(parameter), "Value": str(wert), "Type": str(typ)}
         try:
@@ -137,8 +145,14 @@ class Bsb:
         # BSB-LAN meldet je Parameter einen Status: 0 heißt angenommen.
         eintrag = ergebnis.get(str(parameter)) or next(iter(ergebnis.values()), {})
         if isinstance(eintrag, dict) and eintrag.get("status") not in (0, "0", None):
+            hinweis = ""
+            if not self.schreibbar():
+                # Jetzt ist die Null aus /JI ein brauchbarer Hinweis – nicht
+                # als Türsteher vorher, sondern als Erklärung hinterher.
+                hinweis = (" BSB-LAN meldet zudem „nur lesen“; prüf dort unter "
+                           "Einstellungen den „Schreibzugriff (Ebene)“.")
             raise BsbFehler(
                 f"Die Regelung hat den Wert abgelehnt (Status "
                 f"{eintrag.get('status')}). Liegt er innerhalb der erlaubten "
-                f"Grenzen?")
+                f"Grenzen?{hinweis}")
         return ergebnis
