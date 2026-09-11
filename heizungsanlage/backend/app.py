@@ -122,8 +122,10 @@ def _lesen(auswahl=None, nummern=None) -> dict:
         store.merke_state(werte=state["werte"],
                           letzter_lauf=state["letzter_lauf"])
 
-    # Auf Zuruf gelesene Werte gehen nicht nach MQTT – nur die Auswahl.
-    if nummern is None and _publisher is not None:
+    # Auf Zuruf gelesene Werte gehen nicht nach MQTT – nur die Auswahl. Und
+    # gar nichts, wenn BSB-LAN das Melden übernommen hat.
+    if (nummern is None and _publisher is not None
+            and config["einstellungen"].get("melder") != "bsblan"):
         try:
             _publisher.werte(auswahl, state["werte"])
         except Exception as err:  # noqa: BLE001
@@ -183,6 +185,21 @@ def _discovery_auffrischen() -> None:
         config = store.load_config()
         state = store.load_state()
         katalog = store.load_katalog()
+
+        # Meldet BSB-LAN selbst, hält der Manager sich heraus – und räumt ab,
+        # was er früher angemeldet hat. Zwei Absender für dieselbe Anlage
+        # sind keine Redundanz, sondern zwei Wahrheiten in einem Diagramm.
+        if config["einstellungen"].get("melder") == "bsblan":
+            alt = state.get("veroeffentlicht") or []
+            if alt:
+                _publisher.altes_geraet_abraeumen(
+                    state.get("geraet") or mqtt_publisher.DEVICE_ID,
+                    state.get("praefix") or _publisher.praefix, alt)
+            store.merke_state(veroeffentlicht=[],
+                              geraet=mqtt_publisher.DEVICE_ID,
+                              praefix=_publisher.praefix)
+            _LOGGER.info("BSB-LAN meldet selbst – der Manager hält sich heraus")
+            return
         # Kategorienamen mitgeben, damit sie als Attribut erscheinen.
         auswahl = []
         for eintrag in config["auswahl"]:
@@ -353,13 +370,41 @@ def api_uebernahme_loesen(quelle):
 BSBLAN_OPTIONEN = {
     53: "logmodus",       # nicht 11 – das sind die Bustelegramme
     13: "logintervall", 14: "logparameter",
-    36: "mqtt_broker", 39: "mqtt_praefix", 35: "mqtt_art", 59: "mqtt_discovery",
+    36: "mqtt_broker", 37: "mqtt_user", 38: "mqtt_passwort",
+    39: "mqtt_praefix", 40: "mqtt_geraete_id",
+    35: "mqtt_art", 59: "mqtt_discovery",
 }
+# Was aus dieser Liste die Oberfläche nie zu sehen bekommt. Die Zugangsdaten
+# müssen durchgereicht werden, damit BSB-LAN den Broker erreicht – gezeigt
+# oder zurückgemeldet werden sie nicht.
+BSBLAN_GEHEIM = ("mqtt_user", "mqtt_passwort")
 # Der Log-Modus ist ein Bitfeld, in der Reihenfolge der Häkchen auf der
 # Einstellungsseite: 1 = auf SD-Karte schreiben, 2 = 24-Stunden-Mittel,
 # 4 = an MQTT-Broker senden, 8 = nur die Log-Parameter, 16 = UDP. Svens 12
 # heißt also: senden, und zwar nur die Log-Parameter.
 LOGMODUS_MQTT = 4
+
+
+# Die Werte, die BSB-LAN für seine Auswahllisten erwartet. Sie stehen so in
+# der Weboberfläche des Geräts; hier übersetzt, damit in den Einstellungen
+# Wörter stehen und keine Zahlen.
+BSBLAN_ART = {"einfach": "1", "json": "2", "rich": "3"}
+BSBLAN_EINHEITEN = {"landes": "0", "ha": "1", "keine": "2"}
+LOGMODUS_NUR_LOG = 8
+
+
+def _bsblan_lesen() -> tuple:
+    """Die Einstellungen von BSB-LAN – roh und nach Namen sortiert."""
+    roh = _client().konfiguration()
+    nach_name = {}
+    for schluessel, eintrag in roh.items():
+        if not isinstance(eintrag, dict):
+            continue
+        name = BSBLAN_OPTIONEN.get(eintrag.get("parameter"))
+        if name:
+            nach_name[name] = {"schluessel": schluessel, "eintrag": eintrag,
+                               "wert": eintrag.get("value")}
+    return roh, nach_name
 
 
 @app.route("/api/bsblan")
@@ -370,17 +415,12 @@ def api_bsblan():
     stehen in derselben Datei, gehen diese Oberfläche aber nichts an.
     """
     try:
-        roh = _client().konfiguration()
+        roh = _bsblan_lesen()
     except bsb_modul.BsbFehler as err:
         return jsonify({"lesbar": False, "fehler": str(err)})
 
-    gefunden = {}
-    for eintrag in roh.values():
-        if not isinstance(eintrag, dict):
-            continue
-        name = BSBLAN_OPTIONEN.get(eintrag.get("parameter"))
-        if name:
-            gefunden[name] = eintrag.get("value")
+    gefunden = {name: teil["wert"] for name, teil in roh[1].items()}
+    roh = roh[0]
 
     try:
         modus = int(gefunden.get("logmodus") or 0)
@@ -397,7 +437,151 @@ def api_bsblan():
         "broker": gefunden.get("mqtt_broker"),
         "praefix": gefunden.get("mqtt_praefix"),
         "discovery": str(gefunden.get("mqtt_discovery")) == "1",
+        "nur_logparameter": bool(modus & LOGMODUS_NUR_LOG),
+        "art": str(gefunden.get("mqtt_art") or ""),
+        "einheiten_ha": str(gefunden.get("mqtt_einheiten") or "") == "1",
     })
+
+
+@app.route("/api/bsblan/einrichten", methods=["POST"])
+def api_bsblan_einrichten():
+    """BSB-LAN so einstellen, dass es selbst nach Home Assistant meldet.
+
+    Broker, Benutzer und Passwort kommen vom Supervisor – dieselben, mit denen
+    das Add-on selbst am Broker hängt. Sie werden hier durchgereicht und
+    **nirgends angezeigt oder gespeichert**; wer das Passwort seines Brokers
+    nicht abtippen will, muss es auch nicht.
+
+    Geschrieben wird nur, was sich unterscheidet, und danach wird
+    zurückgelesen: Was das Gerät hinterher sagt, ist die Wahrheit, nicht was
+    wir ihm geschickt haben.
+    """
+    e = store.load_config()["einstellungen"]
+    host = os.environ.get("MQTT_HOST")
+    if not host:
+        return jsonify({"fehler": "Home Assistant hat keinen MQTT-Broker – "
+                                  "ohne den kann BSB-LAN nirgendwohin melden"}), 400
+    broker = f"{host}:{os.environ.get('MQTT_PORT', 1883)}"
+
+    try:
+        roh, nach_name = _bsblan_lesen()
+    except bsb_modul.BsbFehler as err:
+        return jsonify({"fehler": str(err)}), 502
+
+    try:
+        modus = int(nach_name.get("logmodus", {}).get("wert") or 0)
+    except (TypeError, ValueError):
+        modus = 0
+
+    soll = {
+        "mqtt_broker": broker,
+        "mqtt_user": os.environ.get("MQTT_USER") or "",
+        "mqtt_passwort": os.environ.get("MQTT_PASSWORD") or "",
+        "mqtt_praefix": e["bsblan_praefix"],
+        "mqtt_geraete_id": e["bsblan_geraete_id"],
+        "mqtt_art": BSBLAN_ART[e["bsblan_art"]],
+        "mqtt_einheiten": BSBLAN_EINHEITEN[e["bsblan_einheiten"]],
+        "mqtt_discovery": "1",
+        "logintervall": str(e["bsblan_intervall_s"]),
+        # Senden, und nur die Log-Parameter – alles andere am Modus bleibt,
+        # wie es war. Wer auf SD-Karte schreibt, soll das weiter tun.
+        "logmodus": str(modus | LOGMODUS_MQTT | LOGMODUS_NUR_LOG),
+    }
+
+    aenderungen, geschrieben = {}, []
+    for name, wert in soll.items():
+        teil = nach_name.get(name)
+        if teil is None:
+            continue                      # kennt dieses BSB-LAN nicht
+        if str(teil["wert"]) == str(wert):
+            continue                      # steht schon so da
+        aenderungen[teil["schluessel"]] = {**teil["eintrag"], "value": wert}
+        geschrieben.append(name)
+
+    if aenderungen:
+        try:
+            _client().konfiguration_schreiben(aenderungen)
+        except bsb_modul.BsbFehler as err:
+            return jsonify({"fehler": str(err)}), 502
+
+    try:
+        _, danach = _bsblan_lesen()
+    except bsb_modul.BsbFehler as err:
+        return jsonify({"fehler": str(err)}), 502
+    # Passwörter tauchen in der Rückmeldung nicht auf.
+    offen = [name for name in soll
+             if name not in BSBLAN_GEHEIM
+             and name in danach and str(danach[name]["wert"]) != str(soll[name])]
+    geschrieben = [name for name in geschrieben if name not in BSBLAN_GEHEIM] + \
+                  (["Zugangsdaten"] if any(n in BSBLAN_GEHEIM for n in geschrieben)
+                   else [])
+    _LOGGER.info("BSB-LAN eingerichtet: %s geschrieben, %s offen",
+                 len(geschrieben), offen)
+    return jsonify({"geschrieben": geschrieben, "offen": offen})
+
+
+def _bsblan_parameter_schreiben() -> dict:
+    """Die Auswahl als Log-Parameterliste an BSB-LAN geben.
+
+    Das ist der Kern der Sache: Was hier angehakt ist, meldet BSB-LAN – ohne
+    dass der Manager dieselben Werte ein zweites Mal über den Bus holt.
+
+    Zurückgelesen wird immer: Was das Gerät hinterher führt, zählt, nicht was
+    wir ihm geschickt haben. BSB-LAN kürzt lange Listen stillschweigend.
+    """
+    nummern = [str(e["nr"]) for e in store.load_config()["auswahl"]]
+    _, nach_name = _bsblan_lesen()
+    teil = nach_name.get("logparameter")
+    if teil is None:
+        raise bsb_modul.BsbFehler("Dieses BSB-LAN kennt keine Log-Parameterliste")
+    liste = ",".join(nummern)
+    if str(teil["wert"]) != liste:
+        _client().konfiguration_schreiben(
+            {teil["schluessel"]: {**teil["eintrag"], "value": liste}})
+    _, danach = _bsblan_lesen()
+    steht = [t.strip() for t in
+             str(danach["logparameter"]["wert"] or "").split(",") if t.strip()]
+    _LOGGER.info("BSB-LAN meldet jetzt %d von %d Parametern",
+                 len(steht), len(nummern))
+    return {"parameter": steht, "anzahl": len(steht),
+            "vollstaendig": steht == nummern}
+
+
+@app.route("/api/bsblan/parameter", methods=["PUT"])
+def api_bsblan_parameter():
+    try:
+        return jsonify(_bsblan_parameter_schreiben())
+    except bsb_modul.BsbFehler as err:
+        return jsonify({"fehler": str(err)}), 502
+
+
+@app.route("/api/bsblan/uebernehmen", methods=["POST"])
+def api_bsblan_uebernehmen():
+    """Was BSB-LAN heute meldet, als Auswahl übernehmen.
+
+    Der umgekehrte Weg – für alle, die ihre Liste dort über Jahre gepflegt
+    haben und sie nicht noch einmal zusammenklicken wollen.
+    """
+    try:
+        _, nach_name = _bsblan_lesen()
+    except bsb_modul.BsbFehler as err:
+        return jsonify({"fehler": str(err)}), 502
+    nummern = [t.strip() for t in
+               str(nach_name.get("logparameter", {}).get("wert") or "").split(",")
+               if t.strip()]
+    katalog = store.load_katalog()
+    neu = []
+    for nr in nummern:
+        eintrag = (katalog.get("parameter") or {}).get(nr) or {}
+        neu.append({"nr": nr, "name": eintrag.get("name") or f"Parameter {nr}",
+                    "anzeige": "", "einheit": eintrag.get("unit") or "",
+                    "device_class": eintrag.get("device_class") or "",
+                    "state_class": eintrag.get("state_class") or ""})
+    config = store.load_config()
+    config["auswahl"] = store.validate_auswahl(neu)
+    store.save_config(config)
+    _discovery_auffrischen()
+    return jsonify(config["auswahl"])
 
 
 # --------------------------------------------------------------- Katalog ----
@@ -491,6 +675,15 @@ def api_auswahl():
     config["auswahl"] = neu
     store.save_config(config)
     _discovery_auffrischen()
+
+    # Meldet BSB-LAN, wandert die Auswahl gleich dorthin: Sonst hakt jemand
+    # etwas an und wundert sich, dass in Home Assistant nichts erscheint.
+    if config["einstellungen"].get("melder") == "bsblan":
+        try:
+            _bsblan_parameter_schreiben()
+        except bsb_modul.BsbFehler as err:
+            _LOGGER.warning("Auswahl nicht an BSB-LAN übergeben: %s", err)
+
     _sofort_lesen()
     return jsonify(neu)
 

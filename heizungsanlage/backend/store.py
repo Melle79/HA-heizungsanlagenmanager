@@ -60,6 +60,32 @@ STANDARD_EINSTELLUNGEN = {
     # Assistant verstellt wird, für den kann das nicht schiefgehen.
     # Ab Werk aus, weil niemand die fremde Anlage kennt.
     "werte_merken": False,
+
+    # Wer meldet die Werte nach Home Assistant?
+    #
+    #   "addon"   Der Manager liest und veröffentlicht selbst. Kuratierte
+    #             Namen, eigene Geräteklassen – aber nichts kommt an, solange
+    #             das Add-on steht.
+    #   "bsblan"  BSB-LAN meldet selbst. Es bringt MQTT samt automatischer
+    #             Anmeldung mit, fragt den Bus ohnehin ab und legt auch
+    #             Bedienelemente an. Der Manager sagt ihm dann nur noch, was
+    #             es melden soll – und hält sich mit eigenen Entitäten zurück,
+    #             damit nicht zwei Programme dieselbe Anlage doppeln.
+    #
+    # Ab Werk "addon": Das ist der Zustand, den ein frisch installiertes
+    # Add-on vorfindet, und es ändert nichts an einem fremden Gerät, bevor
+    # jemand es will.
+    "melder": "addon",
+
+    # Was an BSB-LAN übergeben wird, wenn es melden soll. Broker, Benutzer und
+    # Passwort kommen nicht von hier, sondern von Home Assistant selbst – der
+    # Supervisor reicht sie dem Add-on durch. Niemand muss ein Passwort
+    # abtippen, und hier steht keines herum.
+    "bsblan_praefix": "BSBLAN",
+    "bsblan_geraete_id": "",
+    "bsblan_intervall_s": 60,
+    "bsblan_einheiten": "ha",     # "ha" | "landes" | "keine"
+    "bsblan_art": "einfach",      # "einfach" | "json" | "rich"
 }
 
 # Aus Einheit und Namen lässt sich meist ableiten, was Home Assistant wissen
@@ -202,6 +228,26 @@ def validate_einstellungen(roh: dict) -> dict:
     e["praefix"] = praefix
 
     e["werte_merken"] = bool(e.get("werte_merken"))
+
+    if e.get("melder") not in ("addon", "bsblan"):
+        raise ValidationError("„melder“ kennt nur „addon“ und „bsblan“.")
+    praefix = str(e.get("bsblan_praefix") or "").strip().strip("/") or "BSBLAN"
+    if not praefix.replace("_", "").replace("-", "").isalnum():
+        raise ValidationError("Das BSB-LAN-Präfix darf nur Buchstaben, Ziffern, "
+                              "Strich und Unterstrich enthalten.")
+    e["bsblan_praefix"] = praefix
+    e["bsblan_geraete_id"] = str(e.get("bsblan_geraete_id") or "").strip()[:32]
+    try:
+        e["bsblan_intervall_s"] = int(e["bsblan_intervall_s"])
+    except (TypeError, ValueError):
+        raise ValidationError("Das BSB-LAN-Logintervall muss eine Zahl sein")
+    if not 10 <= e["bsblan_intervall_s"] <= 3600:
+        raise ValidationError("Das BSB-LAN-Logintervall muss zwischen 10 und "
+                              "3600 Sekunden liegen")
+    if e.get("bsblan_einheiten") not in ("ha", "landes", "keine"):
+        raise ValidationError("Unbekannte Einheiten-Einstellung für BSB-LAN")
+    if e.get("bsblan_art") not in ("einfach", "json", "rich"):
+        raise ValidationError("Unbekannte MQTT-Art für BSB-LAN")
 
     versteckt = e.get("versteckte_kategorien")
     if versteckt is None:

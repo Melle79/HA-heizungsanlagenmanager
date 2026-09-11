@@ -20,6 +20,7 @@ taugt **nicht** als Verbot. Die Zahl und die tatsächliche Sperre entstehen in
 BSB-LAN aus verschiedenen Rechnungen, und eine willige Anlage meldet dort
 durchaus eine Null.
 """
+import json
 import os
 import sys
 import tempfile
@@ -700,6 +701,97 @@ kunde.put("/api/uebernahme", json={"quelle": "x", "parameter": []})
 pruefe(kunde.get("/api/uebernahme").get_json()["quellen"] == {},
        "eine leere Liste meldet ab")
 store.save_uebernahme({})
+
+print("\n=== BSB-LAN meldet, der Manager richtet ein ===")
+# Der Weg, um den es geht: Das Add-on liest BSB-LANs Einstellungen, aendert
+# nur das Noetige und laesst das Geraet senden. Zugangsdaten kommen vom
+# Supervisor - niemand tippt ein Passwort ab, und keines wird gespeichert.
+KONFIG = {
+  "32": {"parameter": 53, "category": "Logging", "name": "Log-Modus", "value": "1"},
+  "33": {"parameter": 13, "category": "Logging", "name": "Logintervall", "value": "30"},
+  "34": {"parameter": 14, "category": "Logging", "name": "Parameter", "value": "8700"},
+  "37": {"parameter": 36, "category": "MQTT", "name": "Broker", "value": "alt:1883"},
+  "38": {"parameter": 37, "category": "MQTT", "name": "Username", "value": "wer"},
+  "39": {"parameter": 38, "category": "MQTT", "name": "Passwort", "value": "altespw"},
+  "40": {"parameter": 40, "category": "MQTT", "name": "Geraete-ID", "value": ""},
+  "41": {"parameter": 39, "category": "MQTT", "name": "Topic", "value": "ALT"},
+  "42": {"parameter": 59, "category": "MQTT", "name": "Discovery", "value": "0"},
+}
+GERAET = {"konfig": json.loads(json.dumps(KONFIG)), "geschrieben": []}
+
+class JLAntwort:
+    def __init__(self): self.status_code = 200
+    @property
+    def text(self): return json.dumps(GERAET["konfig"])
+    def raise_for_status(self): pass
+    def json(self): return {}
+
+_alt_get, _alt_post = bsb.requests.get, bsb.requests.post
+def _get2(url, timeout=None):
+    return JLAntwort() if url.endswith("/JL") else _get(url, timeout)
+def _post2(url, json=None, timeout=None):
+    if url.endswith("/JW"):
+        GERAET["geschrieben"].append(json)
+        for k, v in (json or {}).items():
+            GERAET["konfig"][k]["value"] = v["value"]
+        return JLAntwort()
+    return _post(url, json=json, timeout=timeout)
+bsb.requests.get, bsb.requests.post = _get2, _post2
+
+os.environ["MQTT_HOST"] = "kern-mosquitto"
+os.environ["MQTT_PORT"] = "1883"
+os.environ["MQTT_USER"] = "ha"
+os.environ["MQTT_PASSWORD"] = "geheim"
+store.save_config({"einstellungen": dict(store.standard_einstellungen(),
+                                         bsb_url="http://kessel.test",
+                                         melder="bsblan", bsblan_praefix="HEIZUNG",
+                                         bsblan_intervall_s=60),
+                   "auswahl": [{"nr": "50", "name": "X"}, {"nr": "72", "name": "Y"}]})
+
+antwort = kunde.post("/api/bsblan/einrichten").get_json()
+pruefe(antwort.get("offen") == [], f"alles kam an: {antwort}")
+pruefe(GERAET["konfig"]["37"]["value"] == "kern-mosquitto:1883",
+       "der Broker kommt von Home Assistant, nicht aus einem Formular")
+pruefe(GERAET["konfig"]["41"]["value"] == "HEIZUNG", "das Praefix aus den Einstellungen")
+pruefe(GERAET["konfig"]["42"]["value"] == "1", "Auto-Discovery wird eingeschaltet")
+pruefe(GERAET["konfig"]["33"]["value"] == "60", "und das Intervall gesetzt")
+# 1 = auf SD-Karte schreiben. Das darf das Einrichten nicht abschalten.
+pruefe(int(GERAET["konfig"]["32"]["value"]) & 1 == 1,
+       "was das Geraet sonst tut, bleibt unangetastet")
+pruefe(int(GERAET["konfig"]["32"]["value"]) & 4 == 4, "senden ist eingeschaltet")
+gesendet = json.dumps(GERAET["geschrieben"])
+pruefe("geheim" in gesendet and GERAET["konfig"]["39"]["value"] == "geheim",
+       "das Passwort geht an das Geraet ...")
+pruefe(GERAET["konfig"]["38"]["value"] == "ha", "der Benutzer ebenso")
+antwort_text = json.dumps(antwort)
+pruefe("geheim" not in antwort_text and "altespw" not in antwort_text,
+       "... aber nicht in die Rueckmeldung")
+pruefe("Zugangsdaten" in antwort["geschrieben"]
+       and "mqtt_passwort" not in antwort_text,
+       "sie werden nur als \"Zugangsdaten\" gemeldet")
+
+antwort = kunde.put("/api/bsblan/parameter").get_json()
+pruefe(GERAET["konfig"]["34"]["value"] == "50,72",
+       "die Auswahl steht jetzt als Log-Liste im Geraet")
+pruefe(antwort["vollstaendig"] is True, "und wird zurueckgelesen statt geglaubt")
+
+# Der umgekehrte Weg.
+GERAET["konfig"]["34"]["value"] = "50,55,72"
+uebernommen = kunde.post("/api/bsblan/uebernehmen").get_json()
+pruefe([e["nr"] for e in uebernommen] == ["50", "55", "72"],
+       "BSB-LANs eigene Liste laesst sich uebernehmen")
+pruefe(uebernommen[0]["name"] == "Raumtemperatur Komfortsollwert",
+       "mit den Namen aus dem Katalog")
+
+# Und im Betrieb: Wer die Auswahl speichert, findet sie in BSB-LAN wieder.
+kunde.put("/api/auswahl", json=[{"nr": "115", "name": "Kessel"}])
+pruefe(GERAET["konfig"]["34"]["value"] == "115",
+       "auch das Speichern der Auswahl wandert dorthin")
+
+bsb.requests.get, bsb.requests.post = _alt_get, _alt_post
+store.save_config({"einstellungen": dict(store.standard_einstellungen(),
+                                         bsb_url="http://kessel.test"),
+                   "auswahl": []})
 
 print(f"\n{'ALLE PRÜFUNGEN BESTANDEN' if not fehler else str(len(fehler)) + ' FEHLER'}")
 sys.exit(1 if fehler else 0)

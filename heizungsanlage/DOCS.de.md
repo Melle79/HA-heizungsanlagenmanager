@@ -93,6 +93,42 @@ Hebt jemand die Übernahme in der Oberfläche auf, erfährt der Planer das beim
 nächsten `GET`. Er sollte sie dann **nicht** stillschweigend neu anmelden –
 sonst ist der Knopf eine Attrappe.
 
+## Wer meldet nach Home Assistant?
+
+Zwei Programme können dieselbe Anlage melden, und beide können es gut – nur
+nicht gleichzeitig. Unter *Einstellungen* steht die Wahl:
+
+**Der Manager meldet** (ab Werk). Er liest die Auswahl in seinem Takt und legt
+die Entitäten selbst an, mit kuratierten Geräteklassen. Steht das Add-on,
+kommt nichts an.
+
+**BSB-LAN meldet.** Der Adapter bringt eigenes MQTT samt automatischer
+Anmeldung mit. Er fragt den Bus ohnehin ab, meldet häufiger und legt auch
+Bedienelemente an (`select.…` für stellbare Parameter). Der Manager gibt ihm
+dann nur noch die Liste und hält sich mit eigenen Entitäten zurück – die
+angemeldeten räumt er beim Umschalten ab, damit nicht zwei Absender dasselbe
+Diagramm füllen.
+
+In dieser Betriebsart übernimmt der Manager die Einrichtung:
+
+* **Broker, Benutzer und Passwort** kommen von Home Assistant selbst. Der
+  Supervisor reicht sie dem Add-on durch; sie werden an BSB-LAN
+  weitergegeben, aber weder angezeigt noch hier gespeichert. Abtippen musst du
+  nichts.
+* **Präfix, Geräte-ID, Intervall, Einheiten und MQTT-Art** stellst du hier ein.
+* **Auto-Discovery** wird eingeschaltet, damit die Entitäten von selbst in Home
+  Assistant erscheinen.
+* Was BSB-LAN sonst tut – etwa auf SD-Karte protokollieren –, bleibt
+  unangetastet: Geschrieben wird nur, was sich unterscheidet.
+
+Die **Auswahl** wandert beim Speichern gleich mit in BSB-LANs Log-Parameter-
+liste. Umgekehrt geht es auch: *Liste aus BSB-LAN übernehmen* holt, was dort
+über die Jahre zusammengekommen ist, in die Auswahl.
+
+Nach jedem Schreiben liest der Manager zurück und zeigt, was wirklich
+angekommen ist. BSB-LAN kürzt lange Listen stillschweigend – wer das nicht
+prüft, glaubt an Entitäten, die es nicht gibt.
+
 ## Gemerkte Werte
 
 Eine Kategorie über den Bus zu lesen dauert ein paar Sekunden – 4800 Baud, und

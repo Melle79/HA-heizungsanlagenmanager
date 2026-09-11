@@ -63,6 +63,24 @@ Setting an owned parameter without `quelle` answers **409** and names the
 owner, rather than letting a hand-made change be silently overwritten on the
 next tick.
 
+## Who publishes to Home Assistant?
+
+Two programs can publish the same system, and both do it well – just not at the
+same time. Under *Settings* you choose: **the manager publishes** (default,
+curated device classes, but nothing arrives while the add-on is stopped), or
+**BSB-LAN publishes** – it carries its own MQTT with auto-discovery, polls the
+bus anyway, publishes more often and also creates controls.
+
+In the second mode the manager configures the adapter: broker, user and
+password come from Home Assistant itself (passed through, never shown or
+stored here), prefix, device id, interval, units and MQTT flavour come from
+these settings, and auto-discovery is switched on. Anything else BSB-LAN does –
+logging to SD card, say – is left alone; only differences are written.
+
+The selection is pushed into BSB-LAN's log parameter list on save, and *take
+over the list from BSB-LAN* does the reverse. Every write is read back: BSB-LAN
+silently truncates long lists.
+
 ## Remembered values
 
 Reading a category over the bus takes a few seconds – 4800 baud, and the

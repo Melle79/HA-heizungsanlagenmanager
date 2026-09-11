@@ -1,5 +1,24 @@
 # Änderungen
 
+## 1.12.0
+
+- **Neu: BSB-LAN kann das Melden übernehmen, der Manager richtet es ein.**
+  Unter *Einstellungen → Wer meldet nach Home Assistant?* wählst du zwischen
+  beiden. Entscheidest du dich für BSB-LAN, schreibt der Manager dessen
+  MQTT-Einstellungen (Broker, Zugangsdaten, Präfix, Geräte-ID, Intervall,
+  Einheiten, Auto-Discovery) und gibt die Auswahl als Log-Parameterliste
+  weiter – und meldet seine eigenen Entitäten ab, damit nicht zwei Absender
+  dieselbe Anlage doppeln.
+- **Broker, Benutzer und Passwort kommen von Home Assistant selbst.** Der
+  Supervisor reicht sie dem Add-on durch; sie gehen an BSB-LAN, werden aber
+  nirgends angezeigt oder hier gespeichert. In der Rückmeldung heißen sie nur
+  „Zugangsdaten“.
+- *Liste aus BSB-LAN übernehmen* holt umgekehrt, was dort schon eingetragen
+  ist, in die Auswahl – mit den Namen aus dem Katalog.
+- Nach jedem Schreiben wird zurückgelesen. BSB-LAN kürzt lange Listen
+  stillschweigend; was das Gerät danach führt, zählt, nicht was wir ihm
+  geschickt haben.
+
 ## 1.11.1
 
 - **Behoben: „BSB-LAN meldet nichts von sich aus“ – obwohl es meldete.** Ich

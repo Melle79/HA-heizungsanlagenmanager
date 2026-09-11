@@ -358,6 +358,53 @@
       denselben Bus ab.</div>
     <div id="bsblan-lage" class="hinweis" style="margin-top:var(--l3)">wird
       gelesen …</div>
+
+    <label class="haken" style="margin-top:var(--l4)">
+      <input type="radio" name="melder" value="addon" id="e-melder-addon">
+      <span><b>Der Manager meldet.</b> Er liest die Auswahl im eigenen Takt und
+        legt die Entitäten selbst an. Steht das Add-on, kommt nichts an.</span>
+    </label>
+    <label class="haken">
+      <input type="radio" name="melder" value="bsblan" id="e-melder-bsblan">
+      <span><b>BSB-LAN meldet.</b> Der Manager sagt ihm nur, was – und hält
+        sich mit eigenen Entitäten zurück. BSB-LAN fragt den Bus ohnehin ab,
+        meldet häufiger und legt auch Bedienelemente an.</span>
+    </label>
+
+    <div id="bsblan-felder" hidden>
+      <div class="felder" style="margin-top:var(--l3)">
+        <div class="feld"><label>Topic-Präfix in BSB-LAN</label>
+          <input type="text" id="e-bsblan-praefix"></div>
+        <div class="feld"><label>Geräte-ID (optional)</label>
+          <input type="text" id="e-bsblan-id"></div>
+        <div class="feld"><label>Sendeintervall (Sekunden)</label>
+          <input type="number" id="e-bsblan-intervall" min="10" max="3600" step="10">
+          <div class="notiz">BSB-LAN fragt in diesem Takt ab. 60 Sekunden sind
+            für eine Heizung reichlich.</div></div>
+        <div class="feld"><label>Einheiten</label>
+          <select id="e-bsblan-einheiten">
+            <option value="ha">für Home Assistant</option>
+            <option value="landes">landesspezifisch</option>
+            <option value="keine">keine</option>
+          </select></div>
+        <div class="feld"><label>MQTT-Art</label>
+          <select id="e-bsblan-art">
+            <option value="einfach">Einfach</option>
+            <option value="json">JSON</option>
+            <option value="rich">Rich JSON</option>
+          </select></div>
+      </div>
+      <div class="notiz">Broker, Benutzer und Passwort kommen von Home
+        Assistant selbst – dieselben, mit denen dieses Add-on am Broker hängt.
+        Sie werden beim Einrichten durchgereicht und hier weder angezeigt noch
+        gespeichert; abtippen musst du nichts.</div>
+      <div class="zeile-aktionen">
+        <button id="btn-bsblan-einrichten">BSB-LAN einrichten</button>
+        <button class="leise" id="btn-bsblan-parameter">Auswahl an BSB-LAN geben</button>
+        <button class="leise" id="btn-bsblan-uebernehmen">Liste aus BSB-LAN übernehmen</button>
+        <span class="meldung" id="m-bsblan"></span>
+      </div>
+    </div>
   </div>
 
   <div class="tafel">
@@ -1374,6 +1421,13 @@ function einstellungenZeichnen(e) {
   $('e-intervall').value = e.intervall_s; $('e-praefix').value = e.praefix;
   $('e-schreiben').checked = e.schreiben_erlaubt;
   $('e-merken').checked = !!e.werte_merken;
+  $('e-melder-' + (e.melder === 'bsblan' ? 'bsblan' : 'addon')).checked = true;
+  $('bsblan-felder').hidden = e.melder !== 'bsblan';
+  $('e-bsblan-praefix').value = e.bsblan_praefix || '';
+  $('e-bsblan-id').value = e.bsblan_geraete_id || '';
+  $('e-bsblan-intervall').value = e.bsblan_intervall_s;
+  $('e-bsblan-einheiten').value = e.bsblan_einheiten || 'ha';
+  $('e-bsblan-art').value = e.bsblan_art || 'einfach';
   einst = e;
 }
 
@@ -1385,11 +1439,61 @@ $('btn-speichern-einst').onclick = async () => {
       intervall_s: parseInt($('e-intervall').value, 10),
       praefix: $('e-praefix').value,
       schreiben_erlaubt: $('e-schreiben').checked,
-      werte_merken: $('e-merken').checked});
+      werte_merken: $('e-merken').checked,
+      melder: $('e-melder-bsblan').checked ? 'bsblan' : 'addon',
+      bsblan_praefix: $('e-bsblan-praefix').value,
+      bsblan_geraete_id: $('e-bsblan-id').value,
+      bsblan_intervall_s: parseInt($('e-bsblan-intervall').value, 10),
+      bsblan_einheiten: $('e-bsblan-einheiten').value,
+      bsblan_art: $('e-bsblan-art').value});
     einstellungenZeichnen(e);
     meldung('m-einst', 'Gespeichert', true);
     await statusLaden();
   } catch (err) { meldung('m-einst', err.message); }
+};
+
+document.querySelectorAll('input[name="melder"]').forEach(knopf => {
+  knopf.onchange = () => { $('bsblan-felder').hidden = !$('e-melder-bsblan').checked; };
+});
+
+async function bsblanRuf(pfad, methode, knopf, satz) {
+  const alt = knopf.textContent;
+  knopf.disabled = true; knopf.textContent = 'läuft …';
+  try {
+    const d = await sendeJSON(pfad, methode, {});
+    meldung('m-bsblan', satz(d), true);
+    await statusLaden(); bsblanLage();
+  } catch (err) { meldung('m-bsblan', err.message); }
+  finally { knopf.disabled = false; knopf.textContent = alt; }
+}
+
+$('btn-bsblan-einrichten').onclick = () => {
+  if (!confirm('Die MQTT-Einstellungen von BSB-LAN überschreiben?\n\n'
+    + 'Broker, Benutzer und Passwort kommen von Home Assistant. Was BSB-LAN '
+    + 'sonst tut – Logging auf SD-Karte etwa – bleibt unangetastet.')) return;
+  bsblanRuf('bsblan/einrichten', 'POST', $('btn-bsblan-einrichten'), d =>
+    (d.geschrieben || []).length
+      ? `${d.geschrieben.length} Einstellung(en) geschrieben`
+        + ((d.offen || []).length ? ` – nicht übernommen: ${d.offen.join(', ')}` : '')
+      : 'BSB-LAN war schon richtig eingestellt');
+};
+
+$('btn-bsblan-parameter').onclick = () =>
+  bsblanRuf('bsblan/parameter', 'PUT', $('btn-bsblan-parameter'), d =>
+    d.vollstaendig ? `BSB-LAN meldet jetzt ${d.anzahl} Parameter`
+                   : `BSB-LAN führt ${d.anzahl} Parameter – es hat die Liste gekürzt`);
+
+$('btn-bsblan-uebernehmen').onclick = async () => {
+  if (!confirm('Die Auswahl durch BSB-LANs Liste ersetzen?')) return;
+  const knopf = $('btn-bsblan-uebernehmen');
+  knopf.disabled = true;
+  try {
+    auswahl = await sendeJSON('bsblan/uebernehmen', 'POST', {});
+    auswahlNr = new Set(auswahl.map(a => a.nr));
+    meldung('m-bsblan', `${auswahl.length} Parameter übernommen`, true);
+    katalogZeichnen(); await statusLaden();
+  } catch (err) { meldung('m-bsblan', err.message); }
+  finally { knopf.disabled = false; }
 };
 
 $('btn-katalog').onclick = async () => {
