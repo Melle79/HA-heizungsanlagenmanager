@@ -351,6 +351,16 @@
   </div>
 
   <div class="tafel">
+    <h2>Wer meldet nach Home Assistant?</h2>
+    <div class="notiz">BSB-LAN bringt eigenes MQTT mit, samt automatischer
+      Anmeldung in Home Assistant. Ist das eingeschaltet, melden zwei
+      Programme dieselbe Anlage – doppelte Entitäten, und beide fragen
+      denselben Bus ab.</div>
+    <div id="bsblan-lage" class="hinweis" style="margin-top:var(--l3)">wird
+      gelesen …</div>
+  </div>
+
+  <div class="tafel">
     <h2>Anzeige</h2>
     <label class="haken"><input type="checkbox" id="e-merken">
       <span>Zuletzt gelesene Werte beim Öffnen sofort zeigen</span></label>
@@ -551,6 +561,40 @@ function kategorienFuellen(select) {
       select.appendChild(o);
     });
   select.value = vorher;
+}
+
+// Was BSB-LAN von sich aus meldet. Gegenübergestellt wird es dem, was der
+// Manager meldet – damit man sieht, ob sich zwei Programme dieselbe Arbeit
+// teilen oder gegenseitig doppeln.
+async function bsblanLage() {
+  const feld = $('bsblan-lage'); if (!feld) return;
+  let d;
+  try { d = await hole('bsblan'); }
+  catch (err) { feld.className = 'hinweis warn';
+                feld.textContent = err.message; return; }
+  if (!d.lesbar) {
+    feld.className = 'hinweis warn';
+    feld.innerHTML = `<b>Einstellungen von BSB-LAN nicht lesbar.</b> ${d.fehler || ''}`;
+    return;
+  }
+  const meine = auswahl.length;
+  if (!d.sendet) {
+    feld.className = 'hinweis';
+    feld.innerHTML = `<b>BSB-LAN meldet nichts von sich aus.</b> Die
+      ${meine} Entität${meine === 1 ? '' : 'en'} in Home Assistant kommen
+      allein aus diesem Add-on.`;
+    return;
+  }
+  feld.className = 'hinweis warn';
+  feld.innerHTML = `<b>BSB-LAN meldet selbst: ${d.anzahl} Parameter alle
+    ${d.intervall_s} Sekunden</b> an ${d.broker || 'seinen Broker'} unter
+    <code>${d.praefix || '?'}/…</code>${d.discovery
+      ? ' – mit automatischer Anmeldung in Home Assistant' : ''}.
+    <br>Dieses Add-on meldet zusätzlich ${meine} Parameter. Beide fragen
+    denselben Bus ab; in Home Assistant stehen die Werte doppelt.
+    <br><span class="notiz">Abstellen lässt sich das an genau einer Stelle:
+    entweder in BSB-LAN unter „Logging → Log-Modus“, oder hier unter
+    „Auswahl“, indem du nichts auswählst.</span>`;
 }
 
 async function katalogLaden() {
@@ -1114,17 +1158,33 @@ const programmNummer = (name) => (String(name || '').match(/(\d+)\s*$/) || [])[1
 // „Läuft das gerade?“ ist die Frage, die man vor einer Wochentabelle hat.
 // Beantwortet wird sie aus dem Parameter, den der Katalog als Programmwahl
 // erkannt hat – und gleich daneben steht die Auswahl, um es zu ändern.
+// Welcher Parameter entscheidet über *dieses* Programm? Bei den Heizprogrammen
+// die Programmwahl, beim Trinkwasser ein eigener Schalter – dort heißt „aktiv“
+// nicht „Programm 2 gewählt“, sondern „Warmwasserprogramm statt 24h/Tag“.
+function zpSchalter() {
+  const name = (zeitprogramme[zpKat] || {}).name || '';
+  const nummer = programmNummer(name);
+  if (nummer) {
+    const pw = katalog.programmwahl || {};
+    return pw.nr ? {...pw, sollwert: pw.zu[nummer]} : null;
+  }
+  if (/trink|warm/i.test(name)) {
+    const tw = katalog.trinkwasserwahl || {};
+    return tw.nr ? {...tw, sollwert: tw.programm} : null;
+  }
+  return null;
+}
+
 function zpAktivZeichnen() {
   const feld = $('zp-aktiv'); if (!feld) return;
   feld.innerHTML = '';
-  const pw = katalog.programmwahl || {};
-  const meine = programmNummer((zeitprogramme[zpKat] || {}).name);
-  if (!pw.nr || !meine) return;
+  const pw = zpSchalter();
+  if (!pw || !pw.sollwert) return;
 
   const w = werte[pw.nr] || {};
   if (ohneWert(w)) return;
   const aktuell = String(w.value);
-  const laeuft = pw.zu[meine] === aktuell;
+  const laeuft = pw.sollwert === aktuell;
 
   const marke = document.createElement('span');
   marke.className = 'marke-lauf' + (laeuft ? ' an' : '');
@@ -1142,17 +1202,17 @@ function zpAktivZeichnen() {
   wahl.disabled = !status.schreiben_erlaubt || !pw.schreibbar
                   || !!gefuehrtVon(pw.nr);
   wahl.title = wahl.disabled ? 'Das Stellen ist nicht freigegeben'
-                             : `Betriebsart (Parameter ${pw.nr})`;
+                             : `${pw.name || 'Betriebsart'} (Parameter ${pw.nr})`;
   wahl.onchange = async () => {
     const gewaehlt = wahl.value;
     const text = wahl.options[wahl.selectedIndex].textContent;
-    if (!confirm(`Betriebsart auf „${text}“ stellen?`)) {
+    if (!confirm(`${pw.name || 'Betriebsart'} auf „${text}“ stellen?`)) {
       wahl.value = aktuell; return;
     }
     wahl.disabled = true;
     try {
       await sendeJSON('setzen', 'POST', {nr: pw.nr, wert: gewaehlt});
-      meldung('m-zp', `Betriebsart auf „${text}“ gestellt`, true);
+      meldung('m-zp', `Auf „${text}“ gestellt`, true);
       const d = await sendeJSON('lesen', 'POST', {nr: [pw.nr]});
       werte = d.werte || werte;
     } catch (err) { meldung('m-zp', err.message); }
@@ -1180,7 +1240,7 @@ async function zpOeffnen(id) {
   const tage = (zeitprogramme[zpKat] || {}).tage || [];
   // Die Programmwahl wird mitgelesen – ein Parameter mehr, dafür die
   // Auskunft, ob diese Wochentabelle überhaupt gerade gilt.
-  const pwNr = (katalog.programmwahl || {}).nr;
+  const pwNr = (zpSchalter() || {}).nr;
   const nummern = pwNr && !tage.includes(pwNr) ? [...tage, pwNr] : tage;
   const gemerkt = einst.werte_merken && nummern.some(nr => werte[nr]);
   if (gemerkt) {
@@ -1378,6 +1438,7 @@ async function anlauf() {
   await werteLaden();
   await katalogLaden();
   await statusLaden();
+  bsblanLage();
   kategorienZeichnen();
   katalogLauf();
   setInterval(async () => { await werteLaden(); await statusLaden();

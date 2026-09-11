@@ -1,5 +1,23 @@
 # Änderungen
 
+## 1.11.0
+
+- **Auch beim Trinkwasserprogramm steht jetzt, ob es gilt.** Es hängt nicht an
+  der Programmwahl, sondern an einem eigenen Schalter („Warmwasser-Mode“:
+  *24h/Tag*, *Heizprogramme mit Vorverlegung*, *Warmwasserprogramm*). Nur beim
+  letzten gilt die Wochentabelle – und umstellen kannst du ihn gleich dort.
+  Die Falle dabei: Auch „Funktion Zirkulationspumpe“ kennt den Wert
+  *Warmwasserprogramm*, schaltet aber die Pumpe. Unterschieden wird am Namen
+  des Parameters, nicht an seinen Werten.
+- **Neu unter Einstellungen: „Wer meldet nach Home Assistant?“** BSB-LAN
+  bringt eigenes MQTT mit, samt automatischer Anmeldung. Ist beides an, melden
+  zwei Programme dieselbe Anlage – doppelte Entitäten, doppelte Buslast. Der
+  Manager liest jetzt BSB-LANs eigene Einstellungen und schreibt hin, was dort
+  läuft: wie viele Parameter, wie oft, an welchen Broker.
+- Dabei gefunden: **BSB-LAN 5.1.18 liefert unter `/JL` kaputtes JSON**, wenn
+  keine One-Wire- oder DHT-Pins gesetzt sind – ein Wert bleibt unbeendet. Das
+  wird beim Lesen geflickt, sonst ginge die ganze Auskunft verloren.
+
 ## 1.10.1
 
 - **Behoben: „kein Fühler angeschlossen“ stand auch dort, wo es keinen Fühler

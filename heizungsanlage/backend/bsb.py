@@ -22,7 +22,9 @@ Zwei Dinge stehen über allem:
 """
 from __future__ import annotations
 
+import json
 import logging
+import re
 import time
 
 import requests
@@ -108,6 +110,56 @@ class Bsb:
             if i + BUENDEL < len(liste):
                 time.sleep(PAUSE_S)
         return raus
+
+    # ------------------------------------------ BSB-LANs eigene Einstellungen ----
+
+    def konfiguration(self) -> dict:
+        """Die Einstellungen von BSB-LAN selbst – Logging, MQTT, alles.
+
+        ``/JL`` liefert sie als JSON, ``/JW`` nimmt dieselbe Struktur zum
+        Schreiben zurück. Das ist der Weg, dem Adapter zu sagen, was er von
+        sich aus melden soll, statt dieselben Werte ein zweites Mal über den
+        Bus zu holen.
+
+        **BSB-LAN 5.1.18 liefert hier kaputtes JSON**: Ein leerer Wert bleibt
+        unbeendet (``"value": "`` und dann gleich die schließende Klammer) –
+        zu sehen bei den One-Wire- und DHT-Pins, wenn keine gesetzt sind. Das
+        wird hier geflickt, weil sonst die ganze Auskunft verlorengeht. Der
+        Fehler steckt im Gerät, nicht in der Antwort.
+        """
+        url = self._pfad("JL")
+        try:
+            antwort = requests.get(url, timeout=self.zeitlimit)
+            antwort.raise_for_status()
+            roh = antwort.text
+        except requests.RequestException as err:
+            raise BsbFehler(f"BSB-LAN-Einstellungen nicht lesbar: {err}") from err
+        geflickt = re.sub(r'"value":\s*"\s*\n(\s*\})', r'"value": ""\n\1', roh)
+        try:
+            daten = json.loads(geflickt)
+        except ValueError as err:
+            raise BsbFehler(
+                "BSB-LAN antwortet auf die Einstellungen nicht mit gültigem "
+                "JSON.") from err
+        return daten if isinstance(daten, dict) else {}
+
+    def konfiguration_schreiben(self, eintraege: dict) -> dict:
+        """Einstellungen zurückschreiben – dieselbe Struktur wie aus ``/JL``.
+
+        Absichtlich ohne Bequemlichkeit: Der Aufrufer übergibt genau die
+        Einträge, die er ändern will. Alles andere bleibt, wie es ist – in
+        dieser Datei stehen auch Zugangsdaten, die niemanden hier angehen.
+        """
+        url = self._pfad("JW")
+        try:
+            antwort = requests.post(url, json=eintraege, timeout=self.zeitlimit)
+            antwort.raise_for_status()
+        except requests.RequestException as err:
+            raise BsbFehler(f"Einstellungen nicht schreibbar: {err}") from err
+        try:
+            return antwort.json()
+        except ValueError:
+            return {}
 
     # --------------------------------------------------------- schreiben ----
 

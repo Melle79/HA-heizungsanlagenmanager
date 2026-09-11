@@ -355,3 +355,40 @@ def programmwahl(katalog: dict) -> dict:
                                for w in eintrag.get("possibleValues") or []]}
             break
     return beste or {}
+
+
+# Das Trinkwasserprogramm wird nicht über die Programmwahl geschaltet, sondern
+# über einen eigenen Parameter: Bei Sven ist es die 160 „Warmwasser-Mode“ mit
+# den Werten „24h/Tag“, „Heizprogramme mit Vorverlegung“ und
+# „Warmwasserprogramm“. Nur beim letzten gilt die Wochentabelle.
+#
+# Die Falle dabei: Auch die 178 „Funktion Zirkulationspumpe“ führt den Wert
+# „Warmwasserprogramm“ – sie schaltet aber die Pumpe, nicht das Programm. Der
+# Unterschied steckt im Namen des Parameters selbst, nicht in seinen Werten.
+
+_TWW_WERT = re.compile(r"(warm|trink)wasser.?programm", re.I)
+_TWW_NAME = re.compile(r"mode|modus|betriebsart|programm", re.I)
+
+
+def trinkwasserwahl(katalog: dict) -> dict:
+    """Der Parameter, der bestimmt, ob das Trinkwasserprogramm gilt."""
+    for eintrag in sorted((katalog.get("parameter") or {}).values(),
+                          key=lambda e: _nummer(e.get("nr"))):
+        if _nummer(eintrag.get("nr")) >= EIGENE_AB:
+            continue
+        if not _TWW_NAME.search(str(eintrag.get("name") or "")):
+            continue
+        treffer = ""
+        for wert in eintrag.get("possibleValues") or []:
+            if _TWW_WERT.search(str(wert.get("desc") or "")):
+                treffer = str(wert.get("enumValue"))
+                break
+        if treffer:
+            return {"nr": str(eintrag.get("nr")),
+                    "name": eintrag.get("name") or "",
+                    "schreibbar": bool(eintrag.get("schreibbar")),
+                    "programm": treffer,
+                    "werte": [{"wert": str(w.get("enumValue")),
+                               "text": str(w.get("desc") or "")}
+                              for w in eintrag.get("possibleValues") or []]}
+    return {}

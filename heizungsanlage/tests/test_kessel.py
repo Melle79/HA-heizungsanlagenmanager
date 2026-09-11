@@ -418,6 +418,56 @@ pruefe(katalog.programmwahl(EINZELN) == {},
 pruefe(katalog.programmwahl({"parameter": {}}) == {},
        "und wo es nichts gibt, wird nichts behauptet")
 
+print("\n=== Das Trinkwasserprogramm haengt an einem anderen Schalter ===")
+# Nicht an der Programmwahl, sondern an "Warmwasser-Mode": Nur wenn dort
+# "Warmwasserprogramm" steht, gilt die Wochentabelle. Die Falle: Auch die
+# Zirkulationspumpe kennt den Wert "Warmwasserprogramm" - sie schaltet aber
+# die Pumpe. Der Unterschied steckt im Namen des Parameters.
+TWW = {"kategorien": {}, "parameter": {
+    "160": {"nr": "160", "name": "Warmwasser-Mode", "schreibbar": True,
+            "possibleValues": [{"enumValue": "0", "desc": "24h/Tag"},
+                               {"enumValue": "1", "desc": "Heizprogramme mit Vorverlegung"},
+                               {"enumValue": "2", "desc": "Warmwasserprogramm"}]},
+    "178": {"nr": "178", "name": "Funktion Zirkulationspumpe", "schreibbar": True,
+            "possibleValues": [{"enumValue": "0", "desc": "Warmwasser-Mode"},
+                               {"enumValue": "1", "desc": "Warmwasserprogramm"}]}}}
+tw = katalog.trinkwasserwahl(TWW)
+pruefe(tw["nr"] == "160", "der Warmwasser-Mode wird gefunden")
+pruefe(tw["programm"] == "2", "und der Wert, bei dem das Programm gilt")
+NUR_PUMPE = {"kategorien": {}, "parameter": {"178": TWW["parameter"]["178"]}}
+pruefe(katalog.trinkwasserwahl(NUR_PUMPE) == {},
+       "die Zirkulationspumpe allein wird nicht dafuer gehalten")
+
+print("\n=== BSB-LANs eigene Einstellungen ===")
+# /JL liefert bei 5.1.18 kaputtes JSON: ein leerer Wert bleibt unbeendet.
+# Wer daran scheitert, verliert die ganze Auskunft - also flicken.
+class Text:
+    def __init__(self, t): self.text, self.status_code = t, 200
+    def raise_for_status(self): pass
+    def json(self): return {}
+
+KAPUTT = '''{
+  "45": {
+    "parameter": 27,
+    "category": "OneWire",
+    "name": "Pins",
+    "value": "
+  },
+  "34": {
+    "parameter": 14,
+    "category": "Logging",
+    "name": "Parameter",
+    "value": "8700,8310"
+  }
+}'''
+alt_get = bsb.requests.get
+bsb.requests.get = lambda url, timeout=None: Text(KAPUTT)
+konf = client.konfiguration()
+bsb.requests.get = alt_get
+pruefe(konf["34"]["value"] == "8700,8310",
+       "der unbeendete Wert kostet nicht die ganze Antwort")
+pruefe(konf["45"]["value"] == "", "und wird als das gelesen, was er ist: leer")
+
 print("\n=== Was ausgeblendet werden darf ===")
 e = store.validate_einstellungen({"bsb_url": "http://x", "versteckte_kategorien": ["25", "26", "25"]})
 pruefe(e["versteckte_kategorien"] == ["25", "26"], "doppelt genannt zaehlt einmal")

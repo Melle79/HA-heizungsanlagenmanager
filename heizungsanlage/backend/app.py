@@ -341,6 +341,62 @@ def api_uebernahme_loesen(quelle):
                     "parameter": store.uebernommen_von(uebernahme)})
 
 
+# ------------------------------------------------- BSB-LAN meldet selbst ----
+#
+# BSB-LAN bringt eigenes MQTT mit, samt Auto-Discovery für Home Assistant. Wo
+# das eingeschaltet ist, melden **zwei** Programme dieselbe Anlage – doppelte
+# Entitäten, doppelte Last auf einem Bus mit 4800 Baud. Der Manager kann das
+# nicht stillschweigend ändern; er kann es sichtbar machen.
+
+# Die Einträge aus /JL, auf die es ankommt. Der Schlüssel ist die Option-
+# nummer, die BSB-LAN selbst vergibt – der Index davor ist nicht stabil.
+BSBLAN_OPTIONEN = {
+    11: "logmodus", 13: "logintervall", 14: "logparameter",
+    36: "mqtt_broker", 39: "mqtt_praefix", 35: "mqtt_art", 59: "mqtt_discovery",
+}
+# Bit 4 im Log-Modus heißt „An MQTT-Broker senden“ (12 = 4 + 8, also senden
+# und nur die Log-Parameter).
+LOGMODUS_MQTT = 4
+
+
+@app.route("/api/bsblan")
+def api_bsblan():
+    """Was BSB-LAN von sich aus nach Home Assistant meldet.
+
+    Zugangsdaten kommen hier nicht vor: Benutzername und Passwort des Brokers
+    stehen in derselben Datei, gehen diese Oberfläche aber nichts an.
+    """
+    try:
+        roh = _client().konfiguration()
+    except bsb_modul.BsbFehler as err:
+        return jsonify({"lesbar": False, "fehler": str(err)})
+
+    gefunden = {}
+    for eintrag in roh.values():
+        if not isinstance(eintrag, dict):
+            continue
+        name = BSBLAN_OPTIONEN.get(eintrag.get("parameter"))
+        if name:
+            gefunden[name] = eintrag.get("value")
+
+    try:
+        modus = int(gefunden.get("logmodus") or 0)
+    except (TypeError, ValueError):
+        modus = 0
+    liste = [t.strip() for t in str(gefunden.get("logparameter") or "").split(",")
+             if t.strip()]
+    return jsonify({
+        "lesbar": True,
+        "sendet": bool(modus & LOGMODUS_MQTT),
+        "parameter": liste,
+        "anzahl": len(liste),
+        "intervall_s": gefunden.get("logintervall"),
+        "broker": gefunden.get("mqtt_broker"),
+        "praefix": gefunden.get("mqtt_praefix"),
+        "discovery": str(gefunden.get("mqtt_discovery")) == "1",
+    })
+
+
 # --------------------------------------------------------------- Katalog ----
 
 @app.route("/api/katalog")
@@ -357,6 +413,7 @@ def api_katalog():
         "zeitprogramme": katalog_modul.zeitprogramme(katalog),
         "gruppen": katalog_modul.gruppen(katalog),
         "programmwahl": katalog_modul.programmwahl(katalog),
+        "trinkwasserwahl": katalog_modul.trinkwasserwahl(katalog),
         "kacheln": katalog_modul.kacheln(katalog),
         "anzahl": len(katalog.get("parameter") or {}),
     })
