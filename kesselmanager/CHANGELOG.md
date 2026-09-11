@@ -1,5 +1,22 @@
 # Änderungen
 
+## 1.3.2
+
+- **Meldungen bleiben stehen, bis man sie wegklickt.** Vorher verschwanden sie
+  nach sechs Sekunden von selbst. Wer nach dem Stellen eines Wertes zur Heizung
+  schaut statt auf den Bildschirm, verpasst genau die Auskunft, für die er den
+  Knopf gedrückt hat – eine Fehlermeldung, die man nicht liest, ist keine.
+  Jede Meldung hat jetzt ein ✕ und steht als abgesetzter Kasten da, rot beim
+  Fehler, grün beim Erfolg.
+- Steht die Meldung außerhalb des Bildes – etwa unter einer langen
+  Parametertabelle –, rückt die Ansicht sie ins Blickfeld.
+- Der Reiter „Werte“ hat ein eigenes Meldungsfeld. Bisher wurde dafür die
+  Zeile „Zuletzt gelesen …“ missbraucht, die danach rot eingefärbt blieb.
+- Bei den Zeitprogrammen überschreibt der Erfolg keinen Fehler mehr: Bricht das
+  Speichern beim dritten Tag ab, steht jetzt beides da statt nur der grünen
+  Hälfte. Der Hinweis auf die fehlende Freigabe ist ein Dauerhinweis geworden –
+  als Meldung kam er nach jedem Wegklicken sofort zurück.
+
 ## 1.3.1
 
 - **Behoben: Eine gelungene Änderung wurde als Fehler gemeldet.** BSB-LAN

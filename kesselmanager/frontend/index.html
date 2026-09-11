@@ -98,6 +98,15 @@
   .hinweis.warn{border-left-color:var(--achtung)}
   .meldung{font-size:.8rem; color:var(--achtung); margin-left:var(--l3)}
   .meldung.gut{color:var(--ok)}
+  .meldung:not(:empty){display:flex; align-items:flex-start; gap:var(--l2);
+    margin:var(--l2) 0 0; padding:var(--l2) var(--l3); width:100%;
+    border-radius:var(--rund); background:rgba(227,109,109,.10);
+    border-left:3px solid var(--achtung); line-height:1.45}
+  .meldung.gut:not(:empty){background:rgba(76,195,138,.10);
+    border-left-color:var(--ok)}
+  .meldung button.zu{background:none; border:none; color:inherit; cursor:pointer;
+    padding:0 0 0 var(--l2); font-size:.85rem; opacity:.7; margin-left:auto}
+  .meldung button.zu:hover{opacity:1}
   .balken{height:6px; border-radius:3px; background:var(--flaeche2); overflow:hidden;
     margin-top:var(--l2)}
   .balken div{height:100%; background:var(--warm); width:0; transition:width .3s}
@@ -176,6 +185,7 @@
     <div class="zeile-aktionen">
       <button id="btn-lesen">Jetzt lesen</button>
       <span class="notiz" id="werte-stand"></span>
+      <span class="meldung" id="m-werte"></span>
     </div>
   </div>
 </section>
@@ -242,6 +252,8 @@
 <!-- ══════════════════════════════════════════ Zeitprogramme ═══ -->
 <section id="zeitprogramme">
   <div class="hinweis" id="zp-hinweis"></div>
+  <div class="hinweis warn" id="zp-dauerhinweis" hidden>Zum Speichern das Stellen
+    unter „Einstellungen“ freigeben.</div>
   <div class="tafel">
     <h2>Zeitschaltprogramme</h2>
     <div class="notiz">Je Tag drei Schaltfenster. Ein leeres Fenster heißt:
@@ -344,11 +356,25 @@ const sendeJSON = (pfad, methode, koerper) => hole(pfad, {
   method: methode, headers:{'Content-Type':'application/json'},
   body: JSON.stringify(koerper)});
 
+// Meldungen bleiben stehen, bis jemand sie wegklickt. Vorher verschwanden
+// sie nach sechs Sekunden von selbst – und wer gerade auf die Heizung
+// geschaut hat statt auf den Bildschirm, las die wichtigste Auskunft des
+// Tages nicht. Eine Fehlermeldung, die man verpasst, ist keine.
 function meldung(id, text, gut) {
   const feld = $(id); if (!feld) return;
-  feld.textContent = text || '';
+  feld.innerHTML = '';
   feld.className = 'meldung' + (gut ? ' gut' : '');
-  if (text) setTimeout(() => { if (feld.textContent === text) feld.textContent = ''; }, 6000);
+  if (!text) return;
+  const satz = document.createElement('span');
+  satz.textContent = text;
+  const zu = document.createElement('button');
+  zu.className = 'zu'; zu.textContent = '✕'; zu.title = 'Meldung schließen';
+  zu.onclick = () => { feld.innerHTML = ''; feld.className = 'meldung'; };
+  feld.append(satz, zu);
+  const kasten = feld.getBoundingClientRect();
+  if (kasten.top < 0 || kasten.bottom > window.innerHeight) {
+    feld.scrollIntoView({block: 'center', behavior: 'smooth'});
+  }
 }
 const zeit = (iso) => iso ? new Date(iso).toLocaleString('de-DE',
   {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'}) : '–';
@@ -443,7 +469,7 @@ $('btn-lesen').onclick = async () => {
   knopf.textContent = 'liest …';
   try { const d = await hole('lesen', {method:'POST'});
         werte = d.werte || werte; await statusLaden(); werteZeichnen(); }
-  catch (err) { meldung('werte-stand', err.message); }
+  catch (err) { meldung('m-werte', err.message); }
   finally { knopf.disabled = false; knopf.textContent = 'Jetzt lesen'; }
 };
 
@@ -775,9 +801,8 @@ function zpZeichnen() {
   $('btn-zp-speichern').textContent = offen
     ? `${offen} geänderte${offen === 1 ? 'n' : ''} Tag${offen === 1 ? '' : 'e'} speichern`
     : 'Keine Änderungen';
-  if (!status.schreiben_erlaubt) {
-    meldung('m-zp', 'Zum Speichern das Stellen unter „Einstellungen“ freigeben');
-  }
+  const dauerhinweis = $('zp-dauerhinweis');
+  dauerhinweis.hidden = !!status.schreiben_erlaubt;
 }
 
 function zpUebertragen(bis) {
@@ -800,18 +825,25 @@ $('btn-zp-speichern').onclick = async () => {
   if (!confirm(`${offen.length} Tag(e) an die Heizung schicken?\n\n${liste}`)) return;
 
   const knopf = $('btn-zp-speichern'); knopf.disabled = true;
-  let fertig = 0;
+  let fertig = 0, gescheitert = '';
   for (const tag of offen) {
     try {
       await sendeJSON('setzen', 'POST', {nr: tag.nr,
                                          wert: fensterSchreiben(tag.fenster)});
       fertig++;
     } catch (err) {
-      meldung('m-zp', `${tag.name}: ${err.message}`);
+      gescheitert = `${tag.name}: ${err.message}`;
       break;     // beim ersten Nein aufhören, statt blind weiterzuschreiben
     }
   }
-  if (fertig) meldung('m-zp', `${fertig} Tag(e) gespeichert`, true);
+  // Steht beides an, gilt der Fehler: Er ist die Nachricht, die jemand
+  // wirklich lesen muss. Wie viele Tage vorher durchgingen, steht dabei.
+  if (gescheitert) {
+    meldung('m-zp', fertig ? `${fertig} Tag(e) gespeichert, dann: ${gescheitert}`
+                           : gescheitert);
+  } else if (fertig) {
+    meldung('m-zp', `${fertig} Tag(e) gespeichert`, true);
+  }
   setTimeout(() => zpOeffnen(zpKat), 1800);
 };
 
