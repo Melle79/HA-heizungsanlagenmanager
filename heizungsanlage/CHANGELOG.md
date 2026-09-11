@@ -1,5 +1,23 @@
 # Änderungen
 
+## 1.7.0
+
+- **Das Kategorienmenü ist gruppiert.** 27 Knöpfe nebeneinander waren eine
+  Wand, keine Übersicht. Sie stehen jetzt unter *Zeitprogramme*, *Heizen*,
+  *Trinkwasser*, *Wärmeerzeuger*, *Speicher*, *Wartung & Diagnose*, *Anlage &
+  Konfiguration* – und alles, was BSB-LAN selbst mitbringt (eigene Parameter,
+  PPS-Emulation, One-Wire-Fühler) unter *BSB-LAN selbst*. Die Zuordnung kommt
+  aus den Namen, die die eigene Anlage liefert; was in keine Gruppe passt,
+  landet unter *Weitere* statt unter den Tisch.
+- **Kategorien lassen sich ausblenden.** Über *Anpassen* im Reiter „Regler“.
+  Jede Anlage schleppt Ecken mit, die ihr Besitzer nie braucht – bei der einen
+  die Kaskade, bei der anderen die PPS-Emulation. Ausgeblendet heißt nicht
+  gelöscht: Der Hinweis oben nennt die Zahl, und ein Klick holt alles zurück.
+- **Ausgewählte Parameter, die es nicht gibt, fallen jetzt auf.** Steht in der
+  Auswahl eine Nummer, die der Katalog nicht kennt, sagt der Reiter das – samt
+  Knopf zum Entfernen. Solche Einträge liefern nie einen Wert, und eine
+  Entität auf „unbekannt“ sieht aus wie ein kalter Fühler.
+
 ## 1.6.2
 
 - **„Kein Wert“ heißt jetzt, warum.** Eine Regelung antwortet auf drei Arten

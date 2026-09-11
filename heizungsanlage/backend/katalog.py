@@ -218,3 +218,86 @@ def kacheln(katalog: dict) -> list:
                          "einheit": eintrag.get("unit") or ""})
             break
     return raus
+
+
+# ──────────────────────────────────────────── Ordnung in die Gliederung ────
+#
+# 27 Kategorien nebeneinander sind eine Wand aus Knöpfen. Am Gerät auf dem
+# Kessel blättert man sich durch – hier sieht man alles auf einmal, und das
+# ist keine Übersicht, sondern eine Liste.
+#
+# Also Gruppen. Sie kommen aus den Namen, die die Anlage selbst liefert, denn
+# feste Kategorienummern gelten wieder nur für eine Parameterliste. Was in
+# keine Gruppe passt, verschwindet nicht – es landet unter „Weitere“.
+
+GRUPPEN = [
+    {"titel": "Zeitprogramme", "worte": ["zeitprogramm", "zeitschaltprogramm",
+                                         "schaltzeiten", "time program"]},
+    {"titel": "Heizen", "worte": ["heizkreis", "raumführung", "raumfuehrung",
+                                  "einstellwerte", "betriebsart", "urlaub",
+                                  "ferien", "kennlinie", "heating circuit"]},
+    {"titel": "Trinkwasser", "worte": ["trinkwasser", "warmwasser", "tww",
+                                       "legionell", "dhw", "hot water"]},
+    {"titel": "Wärmeerzeuger", "worte": ["kessel", "brenner", "feuerung",
+                                         "kaskade", "abgas", "solar",
+                                         "wärmepumpe", "waermepumpe",
+                                         "zusatzerzeuger", "erzeuger",
+                                         "boiler", "burner"]},
+    {"titel": "Speicher", "worte": ["puffer", "speicher", "schwimmbad",
+                                    "buffer", "storage"]},
+    {"titel": "Wartung & Diagnose", "worte": ["status", "fehler", "wartung",
+                                              "service", "diagnose", "test",
+                                              "störung", "stoerung", "error",
+                                              "maintenance"]},
+    {"titel": "Anlage & Konfiguration", "worte": ["anlage", "konfiguration",
+                                                  "option", "uhrzeit", "datum",
+                                                  "bedien", "lpb", "eingang",
+                                                  "ausgang", "system", "time",
+                                                  "config"]},
+]
+
+# Alles ab hier gehört BSB-LAN selbst und nicht der Regelung: eigene
+# Parameter, die PPS-Emulation, angeklemmte One-Wire-Fühler. Für die meisten
+# ist das leerer Platz – deshalb eine eigene Gruppe, die man wegklicken kann.
+GRUPPE_BSBLAN = "BSB-LAN selbst"
+GRUPPE_REST = "Weitere"
+
+
+def gruppen(katalog: dict) -> list:
+    """Die Kategorien in Gruppen – in fester Reihenfolge, ohne Verluste.
+
+    Ergebnis::
+
+        [{"titel": "Heizen", "kategorien": [{"id": "13", "name": "Heizkreis",
+                                             "anzahl": 12}]}]
+
+    Jede Kategorie kommt genau einmal vor: Sie fällt in die erste Gruppe,
+    deren Wörter passen. Die Reihenfolge oben ist deshalb nicht beliebig –
+    „IO-Test“ soll bei der Diagnose landen und nicht bei der Konfiguration.
+    """
+    zuordnung = {g["titel"]: [] for g in GRUPPEN}
+    zuordnung[GRUPPE_BSBLAN] = []
+    zuordnung[GRUPPE_REST] = []
+
+    for kid, kopf in sorted((katalog.get("kategorien") or {}).items(),
+                            key=lambda x: _nummer(x[0])):
+        nummern = kopf.get("parameter") or []
+        eintrag = {"id": str(kid),
+                   "name": (kopf.get("name") or "").strip() or f"Kategorie {kid}",
+                   "anzahl": len(nummern)}
+        # Eine Kategorie, deren Parameter allesamt jenseits der Grenze liegen,
+        # gehört BSB-LAN – unabhängig davon, wie sie heißt.
+        if nummern and all(_nummer(nr) >= EIGENE_AB for nr in nummern):
+            zuordnung[GRUPPE_BSBLAN].append(eintrag)
+            continue
+        name = _klein(eintrag["name"])
+        for gruppe in GRUPPEN:
+            if any(wort in name for wort in gruppe["worte"]):
+                zuordnung[gruppe["titel"]].append(eintrag)
+                break
+        else:
+            zuordnung[GRUPPE_REST].append(eintrag)
+
+    reihenfolge = [g["titel"] for g in GRUPPEN] + [GRUPPE_BSBLAN, GRUPPE_REST]
+    return [{"titel": titel, "kategorien": zuordnung[titel]}
+            for titel in reihenfolge if zuordnung[titel]]

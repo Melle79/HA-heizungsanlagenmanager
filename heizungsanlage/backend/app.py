@@ -355,6 +355,7 @@ def api_katalog():
         "geraete": katalog.get("geraete") or [],
         "kategorien": katalog.get("kategorien") or {},
         "zeitprogramme": katalog_modul.zeitprogramme(katalog),
+        "gruppen": katalog_modul.gruppen(katalog),
         "kacheln": katalog_modul.kacheln(katalog),
         "anzahl": len(katalog.get("parameter") or {}),
     })

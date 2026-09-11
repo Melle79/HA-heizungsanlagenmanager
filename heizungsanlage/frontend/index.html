@@ -100,6 +100,16 @@
     padding:var(--l3); border-radius:0 var(--rund) var(--rund) 0;
     font-size:.82rem; margin-bottom:var(--l4)}
   .hinweis.warn{border-left-color:var(--achtung)}
+  .tafelkopf{display:flex; align-items:center; justify-content:space-between;
+    gap:var(--l3)}
+  .tafelkopf h2{margin:0}
+  .gruppentitel{font-size:.72rem; color:var(--leise); text-transform:uppercase;
+    letter-spacing:.06em; margin:var(--l4) 0 var(--l2)}
+  .gruppentitel:first-child{margin-top:var(--l3)}
+  #kategorienliste .kachelleiste{margin:0}
+  /* Ausgeblendet ist nicht gelöscht: Der Knopf bleibt stehen, nur blass. */
+  button.aus{opacity:.45}
+  .haekchen{margin-right:var(--l2)}
   .rollbar{overflow-x:auto; -webkit-overflow-scrolling:touch}
   /* Übernommenes ist nicht kaputt, nur fremdgeführt – darum blass statt rot,
      und immer mit dem Namen dessen, der es führt. */
@@ -205,6 +215,7 @@
 <!-- ═════════════════════════════════════════════════ Auswahl ═══ -->
 <section id="auswahl">
   <div class="hinweis" id="katalog-hinweis"></div>
+  <div class="hinweis warn" id="auswahl-fremdlinge" hidden></div>
   <div class="tafel">
     <h2>Parameter auswählen</h2>
     <div class="notiz">Angehakt heißt: Der Wert wird regelmäßig gelesen und als
@@ -245,11 +256,14 @@
   <div class="hinweis" id="regler-hinweis"></div>
   <div class="hinweis" id="regler-uebernahme" hidden></div>
   <div class="tafel">
-    <h2>Die Regelung, Kategorie für Kategorie</h2>
+    <div class="tafelkopf">
+      <h2>Die Regelung, Kategorie für Kategorie</h2>
+      <button class="leise" id="btn-kat-anpassen" hidden>Anpassen</button>
+    </div>
     <div class="notiz">Dieselbe Gliederung, die auch am Gerät auf dem Kessel
       steht. Wählst du eine Kategorie, liest der Manager ihre Werte und zeigt
       sie an – stellbare gleich zum Ändern.</div>
-    <div class="kachelleiste" id="kategorienliste"></div>
+    <div id="kategorienliste"></div>
   </div>
   <div class="tafel" id="regler-tafel" hidden>
     <h2 id="regler-titel"></h2>
@@ -356,6 +370,10 @@ const API = 'api/';
 const $ = (id) => document.getElementById(id);
 
 let katalog = {kategorien:{}, anzahl:0};
+// Die gespeicherten Einstellungen, vollständig. Sie werden beim Sichern
+// mitgeschickt: Das Backend füllt fehlende Felder mit den Werkswerten auf –
+// wer nur die Hälfte sendet, setzt die andere Hälfte zurück.
+let einst = {};
 let parameterListe = [];
 let auswahl = [];
 let auswahlNr = new Set();
@@ -529,6 +547,53 @@ async function katalogLaden() {
        ${auswahl.length} davon gehen nach Home Assistant.`
     : `<b>Noch kein Katalog.</b> Lies ihn unter „Einstellungen“ einmal ein –
        danach steht hier die Liste deiner Regelung.`;
+  fremdlingeZeichnen();
+}
+
+// Alle Parameternummern, die im Katalog stehen – einmal aufgebaut, dann
+// nachgeschlagen.
+function katalogNummern() {
+  const raus = new Set();
+  Object.values(katalog.kategorien || {}).forEach(k =>
+    (k.parameter || []).forEach(nr => raus.add(String(nr))));
+  return raus;
+}
+
+// Ausgewählt, aber der Regelung unbekannt: Solche Einträge liefern nie einen
+// Wert und stehen in Home Assistant für immer auf „unbekannt“. Sie entstehen
+// beim Wechsel der Parameterliste oder durch einen Tippfehler – und sie fallen
+// niemandem auf, weil ein leerer Sensor genauso aussieht wie ein kalter.
+function fremdlingeZeichnen() {
+  const feld = $('auswahl-fremdlinge');
+  if (!feld) return;
+  if (!katalog.anzahl) { feld.hidden = true; return; }
+  const bekannt = katalogNummern();
+  const fremd = auswahl.filter(a => !bekannt.has(String(a.nr)));
+  feld.hidden = !fremd.length;
+  if (!fremd.length) return;
+  feld.innerHTML = '';
+  const satz = document.createElement('span');
+  satz.innerHTML = `<b>${fremd.length} ausgewählte${fremd.length === 1 ? 'r' : ''} `
+    + `Parameter steht nicht im Katalog</b> (${fremd.map(f => f.nr).join(', ')}) – `
+    + `deine Regelung kennt ${fremd.length === 1 ? 'ihn' : 'sie'} nicht und `
+    + `antwortet nie. Die Entität bleibt dauerhaft „unbekannt“.`;
+  const knopf = document.createElement('button');
+  knopf.className = 'leise';
+  knopf.textContent = fremd.length === 1 ? 'Eintrag entfernen' : 'Einträge entfernen';
+  knopf.onclick = async () => {
+    const bleibt = auswahl.filter(a => bekannt.has(String(a.nr)));
+    try {
+      auswahl = await sendeJSON('auswahl', 'PUT', bleibt);
+      auswahlNr = new Set(auswahl.map(a => a.nr));
+      await statusLaden(); await werteLaden();
+      katalogZeichnen(); fremdlingeZeichnen();
+      meldung('m-auswahl', `${fremd.length} Eintrag(e) entfernt`, true);
+    } catch (err) { meldung('m-auswahl', err.message); }
+  };
+  const zeile = document.createElement('div');
+  zeile.className = 'uebernahme';
+  zeile.append(satz, knopf);
+  feld.appendChild(zeile);
 }
 
 async function katalogZeichnen() {
@@ -680,26 +745,79 @@ let zeitprogramme = {};
 const istZeitprogramm = (id) => Object.hasOwn(zeitprogramme, String(id));
 let reglerKat = null;
 
+// Im Anpassen-Modus stehen Häkchen statt Knöpfen: Dann wird nicht geöffnet,
+// sondern aus- und eingeblendet.
+let anpassen = false;
+const istVersteckt = (id) =>
+  (einst.versteckte_kategorien || []).includes(String(id));
+
 function kategorienZeichnen() {
   const leiste = $('kategorienliste'); leiste.innerHTML = '';
-  const eintraege = Object.entries(katalog.kategorien || {})
-    .sort((a, b) => parseFloat(a[0]) - parseFloat(b[0]));
-  if (!eintraege.length) {
+  const gruppen = katalog.gruppen || [];
+  const gesamt = gruppen.reduce((n, g) => n + g.kategorien.length, 0);
+  if (!gesamt) {
     $('regler-hinweis').innerHTML = `<b>Noch kein Katalog.</b> Lies ihn unter
       „Einstellungen“ einmal ein – danach steht hier die Gliederung deiner
       Regelung.`;
+    $('btn-kat-anpassen').hidden = true;
     return;
   }
-  $('regler-hinweis').innerHTML = `<b>${eintraege.length} Kategorien</b>, wie sie
-    auch am Gerät stehen. Zeitschaltprogramme haben einen eigenen Reiter.`;
-  eintraege.forEach(([id, k]) => {
-    const knopf = document.createElement('button');
-    knopf.textContent = k.name;
-    knopf.className = id === reglerKat ? 'an' : '';
-    knopf.onclick = () => reglerOeffnen(id);
-    leiste.appendChild(knopf);
+  $('btn-kat-anpassen').hidden = false;
+  $('btn-kat-anpassen').textContent = anpassen ? 'Fertig' : 'Anpassen';
+  const weg = (einst.versteckte_kategorien || []).length;
+  $('regler-hinweis').innerHTML = `<b>${gesamt - weg} von ${gesamt} Kategorien</b>`
+    + `, gruppiert nach dem, was sie tun. Zeitschaltprogramme haben ihren `
+    + `eigenen Reiter.`
+    + (weg && !anpassen ? ` <span class="notiz">${weg} ausgeblendet – über
+        „Anpassen“ zurückholen.</span>` : '');
+
+  gruppen.forEach(gruppe => {
+    // Im Normalbetrieb fällt eine Gruppe weg, deren Kategorien alle
+    // ausgeblendet sind. Beim Anpassen steht sie da, sonst käme man an das
+    // Ausgeblendete nicht mehr heran.
+    const sichtbar = gruppe.kategorien.filter(k => anpassen || !istVersteckt(k.id));
+    if (!sichtbar.length) return;
+    const kopf = document.createElement('div');
+    kopf.className = 'gruppentitel';
+    kopf.textContent = gruppe.titel;
+    leiste.appendChild(kopf);
+    const reihe = document.createElement('div');
+    reihe.className = 'kachelleiste';
+    sichtbar.forEach(k => {
+      const knopf = document.createElement('button');
+      const versteckt = istVersteckt(k.id);
+      knopf.textContent = k.name;
+      if (anpassen) {
+        knopf.className = 'leise' + (versteckt ? ' aus' : '');
+        knopf.title = versteckt ? 'wieder einblenden' : 'ausblenden';
+        knopf.innerHTML = `<span class="haekchen">${versteckt ? '☐' : '☑'}</span>`
+          + `${k.name} <span class="notiz">${k.anzahl}</span>`;
+        knopf.onclick = () => kategorieUmschalten(k.id);
+      } else {
+        knopf.className = k.id === reglerKat ? 'an' : '';
+        knopf.onclick = () => reglerOeffnen(k.id);
+      }
+      reihe.appendChild(knopf);
+    });
+    leiste.appendChild(reihe);
   });
 }
+
+async function kategorieUmschalten(id) {
+  const liste = new Set(einst.versteckte_kategorien || []);
+  liste.has(String(id)) ? liste.delete(String(id)) : liste.add(String(id));
+  try {
+    const e = await sendeJSON('einstellungen', 'PUT',
+      {...einst, versteckte_kategorien: [...liste]});
+    einstellungenZeichnen(e);
+    kategorienZeichnen();
+    // Wer die gerade geöffnete Kategorie ausblendet, soll nicht auf eine
+    // Tafel schauen, die es laut Menü nicht mehr gibt.
+    if (istVersteckt(reglerKat)) { reglerKat = null; $('regler-tafel').hidden = true; }
+  } catch (err) { meldung('m-regler', err.message); }
+}
+
+$('btn-kat-anpassen').onclick = () => { anpassen = !anpassen; kategorienZeichnen(); };
 
 async function reglerOeffnen(id) {
   reglerKat = id;
@@ -974,11 +1092,13 @@ function einstellungenZeichnen(e) {
   $('e-url').value = e.bsb_url; $('e-passkey').value = e.passkey;
   $('e-intervall').value = e.intervall_s; $('e-praefix').value = e.praefix;
   $('e-schreiben').checked = e.schreiben_erlaubt;
+  einst = e;
 }
 
 $('btn-speichern-einst').onclick = async () => {
   try {
     const e = await sendeJSON('einstellungen', 'PUT', {
+      ...einst,
       bsb_url: $('e-url').value, passkey: $('e-passkey').value,
       intervall_s: parseInt($('e-intervall').value, 10),
       praefix: $('e-praefix').value,

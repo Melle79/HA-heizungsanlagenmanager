@@ -48,6 +48,11 @@ STANDARD_EINSTELLUNGEN = {
     # der Manager nichts an, solange dieser Schalter aus ist.
     "schreiben_erlaubt": False,
     "praefix": "heizungsanlage",
+    # Kategorien, die im Reiter „Regler“ nicht erscheinen sollen. Jede Anlage
+    # schleppt Ecken mit, die ihr Besitzer nie braucht – bei der einen die
+    # PPS-Emulation, bei der anderen die Kaskade. Das gehört eingestellt, nicht
+    # weggeworfen: Ausgeblendetes ist einen Klick weit weg, nicht weg.
+    "versteckte_kategorien": [],
 }
 
 # Aus Einheit und Namen lässt sich meist ableiten, was Home Assistant wissen
@@ -188,6 +193,15 @@ def validate_einstellungen(roh: dict) -> dict:
         raise ValidationError("Das MQTT-Präfix darf nur Buchstaben, Ziffern, "
                               "Bindestrich und Unterstrich enthalten")
     e["praefix"] = praefix
+
+    versteckt = e.get("versteckte_kategorien")
+    if versteckt is None:
+        versteckt = []
+    if not isinstance(versteckt, list):
+        raise ValidationError("„versteckte_kategorien“ muss eine Liste sein.")
+    e["versteckte_kategorien"] = sorted(
+        {str(k).strip() for k in versteckt if str(k).strip()},
+        key=lambda k: float(k) if k.replace(".", "", 1).isdigit() else 1e9)
     return e
 
 

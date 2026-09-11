@@ -311,6 +311,67 @@ aus_yaml = re.search(r'^version:\s*"?([^"\s]+)"?', kopf.read_text(encoding="utf-
 pruefe(aus_yaml is not None and version.VERSION == aus_yaml.group(1),
        f"version.py und config.yaml sagen dasselbe ({version.VERSION})")
 
+print("\n=== Ordnung im Menue ===")
+# 27 Kategorien nebeneinander sind eine Wand aus Knoepfen. Gruppiert wird nach
+# den Namen, die die Anlage liefert - Nummern gelten wieder nur fuer eine
+# Parameterliste.
+MENUE = {"kategorien": {
+    "0":  {"name": "Uhrzeit", "parameter": ["1"]},
+    "1":  {"name": "Zeitschaltprogramm 1", "parameter": ["11"]},
+    "10": {"name": "IO-Test", "parameter": ["90"]},
+    "13": {"name": "Heizkreis", "parameter": ["140"]},
+    "14": {"name": "Warmwasser", "parameter": ["160"]},
+    "19": {"name": "Kessel", "parameter": ["190"]},
+    "22": {"name": "Pufferspeicher", "parameter": ["215"]},
+    "25": {"name": "PPS-Bus", "parameter": ["15000"]},
+    "16": {"name": "", "parameter": ["180"]},
+}, "parameter": {}}
+g = {gr["titel"]: [k["name"] for k in gr["kategorien"]] for gr in katalog.gruppen(MENUE)}
+pruefe(g["Heizen"] == ["Heizkreis"], "der Heizkreis gehoert zum Heizen")
+pruefe(g["Trinkwasser"] == ["Warmwasser"], "Warmwasser ist Trinkwasser")
+pruefe(g["Wärmeerzeuger"] == ["Kessel"], "der Kessel erzeugt Waerme")
+pruefe(g["Speicher"] == ["Pufferspeicher"], "der Puffer speichert")
+pruefe(g["Wartung & Diagnose"] == ["IO-Test"],
+       "der IO-Test ist Diagnose und nicht Konfiguration")
+pruefe(g["Anlage & Konfiguration"] == ["Uhrzeit"], "die Uhrzeit ist Konfiguration")
+pruefe(g["Zeitprogramme"] == ["Zeitschaltprogramm 1"], "Schaltzeiten zusammen")
+pruefe(g["BSB-LAN selbst"] == ["PPS-Bus"],
+       "was jenseits von 10000 liegt, gehoert dem Adapter")
+pruefe(g["Weitere"] == ["Kategorie 16"],
+       "eine namenlose Kategorie faellt nicht unter den Tisch")
+alle = sum(len(v) for v in g.values())
+pruefe(alle == len(MENUE["kategorien"]),
+       f"jede Kategorie kommt genau einmal vor ({alle})")
+
+# Eine Standard-BSB-Anlage heisst ihre Kategorien anders.
+FREMDMENUE = {"kategorien": {
+    "3":  {"name": "Zeitprogramm Heizkreis 1", "parameter": ["500"]},
+    "5":  {"name": "Ferien Heizkreis 1", "parameter": ["640"]},
+    "6":  {"name": "Heizkreis 1", "parameter": ["700"]},
+    "10": {"name": "Trinkwasser", "parameter": ["1600"]},
+    "16": {"name": "Feuerungsautomat", "parameter": ["2700"]},
+    "23": {"name": "Fehler", "parameter": ["6800"]},
+    "26": {"name": "Ein-/Ausgangstest", "parameter": ["7700"]},
+}, "parameter": {}}
+fg = {gr["titel"]: [k["name"] for k in gr["kategorien"]] for gr in katalog.gruppen(FREMDMENUE)}
+pruefe(fg["Heizen"] == ["Ferien Heizkreis 1", "Heizkreis 1"],
+       "Ferien und Heizkreis einer fremden Anlage landen beim Heizen")
+pruefe(fg["Trinkwasser"] == ["Trinkwasser"], "Trinkwasser heisst dort so")
+pruefe(fg["Wärmeerzeuger"] == ["Feuerungsautomat"], "der Feuerungsautomat erzeugt")
+pruefe(sorted(fg["Wartung & Diagnose"]) == ["Ein-/Ausgangstest", "Fehler"],
+       "Fehler und Ausgangstest sind Diagnose")
+
+print("\n=== Was ausgeblendet werden darf ===")
+e = store.validate_einstellungen({"bsb_url": "http://x", "versteckte_kategorien": ["25", "26", "25"]})
+pruefe(e["versteckte_kategorien"] == ["25", "26"], "doppelt genannt zaehlt einmal")
+pruefe(store.standard_einstellungen()["versteckte_kategorien"] == [],
+       "ab Werk ist nichts ausgeblendet")
+try:
+    store.validate_einstellungen({"bsb_url": "http://x", "versteckte_kategorien": "25"})
+    pruefe(False, "eine Zeichenkette statt einer Liste wird abgelehnt")
+except store.ValidationError:
+    pruefe(True, "eine Zeichenkette statt einer Liste wird abgelehnt")
+
 print("\n=== Was die Anlage nicht liefert ===")
 # An Svens Kessel gefunden: Parameter 116 "Vorlauftemperatur" antwortet mit
 # error 7 ("parameter not supported") - die Anlage hat keinen Vorlauffuehler.
