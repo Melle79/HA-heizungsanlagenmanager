@@ -717,7 +717,7 @@ KONFIG = {
   "41": {"parameter": 39, "category": "MQTT", "name": "Topic", "value": "ALT"},
   "42": {"parameter": 59, "category": "MQTT", "name": "Discovery", "value": "0"},
 }
-GERAET = {"konfig": json.loads(json.dumps(KONFIG)), "geschrieben": []}
+GERAET = {"konfig": json.loads(json.dumps(KONFIG)), "geschrieben": [], "befehle": []}
 
 class JLAntwort:
     def __init__(self): self.status_code = 200
@@ -728,7 +728,12 @@ class JLAntwort:
 
 _alt_get, _alt_post = bsb.requests.get, bsb.requests.post
 def _get2(url, timeout=None):
-    return JLAntwort() if url.endswith("/JL") else _get(url, timeout)
+    if url.endswith("/JL"):
+        return JLAntwort()
+    if "/M" in url and "!" in url:
+        GERAET["befehle"].append(url.rsplit("/", 1)[1])
+        return JLAntwort()
+    return _get(url, timeout)
 def _post2(url, json=None, timeout=None):
     if url.endswith("/JW"):
         GERAET["geschrieben"].append(json)
@@ -782,6 +787,11 @@ pruefe("Zugangsdaten" in antwort["geschrieben"]
 antwort = kunde.put("/api/bsblan/parameter").get_json()
 pruefe(GERAET["konfig"]["34"]["value"] == "50,72",
        "die Auswahl steht jetzt als Log-Liste im Geraet")
+# Die Reihenfolge ist keine Kosmetik: BSB-LAN widerruft nur, was es gerade
+# fuehrt. Erst die Liste zu aendern hiesse, die neuen Eintraege zu widerrufen
+# und fuer jeden entfernten Parameter eine Karteileiche zu hinterlassen.
+pruefe(GERAET["befehle"] == ["M0!0", "M1!0"],
+       f"abmelden, aendern, anmelden - in dieser Reihenfolge ({GERAET['befehle']})")
 pruefe(antwort["vollstaendig"] is True, "und wird zurueckgelesen statt geglaubt")
 
 # Der umgekehrte Weg.

@@ -137,6 +137,10 @@ angekommen ist. Das ist keine Vorsicht, sondern Erfahrung:
   nichts. Nur `parameter` und `value` werden angenommen.
 * **`/JL` liefert in 5.1.18 kaputtes JSON**, wenn keine One-Wire- oder
   DHT-Pins gesetzt sind.
+* **BSB-LAN widerruft nur, was es gerade führt.** Ändert man erst die Liste
+  und meldet dann ab, bleibt für jeden entfernten Parameter eine Entität
+  zurück – „retained“ im Broker und damit für immer in Home Assistant. Der
+  Manager hält deshalb die Reihenfolge ein: abmelden, Liste ändern, anmelden.
 
 ## Gemerkte Werte
 

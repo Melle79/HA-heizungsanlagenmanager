@@ -1,5 +1,15 @@
 # Änderungen
 
+## 1.13.0
+
+- **Beim Ändern der Liste räumt der Manager jetzt hinter sich auf.** Fällt ein
+  Parameter weg, meldet er ihn in Home Assistant ab, bevor er die neue Liste
+  schreibt, und meldet danach die neue an. Die Reihenfolge ist kein
+  Feinschliff: BSB-LAN widerruft nur, was es *gerade* führt. Wer erst die
+  Liste ändert, widerruft die neuen Einträge und lässt für jeden entfernten
+  eine Entität zurück – „retained“ im Broker und damit dauerhaft in Home
+  Assistant, ohne dass sie je wieder jemand abmeldet.
+
 ## 1.12.3
 
 - Dokumentiert, was an der lebenden Anlage herauskam: **BSB-LAN nimmt

@@ -175,6 +175,27 @@ class Bsb:
         except ValueError:
             return {}
 
+    def discovery(self, senden: bool, ziel=0) -> None:
+        """Die Auto-Discovery-Nachrichten senden oder widerrufen.
+
+        ``/M1!<ziel>`` meldet alle Parameter der Logliste in Home Assistant an,
+        ``/M0!<ziel>`` nimmt sie zurück.
+
+        **Widerrufen kann BSB-LAN nur, was es gerade führt.** Wer erst die
+        Liste ändert und dann widerruft, widerruft die neuen Einträge und
+        lässt die alten als Karteileichen stehen – dauerhaft, denn sie stehen
+        „retained“ im Broker und niemand meldet sie je wieder ab. Die
+        Reihenfolge ist deshalb: widerrufen, Liste ändern, anmelden.
+        """
+        befehl = f"M{1 if senden else 0}!{ziel}"
+        try:
+            antwort = requests.get(self._pfad(befehl), timeout=max(self.zeitlimit, 60))
+            antwort.raise_for_status()
+        except requests.RequestException as err:
+            raise BsbFehler(
+                f"Auto-Discovery {'anmelden' if senden else 'widerrufen'} "
+                f"fehlgeschlagen: {err}") from err
+
     # --------------------------------------------------------- schreiben ----
 
     def schreibbar(self) -> bool:

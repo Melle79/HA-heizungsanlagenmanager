@@ -535,14 +535,26 @@ def _bsblan_parameter_schreiben() -> dict:
     wir ihm geschickt haben. BSB-LAN kürzt lange Listen stillschweigend.
     """
     nummern = [str(e["nr"]) for e in store.load_config()["auswahl"]]
+    client = _client()
     _, nach_name = _bsblan_lesen()
     teil = nach_name.get("logparameter")
     if teil is None:
         raise bsb_modul.BsbFehler("Dieses BSB-LAN kennt keine Log-Parameterliste")
     liste = ",".join(nummern)
     if str(teil["wert"]) != liste:
-        _client().konfiguration_schreiben(
+        # Erst abmelden, was jetzt noch drinsteht: BSB-LAN widerruft nur, was
+        # es gerade führt. Wer die Liste zuerst ändert, lässt für jeden
+        # entfernten Parameter eine Entität zurück, die niemand mehr abmeldet –
+        # sie steht „retained“ im Broker und in Home Assistant für immer.
+        vorher = [t.strip() for t in str(teil["wert"] or "").split(",") if t.strip()]
+        entfallen = [nr for nr in vorher if nr not in nummern]
+        if entfallen:
+            _LOGGER.info("%d Parameter fallen weg – erst abmelden", len(entfallen))
+            client.discovery(False)
+        client.konfiguration_schreiben(
             {teil["schluessel"]: {**teil["eintrag"], "value": liste}})
+        # ... und die neue Liste anmelden.
+        client.discovery(True)
     _, danach = _bsblan_lesen()
     steht = [t.strip() for t in
              str(danach["logparameter"]["wert"] or "").split(",") if t.strip()]
