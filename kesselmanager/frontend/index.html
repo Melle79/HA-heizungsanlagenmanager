@@ -215,7 +215,15 @@
       <div class="feld"><label>Kategorie</label>
         <select id="kat-st"><option value="">alle</option></select></div>
     </div>
-    <span class="meldung" id="m-steuerung"></span>
+    <div class="zeile-aktionen">
+      <button class="leise" id="btn-st-lesen">Werte der angezeigten Parameter lesen</button>
+      <span class="notiz" id="st-stand"></span>
+      <span class="meldung" id="m-steuerung"></span>
+    </div>
+    <div class="notiz">Gelesen wird nur auf Zuruf: Die Steuerung zeigt 161
+      stellbare Parameter, und die alle im Takt abzufragen würde den Bus
+      dauerhaft belegen. Was du dauerhaft sehen willst, gehört unter
+      <b>Auswahl</b>.</div>
   </div>
   <div class="tafel">
     <table>
@@ -534,12 +542,22 @@ async function steuerungZeichnen() {
   (d.parameter || []).forEach(p => {
     const w = werte[p.nr] || {};
     const zeile = document.createElement('tr');
-    const jetzt = w.value !== undefined && w.value !== null && w.value !== ''
-      ? `${w.value} ${w.unit || ''}` : '–';
+    const zeitprogramm = (p.dataType_name || '') === 'TIMEPROG';
+    const roh = w.value !== undefined && w.value !== null && w.value !== ''
+      ? String(w.value) : '';
+    // Ein Zeitprogramm sind drei Schaltfenster; "##:##" heißt ungenutzt.
+    // Ungenutzte wegzulassen macht aus einer Wüste aus Rauten eine Zeile,
+    // die man lesen kann.
+    const jetzt = !roh ? '–'
+      : zeitprogramm
+        ? (roh.split(' ').filter(f => !f.includes('#')).join('  ') || 'aus')
+        : `${roh} ${w.unit || ''}`;
     const eingabe = (p.possibleValues && p.possibleValues.length)
       ? `<select data-nr="${p.nr}">` + p.possibleValues.map(v =>
           `<option value="${v.enumValue}">${v.desc}</option>`).join('') + '</select>'
-      : `<input type="text" data-nr="${p.nr}" placeholder="${p.unit || ''}">`;
+      : `<input type="text" data-nr="${p.nr}" placeholder="${
+          zeitprogramm ? '06:00-22:00 ##:##-##:## ##:##-##:##' : (p.unit || '')}"
+          ${zeitprogramm ? `value="${roh}" title="Drei Schaltfenster, ungenutzte als ##:##-##:##"` : ''}>`;
     zeile.innerHTML = `<td class="nr">${p.nr}</td>
       <td>${p.name}<div class="notiz">${p.kategorie_name}</div></td>
       <td class="wert">${jetzt}</td>
@@ -557,14 +575,65 @@ async function steuerungZeichnen() {
       try {
         await sendeJSON('setzen', 'POST', {nr, wert});
         meldung('m-steuerung', `Parameter ${nr} gestellt`, true);
-        setTimeout(async () => { await werteLaden(); steuerungZeichnen(); }, 1500);
+        // Nur diesen einen nachlesen: Er ist der Beweis, dass die Regelung
+        // den Wert wirklich übernommen hat.
+        setTimeout(async () => {
+          try { const d = await sendeJSON('lesen', 'POST', {nr: [nr]});
+                werte = d.werte || werte; } catch (e) {}
+          steuerungZeichnen();
+        }, 1800);
       } catch (err) { meldung('m-steuerung', err.message); }
       finally { ev.target.disabled = false; }
     };
     koerper.appendChild(zeile);
   });
   $('steuer-leer').hidden = (d.parameter || []).length > 0;
+
+  steuerSichtbar = (d.parameter || []).map(p => p.nr);
+  // Nur solche, die noch nie versucht wurden. Ohne dieses Gedächtnis riefe
+  // sich das Nachlesen endlos selbst auf, sobald ein Parameter gar nicht
+  // antwortet – er bliebe ja für immer ohne Wert.
+  const fehlen = steuerSichtbar.filter(nr => !werte[nr] && !steuerVersucht.has(nr));
+  $('btn-st-lesen').disabled = steuerSichtbar.length === 0;
+  $('st-stand').textContent = steuerSichtbar.length > AUTO_LESEN_BIS
+    ? `${steuerSichtbar.length} Parameter – zum Lesen bitte eingrenzen oder den Knopf drücken`
+    : (fehlen.length ? `${fehlen.length} ohne Wert` : '');
+  // Kurze Listen liest der Manager von selbst – das ist der Fall, sobald
+  // jemand nach etwas Bestimmtem sucht, und genau dann will er auch Zahlen
+  // sehen statt Striche.
+  if (fehlen.length && steuerSichtbar.length <= AUTO_LESEN_BIS) steuerWerteLesen();
 }
+
+// Bis zu so vielen Parametern liest die Steuerung ungefragt. Darüber wartet
+// sie auf einen Knopfdruck: Jeder Wert ist ein Telegramm auf dem Bus.
+const AUTO_LESEN_BIS = 25;
+let steuerSichtbar = [];
+const steuerVersucht = new Set();
+
+async function steuerWerteLesen() {
+  const knopf = $('btn-st-lesen');
+  if (!steuerSichtbar.length || knopf.dataset.laeuft) return;
+  knopf.dataset.laeuft = '1'; knopf.disabled = true;
+  const vorher = knopf.textContent;
+  knopf.textContent = 'liest …';
+  steuerSichtbar.forEach(nr => steuerVersucht.add(nr));
+  try {
+    const d = await sendeJSON('lesen', 'POST', {nr: steuerSichtbar});
+    werte = d.werte || werte;
+    if (d.hinweis) meldung('m-steuerung', d.hinweis);
+    delete knopf.dataset.laeuft; knopf.textContent = vorher;
+    steuerungZeichnen();
+    return;
+  } catch (err) { meldung('m-steuerung', err.message); }
+  finally { delete knopf.dataset.laeuft; knopf.disabled = false;
+            knopf.textContent = vorher; }
+}
+$('btn-st-lesen').onclick = () => {
+  // Ein Knopfdruck hebt das Gedächtnis auf: Wer ihn drückt, will es
+  // ausdrücklich noch einmal wissen.
+  steuerSichtbar.forEach(nr => steuerVersucht.delete(nr));
+  steuerWerteLesen();
+};
 ['such-st','kat-st'].forEach(id => {
   const el = $(id); el.oninput = el.onchange = () => steuerungZeichnen();
 });

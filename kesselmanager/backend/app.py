@@ -67,18 +67,38 @@ def _zeitzone_uebernehmen() -> None:
 
 # ----------------------------------------------------------------- Takt ----
 
-def _lesen(auswahl=None) -> dict:
-    """Die ausgewählten Parameter einmal lesen und nach MQTT spiegeln."""
+# So viele Parameter liest der Manager auf Zuruf höchstens. Die Grenze ist
+# keine Willkür: 40 Parameter sind gut 20 Sekunden Busverkehr, und länger
+# soll niemand auf eine Oberfläche warten – die Heizung erst recht nicht.
+MAX_AUF_ZURUF = 40
+
+
+def _lesen(auswahl=None, nummern=None) -> dict:
+    """Parameter lesen und – sofern ausgewählt – nach MQTT spiegeln.
+
+    Ohne ``nummern`` sind die ausgewählten Parameter gemeint, also der
+    Regeltakt. Mit ``nummern`` liest der Manager auf Zuruf, etwa für die
+    Steuerung: Dort stehen Parameter, die niemand dauerhaft überwachen will,
+    deren aktueller Wert aber sichtbar sein muss, bevor man ihn ändert.
+
+    Gelesene Werte landen in beiden Fällen im Zustand. Nach MQTT geht nur die
+    Auswahl – ein auf Zuruf gelesener Parameter soll keine Entität anlegen,
+    die beim nächsten Blick schon wieder veraltet ist.
+    """
     global _letzter_fehler
     with _takt_lock:
         config = store.load_config()
         auswahl = auswahl if auswahl is not None else config["auswahl"]
         state = store.load_state()
-        if not auswahl:
+        if nummern is not None:
+            zu_lesen = [str(n) for n in nummern][:MAX_AUF_ZURUF]
+        else:
+            zu_lesen = [e["nr"] for e in auswahl]
+        if not zu_lesen:
             return {"werte": {}, "hinweis": "Noch nichts ausgewählt"}
 
         try:
-            roh = _client().werte([e["nr"] for e in auswahl])
+            roh = _client().werte(zu_lesen)
             _letzter_fehler = ""
         except bsb_modul.BsbFehler as err:
             _letzter_fehler = str(err)
@@ -95,10 +115,12 @@ def _lesen(auswahl=None) -> dict:
                 "error": eintrag.get("error"),
                 "zeit": jetzt,
             }
-        state["letzter_lauf"] = jetzt
+        if nummern is None:
+            state["letzter_lauf"] = jetzt
         store.save_state(state)
 
-    if _publisher is not None:
+    # Auf Zuruf gelesene Werte gehen nicht nach MQTT – nur die Auswahl.
+    if nummern is None and _publisher is not None:
         try:
             _publisher.werte(auswahl, state["werte"])
         except Exception as err:  # noqa: BLE001
@@ -310,8 +332,23 @@ def api_werte():
 
 @app.route("/api/lesen", methods=["POST"])
 def api_lesen():
-    """Jetzt lesen, statt auf den nächsten Takt zu warten."""
-    return jsonify(_lesen())
+    """Jetzt lesen, statt auf den nächsten Takt zu warten.
+
+    Ohne Angabe sind die ausgewählten Parameter gemeint. Mit ``{"nr": [...]}``
+    liest der Manager genau diese – das braucht die Steuerung, in der auch
+    Parameter stehen, die niemand dauerhaft überwacht.
+    """
+    daten = request.get_json(silent=True) or {}
+    nummern = daten.get("nr")
+    if nummern is not None and not isinstance(nummern, list):
+        return jsonify({"fehler": "„nr“ erwartet eine Liste"}), 400
+    ergebnis = _lesen(nummern=nummern)
+    if nummern is not None and len(nummern) > MAX_AUF_ZURUF:
+        ergebnis["hinweis"] = (
+            f"Nur die ersten {MAX_AUF_ZURUF} von {len(nummern)} Parametern "
+            f"gelesen – mehr auf einmal wäre dem Bus nicht zuzumuten. "
+            f"Grenz die Liste mit Suche oder Kategorie ein.")
+    return jsonify(ergebnis)
 
 
 # -------------------------------------------------------------- Schreiben ----

@@ -59,6 +59,43 @@ Assistant hängt, bekommt den Verlauf dort ohne weiteres Zutun.
 Die Entität hängt an der **Parameternummer**, nicht am Namen. Wer die Anzeige
 umbenennt, behält also seine Historie.
 
+## Werte in der Steuerung: auf Zuruf
+
+Der Reiter *Steuerung* zeigt jeden Parameter, den die Regelung als
+beschreibbar meldet – bei einer Weishaupt-Anlage sind das über 160. Die alle
+im Takt abzufragen würde den Bus dauerhaft belegen, und die wenigsten davon
+will jemand dauerhaft sehen.
+
+Deshalb liest die Steuerung **auf Zuruf**:
+
+* Bis 25 angezeigte Parameter liest sie von selbst. Das trifft zu, sobald man
+  nach etwas Bestimmtem sucht – und genau dann will man auch Zahlen sehen.
+* Darüber wartet sie auf den Knopf *Werte der angezeigten Parameter lesen* und
+  liest höchstens 40 auf einmal.
+* Nach einer Änderung liest sie **nur den geänderten Parameter** nach. Der ist
+  der Beweis, dass die Regelung den Wert übernommen hat.
+
+Was du dauerhaft sehen willst, gehört unter *Auswahl* – nur diese Parameter
+laufen im Takt und werden zu Entitäten.
+
+## Zeitschaltprogramme
+
+Ein Zeitprogramm ist kein Messwert, sondern eine Zeichenkette mit **drei
+Schaltfenstern** je Tag:
+
+```
+06:00-22:00 ##:##-##:## ##:##-##:##
+```
+
+`##:##` heißt „nicht benutzt". Die Steuerung zeigt der Übersicht halber nur
+die belegten Fenster an; im Eingabefeld steht die vollständige Zeichenkette,
+weil sie beim Schreiben genau so erwartet wird. Wer ein zweites Fenster
+einrichten will, ersetzt die Rauten:
+
+```
+06:00-08:00 16:00-22:00 ##:##-##:##
+```
+
 ## Stellen: die zwei Schalter
 
 Ein falscher Sollwert lässt im Winter eine Wohnung auskühlen. Deshalb müssen

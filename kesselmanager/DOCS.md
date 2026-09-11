@@ -57,6 +57,41 @@ lands there with no further effort.
 The entity is tied to the **parameter number**, not the name. Rename the label
 and you keep your history.
 
+## Values in the control tab: on demand
+
+The *Control* tab lists every parameter the controller reports as writable –
+on a Weishaupt system that is over 160. Polling all of them would occupy the
+bus permanently, and hardly any of them are worth watching continuously.
+
+So the control tab reads **on demand**:
+
+* Up to 25 displayed parameters it reads by itself. That happens as soon as you
+  search for something specific – and that is exactly when you want figures.
+* Above that it waits for the *Read values of the displayed parameters* button
+  and reads at most 40 at a time.
+* After a change it re-reads **only the changed parameter**. That is the proof
+  the controller accepted the value.
+
+Whatever you want to see continuously belongs under *Selection* – only those
+parameters run on the cycle and become entities.
+
+## Time programmes
+
+A time programme is not a measurement but a string holding **three switching
+windows** per day:
+
+```
+06:00-22:00 ##:##-##:## ##:##-##:##
+```
+
+`##:##` means “unused”. For readability the control tab shows only the windows
+in use; the input field holds the full string, because that is exactly what is
+expected when writing. To add a second window, replace the hashes:
+
+```
+06:00-08:00 16:00-22:00 ##:##-##:##
+```
+
 ## Setting: the two switches
 
 A wrong setpoint lets a flat go cold in winter. Setting therefore requires

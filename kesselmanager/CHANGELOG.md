@@ -1,5 +1,24 @@
 # Änderungen
 
+## 1.2.0
+
+- **Behoben: In der Steuerung stand fast überall „–“.** Angezeigt wurden dort
+  alle 161 stellbaren Parameter, gelesen aber nur die, die unter *Auswahl*
+  stehen. Alles andere – und damit auch sämtliche Zeitschaltprogramme – blieb
+  ohne Wert.
+- Die Steuerung liest jetzt **auf Zuruf**: bis 25 angezeigte Parameter von
+  selbst, darüber auf Knopfdruck und höchstens 40 auf einmal. Nach einer
+  Änderung wird nur der geänderte Parameter nachgelesen.
+- Auf Zuruf gelesene Werte gehen **nicht** nach MQTT. Entitäten entstehen
+  weiterhin nur aus der Auswahl – ein einmal abgefragter Parameter soll keine
+  Entität hinterlassen, die danach veraltet.
+- **Zeitschaltprogramme lesbar gemacht.** Statt
+  `06:00-22:00 ##:##-##:## ##:##-##:##` steht in der Tabelle nur noch
+  `06:00-22:00`; das Eingabefeld enthält weiterhin die vollständige
+  Zeichenkette, weil sie beim Schreiben genau so erwartet wird.
+- Das Nachlesen merkt sich, was es schon versucht hat. Ohne dieses Gedächtnis
+  hätte ein Parameter, der nie antwortet, eine Endlosschleife ausgelöst.
+
 ## 1.1.0
 
 - **Behoben: Das Stellen blieb gesperrt, obwohl es freigegeben war.** Ich habe
