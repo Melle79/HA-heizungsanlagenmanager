@@ -1,5 +1,15 @@
 # Änderungen
 
+## 1.12.2
+
+- **Behoben: Das Schreiben nach BSB-LAN tat gar nichts.** Zurückgegeben wurde
+  der vollständige Eintrag, wie `/JL` ihn liefert – mit `type`, `format`,
+  `category` und `name`. Darauf antwortet BSB-LAN mit einer leeren Struktur
+  und ändert nichts: kein Fehler, keine Meldung, ein stilles Nein. Jetzt gehen
+  nur `parameter` und `value` hinaus, und das wird angenommen.
+- Aufgefallen ist es nur, weil nach jedem Schreiben zurückgelesen wird. Ohne
+  das hätte die Oberfläche „geschrieben“ gemeldet und nichts wäre geschehen.
+
 ## 1.12.1
 
 - **Behoben: Das Umschalten wirkte erst beim nächsten Verbindungsaufbau.** Wer

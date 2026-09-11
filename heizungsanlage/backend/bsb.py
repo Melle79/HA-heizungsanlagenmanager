@@ -144,15 +144,29 @@ class Bsb:
         return daten if isinstance(daten, dict) else {}
 
     def konfiguration_schreiben(self, eintraege: dict) -> dict:
-        """Einstellungen zurückschreiben – dieselbe Struktur wie aus ``/JL``.
+        """Einstellungen zurückschreiben.
 
-        Absichtlich ohne Bequemlichkeit: Der Aufrufer übergibt genau die
-        Einträge, die er ändern will. Alles andere bleibt, wie es ist – in
-        dieser Datei stehen auch Zugangsdaten, die niemanden hier angehen.
+        Der Aufrufer übergibt genau die Einträge, die er ändern will. Alles
+        andere bleibt, wie es ist – in dieser Datei stehen auch Zugangsdaten,
+        die niemanden hier angehen.
+
+        **Nur ``parameter`` und ``value`` gehen raus.** Das klingt nach einer
+        Kleinigkeit und ist der Unterschied zwischen Wirkung und Nichts: Gibt
+        man BSB-LAN den vollständigen Eintrag zurück, wie ``/JL`` ihn liefert –
+        mit ``type``, ``format``, ``category`` und ``name`` –, antwortet es mit
+        einer leeren Struktur und ändert nichts. Kein Fehler, keine Meldung,
+        nur ein stilles Nein. Am Anfang stand hier genau das, und das Add-on
+        behauptete, geschrieben zu haben.
         """
+        knapp = {}
+        for schluessel, eintrag in (eintraege or {}).items():
+            if not isinstance(eintrag, dict):
+                continue
+            knapp[str(schluessel)] = {"parameter": eintrag.get("parameter"),
+                                      "value": eintrag.get("value")}
         url = self._pfad("JW")
         try:
-            antwort = requests.post(url, json=eintraege, timeout=self.zeitlimit)
+            antwort = requests.post(url, json=knapp, timeout=self.zeitlimit)
             antwort.raise_for_status()
         except requests.RequestException as err:
             raise BsbFehler(f"Einstellungen nicht schreibbar: {err}") from err

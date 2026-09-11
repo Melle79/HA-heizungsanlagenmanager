@@ -759,6 +759,15 @@ pruefe(GERAET["konfig"]["33"]["value"] == "60", "und das Intervall gesetzt")
 pruefe(int(GERAET["konfig"]["32"]["value"]) & 1 == 1,
        "was das Geraet sonst tut, bleibt unangetastet")
 pruefe(int(GERAET["konfig"]["32"]["value"]) & 4 == 4, "senden ist eingeschaltet")
+# Der Fehler, der das Schreiben lautlos wirkungslos machte: BSB-LAN nimmt nur
+# "parameter" und "value". Wer den ganzen Eintrag aus /JL zurueckgibt, bekommt
+# eine leere Antwort und keine Aenderung - ohne jede Fehlermeldung.
+for stapel in GERAET["geschrieben"]:
+    for eintrag in stapel.values():
+        pruefe(set(eintrag) == {"parameter", "value"},
+               f"nur parameter und value gehen raus, nicht {sorted(eintrag)}")
+        break
+    break
 gesendet = json.dumps(GERAET["geschrieben"])
 pruefe("geheim" in gesendet and GERAET["konfig"]["39"]["value"] == "geheim",
        "das Passwort geht an das Geraet ...")
