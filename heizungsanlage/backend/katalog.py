@@ -216,7 +216,9 @@ def kacheln(katalog: dict) -> list:
                 continue
             raus.append({"titel": muster["titel"], "nr": eintrag.get("nr"),
                          "name": eintrag.get("name"),
-                         "einheit": eintrag.get("unit") or ""})
+                         "einheit": eintrag.get("unit") or "",
+                         "dataType_name": eintrag.get("dataType_name") or "",
+                         "schreibbar": bool(eintrag.get("schreibbar"))})
             break
     return raus
 

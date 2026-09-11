@@ -458,6 +458,12 @@ pruefe(sam.gesendet["heizungsanlage/p116/state"] == "None",
 pruefe(sam.gesendet["heizungsanlage/p115/state"] == "52.7",
        "der Kessel meldet seinen Wert")
 
+# Die Kachel-Nutzlast traegt den Datentyp mit: Ohne ihn kann die Oberflaeche
+# nicht sagen, was ein leerer Wert bedeutet.
+kachel = katalog.kacheln(k)[0]
+pruefe("dataType_name" in kachel and "schreibbar" in kachel,
+       "eine Kachel weiss, was fuer ein Parameter sie zeigt")
+
 print("\n=== Zwei Schreiber, eine Datei ===")
 # Der Fehler, der das ausgeloest hat: Der Takt laedt den Zustand, liest vier
 # Sekunden lang ueber den Bus und schreibt dann seine Kopie zurueck - mitsamt

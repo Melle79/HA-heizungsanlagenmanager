@@ -1,5 +1,16 @@
 # Änderungen
 
+## 1.10.1
+
+- **Behoben: „kein Fühler angeschlossen“ stand auch dort, wo es keinen Fühler
+  geben kann.** Bei den Ferienperioden zum Beispiel – da steht ein Datum, kein
+  Messwert. BSB-LAN meldet für beides dasselbe `---`; was es bedeutet, hängt
+  daran, wer den Wert füllt. Jetzt heißt es bei einer Ferienperiode *keine
+  Ferien eingetragen*, bei einem stellbaren Parameter *nicht eingestellt* und
+  nur bei einem gelesenen Messwert *kein Fühler angeschlossen*.
+- Weiß der Manager nicht, was für ein Parameter vorliegt, sagt er schlicht
+  *kein Wert hinterlegt* – lieber wenig als etwas Falsches.
+
 ## 1.10.0
 
 - **Ein Reiter statt zwei.** Aus „Regler“ wird *Regelung*, und die

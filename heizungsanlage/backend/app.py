@@ -410,7 +410,20 @@ def api_katalog_aufbauen():
 def api_auswahl():
     config = store.load_config()
     if request.method == "GET":
-        return jsonify(config["auswahl"])
+        # Aus dem Katalog dazugelegt statt mitgespeichert: Datentyp und
+        # Schreibrecht ändern sich mit der Firmware, nicht mit der Auswahl.
+        # Die Oberfläche braucht sie, um zu erklären, was ein leerer Wert
+        # bedeutet – bei einem Fühler etwas anderes als bei einem Datum.
+        katalog = store.load_katalog()
+        angereichert = []
+        for eintrag in config["auswahl"]:
+            aus_katalog = (katalog.get("parameter") or {}).get(eintrag["nr"]) or {}
+            angereichert.append({
+                **eintrag,
+                "dataType_name": aus_katalog.get("dataType_name", ""),
+                "schreibbar": aus_katalog.get("schreibbar"),
+            })
+        return jsonify(angereichert)
     try:
         neu = store.validate_auswahl(request.get_json(force=True) or [])
     except store.ValidationError as err:

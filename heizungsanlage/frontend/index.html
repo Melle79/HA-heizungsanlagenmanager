@@ -479,7 +479,7 @@ function uebersichtZeichnen() {
     const el = document.createElement('div');
     el.className = 'kachel';
     const leer = ohneWert(w);
-    const grund = wertErklaerung(w);
+    const grund = wertErklaerung(w, def);
     const erklaert = leer && grund && grund !== 'noch nicht gelesen';
     if (erklaert) el.className = 'kachel ohnewert';
     el.innerHTML = `<div class="titel">${def.titel}</div>
@@ -520,7 +520,7 @@ function werteZeichnen() {
     if (leer) zeile.className = 'gefuehrt';
     zeile.innerHTML = `<td class="nr">${e.nr}</td>
       <td>${e.anzeige || e.name}</td>
-      <td class="kat">${leer ? wertErklaerung(w) : (w.desc || '')}</td>
+      <td class="kat">${leer ? wertErklaerung(w, e) : (w.desc || '')}</td>
       <td class="wert">${leer ? '–' : w.value + ' ' + (e.einheit || w.unit || '')}</td>`;
     koerper.appendChild(zeile);
   });
@@ -710,10 +710,28 @@ function ohneWert(w) {
   const v = w.value;
   return v === null || v === undefined || v === '' || String(v).trim() === '---';
 }
-const wertErklaerung = (w) => !w ? 'noch nicht gelesen'
-  : (w.error === 7 ? 'liefert diese Anlage nicht'
-  : (String(w.value).trim() === '---' ? 'kein Fühler angeschlossen'
-  : (w.error ? 'Regelung meldet Fehler ' + w.error : '')));
+// Was „---“ bedeutet, hängt daran, wer den Wert füllt. Bei einem gelesenen
+// Messwert heißt es: da hängt kein Fühler. Bei einer Ferienperiode heißt es:
+// da ist nichts eingetragen. Dasselbe Zeichen, zwei Auskünfte – und wer sie
+// verwechselt, behauptet einen Fühler, wo ein Kalender steht.
+function wertErklaerung(w, p) {
+  if (!w) return 'noch nicht gelesen';
+  if (w.error === 7) return 'liefert diese Anlage nicht';
+  if (w.error) return 'Regelung meldet Fehler ' + w.error;
+  if (String(w.value).trim() !== '---') return '';
+  // Ohne zu wissen, was für ein Parameter das ist, bleibt es bei der
+  // neutralen Auskunft. Lieber wenig sagen als etwas Falsches.
+  if (!p || (p.dataType_name === undefined && p.schreibbar === undefined)) {
+    return 'kein Wert hinterlegt';
+  }
+  const typ = String(p.dataType_name || '').toUpperCase();
+  if (typ.includes('VACATION')) return 'keine Ferien eingetragen';
+  if (typ.includes('DTTM') || typ.includes('DDMM') || typ.includes('HHMM')) {
+    return 'kein Datum eingetragen';
+  }
+  if (p.schreibbar) return 'nicht eingestellt';
+  return p.einheit || p.unit ? 'kein Fühler angeschlossen' : 'kein Wert vorhanden';
+}
 
 const gefuehrtVon = (nr) => (status.uebernahme || {})[String(nr)] || null;
 
@@ -1018,7 +1036,7 @@ async function reglerZeichnen() {
       <td>${p.name}${p.unit ? ` <span class="notiz">(${p.unit})</span>` : ''}${
         fremd ? `<span class="marke-fremd">${fremd.name}</span>` : ''}</td>
       <td class="wert">${leerwert
-        ? `–<div class="notiz">${wertErklaerung(w)}</div>`
+        ? `–<div class="notiz">${wertErklaerung(w, p)}</div>`
         : `${w.desc || roh} ${w.desc ? '' : (p.unit || '')}`}</td>
       <td style="width:200px">${bedienung}</td>`;
     const knopf = zeile.querySelector('button[data-setzen]');
