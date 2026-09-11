@@ -1,4 +1,4 @@
-# Kesselmanager / Boiler Manager
+# Heizungsanlagenmanager via BSB-LAN
 
 Ein Home-Assistant-Add-on, das eine Heizungsregelung über
 [BSB-LAN](https://github.com/fredlcore/BSB-LAN) lesbar und stellbar macht.
@@ -10,8 +10,8 @@ adjustable through BSB-LAN.*
 
 1. In Home Assistant unter **Einstellungen → Add-ons → Add-on-Store** über das
    Dreipunktmenü **Repositories** hinzufügen:
-   `https://github.com/Melle79/HA-kesselmanager`
-2. *Kesselmanager* installieren und starten.
+   `https://github.com/Melle79/HA-heizungsanlagenmanager`
+2. *Heizungsanlagenmanager* installieren und starten.
 3. Unter **Einstellungen** die Adresse von BSB-LAN eintragen und den
    **Parameterkatalog einlesen**.
 4. Unter **Auswahl** anhaken, was nach Home Assistant soll.

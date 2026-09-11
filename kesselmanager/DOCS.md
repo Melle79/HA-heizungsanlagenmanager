@@ -1,6 +1,6 @@
-# Boiler Manager
+# Heating System Manager via BSB-LAN
 
-The Boiler Manager brings a heating controller into Home Assistant – through
+The Heating System Manager brings a heating controller into Home Assistant – through
 [BSB-LAN](https://github.com/fredlcore/BSB-LAN), a small ESP32 sitting on the
 controller's bus.
 
@@ -21,7 +21,7 @@ simply get no entities.
 
 **Which systems?** Every controller BSB-LAN speaks to – BSB, LPB and PPS, that
 is the Siemens controllers behind Brötje, Elco, Weishaupt, Atlantic, Baxi and
-others. The Boiler Manager knows no parameter number by heart: what appears on
+others. The Heating System Manager knows no parameter number by heart: what appears on
 the overview, and which categories hold switching times, is derived from your
 own system's catalogue – from the names, and from the data type BSB-LAN
 assigns. If nothing matches a tile, the tile is left out rather than showing a
@@ -39,7 +39,7 @@ differs between device families. That is why there is the **tailored parameter
 list** the BSB-LAN developer builds from a system's raw data, which goes into
 the firmware as `BSB_LAN_custom_defs.h`.
 
-The Boiler Manager does not parse that file; it reads the list **from BSB-LAN
+The Heating System Manager does not parse that file; it reads the list **from BSB-LAN
 itself**. That is more robust: what BSB-LAN serves is by definition what is
 actually flashed. “Parameter 72” becomes “Operating hours”.
 

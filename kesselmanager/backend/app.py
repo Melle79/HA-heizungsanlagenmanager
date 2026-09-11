@@ -1,4 +1,4 @@
-"""Kesselmanager – Dienst, Abfragetakt und REST-Schnittstelle.
+"""Heizungsanlagenmanager – Dienst, Abfragetakt und REST-Schnittstelle.
 
 Der Manager liest in einem eigenen Faden die ausgewählten Parameter aus der
 Heizungsregelung und spiegelt sie nach MQTT. Die Oberfläche sieht denselben
@@ -371,7 +371,7 @@ def api_setzen():
     config = store.load_config()
     if not config["einstellungen"]["schreiben_erlaubt"]:
         return jsonify({"fehler": "Das Stellen ist in den Einstellungen des "
-                                  "Kesselmanagers noch nicht freigegeben"}), 403
+                                  "Heizungsanlagenmanagers noch nicht freigegeben"}), 403
     daten = request.get_json(force=True) or {}
     nr = str(daten.get("nr", "")).strip()
     wert = daten.get("wert")
@@ -398,7 +398,7 @@ def main() -> None:
     _mqtt_starten()
     threading.Thread(target=_takt_schleife, daemon=True).start()
     port = int(os.environ.get("INGRESS_PORT", 8099))
-    _LOGGER.info("Kesselmanager %s startet auf Port %d", VERSION, port)
+    _LOGGER.info("Heizungsanlagenmanager %s startet auf Port %d", VERSION, port)
     app.run(host="0.0.0.0", port=port, threaded=True, use_reloader=False)
 
 

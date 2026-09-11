@@ -1,7 +1,7 @@
 """Der Draht zu BSB-LAN – lesen, schreiben, und wissen, wann man es nicht darf.
 
 BSB-LAN ist ein kleiner ESP32 am Bus der Heizungsregelung. Er spricht HTTP und
-liefert JSON; dieses Modul kapselt die vier Aufrufe, die der Kesselmanager
+liefert JSON; dieses Modul kapselt die vier Aufrufe, die der Heizungsanlagenmanager
 braucht, und sonst nichts.
 
 Zwei Dinge stehen über allem:

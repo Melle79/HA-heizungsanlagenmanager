@@ -78,7 +78,7 @@ class Publisher:
         return {
             "identifiers": [DEVICE_ID],
             "name": "Heizungsregler" + (f" {regler}" if regler else ""),
-            "manufacturer": "Kesselmanager über BSB-LAN",
+            "manufacturer": "Heizungsanlagenmanager über BSB-LAN",
             "model": regler or "unbekannt",
             "sw_version": (info or {}).get("version") or "",
         }

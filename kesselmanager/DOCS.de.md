@@ -1,6 +1,6 @@
-# Kesselmanager
+# Heizungsanlagenmanager
 
-Der Kesselmanager bringt die Heizungsregelung nach Home Assistant – über
+Der Heizungsanlagenmanager bringt die Heizungsregelung nach Home Assistant – über
 [BSB-LAN](https://github.com/fredlcore/BSB-LAN), einen kleinen ESP32 am Bus
 des Reglers.
 
@@ -22,7 +22,7 @@ trotzdem, es entstehen nur keine Entitäten.
 
 **Welche Anlagen?** Alle, die BSB-LAN bedient – BSB, LPB und PPS, also die
 Siemens-Regelungen hinter Brötje, Elco, Weishaupt, Atlantic, Baxi und
-anderen. Der Kesselmanager kennt keine einzige Parameternummer auswendig: Was
+anderen. Der Heizungsanlagenmanager kennt keine einzige Parameternummer auswendig: Was
 auf der Übersicht steht und welche Kategorien Schaltzeiten führen, leitet er
 aus dem Katalog deiner eigenen Anlage ab – aus den Namen und aus dem
 Datentyp, den BSB-LAN vergibt. Findet er für eine Kachel nichts, bleibt sie
@@ -40,7 +40,7 @@ das sogar zwischen Gerätefamilien. Deshalb gibt es die **angepasste
 Parameterliste**, die der BSB-LAN-Entwickler aus den Rohdaten einer Anlage
 baut und die als `BSB_LAN_custom_defs.h` in die Firmware kommt.
 
-Der Kesselmanager liest diese Liste nicht aus der Datei, sondern **aus BSB-LAN
+Der Heizungsanlagenmanager liest diese Liste nicht aus der Datei, sondern **aus BSB-LAN
 selbst**. Das ist robuster: Was BSB-LAN ausliefert, ist per Definition das, was
 auch tatsächlich geflasht ist. Aus „Parameter 72“ wird so
 „Gerätebetriebsstunden“.

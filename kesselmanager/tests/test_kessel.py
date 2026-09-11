@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Trockenprüfung des Kesselmanagers – ohne Heizung, ohne Home Assistant.
+"""Trockenprüfung des Heizungsanlagenmanagers – ohne Heizung, ohne Home Assistant.
 
 Aufruf aus dem Repo:
 

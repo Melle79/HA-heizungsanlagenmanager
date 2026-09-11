@@ -1,7 +1,7 @@
 #!/bin/sh
 # Die Trockenprüfung starten – und beim ersten Mal die Umgebung dafür bauen.
 #
-# Der Kesselmanager hängt an requests, paho-mqtt und Flask. Die kommen im
+# Der Heizungsanlagenmanager hängt an requests, paho-mqtt und Flask. Die kommen im
 # Add-on aus dem Dockerfile; auf dem Rechner, auf dem entwickelt wird, muss
 # jemand sie hinstellen. Ein Systempython hat sie erfahrungsgemäß irgendwann
 # nicht mehr – darum eine eigene Umgebung neben dem Quelltext, die niemanden

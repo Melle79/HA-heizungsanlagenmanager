@@ -1,4 +1,4 @@
-"""Was der Kesselmanager sich merkt: Einstellungen, Auswahl, Parameterkatalog.
+"""Was der Heizungsanlagenmanager sich merkt: Einstellungen, Auswahl, Parameterkatalog.
 
 Drei Dateien unter ``/data``, alle als JSON:
 
