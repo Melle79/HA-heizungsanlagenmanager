@@ -142,17 +142,36 @@ class Bsb:
         except ValueError as err:
             raise BsbFehler("BSB-LAN antwortet beim Schreiben nicht mit JSON") from err
 
-        # BSB-LAN meldet je Parameter einen Status: 0 heißt angenommen.
+        # BSB-LAN meldet je Parameter einen Status. Die Zahlen stammen aus
+        # dem Rückgabewert von set() und sind nicht selbsterklärend:
+        #
+        #   1  gesetzt – das ist der Erfolg
+        #   2  Versuch, einen nur-lesbaren Parameter zu setzen
+        #   0  fehlgeschlagen: Parameter unbekannt oder Wert unbrauchbar
+        #
+        # Die Eins als Erfolg zu lesen ist ungewohnt; wer aus Gewohnheit die
+        # Null dafür hält, meldet jede gelungene Änderung als Fehler.
         eintrag = ergebnis.get(str(parameter)) or next(iter(ergebnis.values()), {})
-        if isinstance(eintrag, dict) and eintrag.get("status") not in (0, "0", None):
+        status = eintrag.get("status") if isinstance(eintrag, dict) else None
+        try:
+            status = int(status)
+        except (TypeError, ValueError):
+            status = None
+
+        if status == 2:
+            raise BsbFehler(
+                f"Parameter {parameter} lässt sich nicht stellen – die Regelung "
+                f"führt ihn als nur lesbar.")
+        if status == 0:
             hinweis = ""
             if not self.schreibbar():
-                # Jetzt ist die Null aus /JI ein brauchbarer Hinweis – nicht
-                # als Türsteher vorher, sondern als Erklärung hinterher.
+                # Die Null aus /JI ist hier ein Hinweis, kein Urteil – als
+                # Erklärung hinterher, nicht als Verbot vorher.
                 hinweis = (" BSB-LAN meldet zudem „nur lesen“; prüf dort unter "
                            "Einstellungen den „Schreibzugriff (Ebene)“.")
             raise BsbFehler(
-                f"Die Regelung hat den Wert abgelehnt (Status "
-                f"{eintrag.get('status')}). Liegt er innerhalb der erlaubten "
-                f"Grenzen?{hinweis}")
+                f"Die Regelung hat den Wert nicht übernommen. Liegt er "
+                f"innerhalb der erlaubten Grenzen?{hinweis}")
+        if status is None:
+            _LOGGER.warning("Unerwartete Antwort auf das Schreiben: %s", ergebnis)
         return ergebnis

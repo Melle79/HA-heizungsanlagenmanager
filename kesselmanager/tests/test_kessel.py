@@ -61,7 +61,7 @@ ANLAGE = {
     "abfragen": [],          # Protokoll aller /JQ-Aufrufe
     "gesetzt": [],           # Protokoll aller /JS-Aufrufe
     "aussetzer": set(),      # Bündel, die scheitern sollen
-    "status": 0,             # womit die Regelung ein Schreiben quittiert
+    "status": 1,             # 1 = gesetzt, 2 = nur lesbar, 0 = fehlgeschlagen
 }
 
 KATEGORIEN = {"5": {"name": "Einstellwerte", "min": 50, "max": 55},
@@ -186,23 +186,39 @@ client.setzen("50", "21.5")
 pruefe(ANLAGE["gesetzt"][-1] == {"Parameter": "50", "Value": "21.5", "Type": "1"},
        "Parameter, Wert und Typ 1 - eine SET-Nachricht")
 
-print("\n=== Eine abgelehnte Aenderung wird gemeldet ===")
+print("\n=== Was die Statuszahlen bedeuten ===")
+# Der Rueckgabewert von set() in BSB-LAN, und er ist nicht selbsterklaerend:
+#   1 = gesetzt, 2 = Parameter ist nur lesbar, 0 = fehlgeschlagen.
+# Wer aus Gewohnheit die Null fuer den Erfolg haelt, meldet jede gelungene
+# Aenderung als Fehler - genau das ist einmal passiert.
 ANLAGE["status"] = 1
-try:
-    client.setzen("50", "99")
-    pruefe(False, "ein abgelehnter Wert wirft einen Fehler")
-except bsb.BsbFehler as err:
-    pruefe("abgelehnt" in str(err), "ein abgelehnter Wert wirft einen Fehler")
+client.setzen("50", "55")
+pruefe(True, "Status 1 ist der Erfolg und wirft keinen Fehler")
 
-# Und wenn BSB-LAN zusaetzlich "nur lesen" meldet, steht das als Hinweis dabei -
+ANLAGE["status"] = 2
+try:
+    client.setzen("72", "1")
+    pruefe(False, "Status 2 meldet einen nur lesbaren Parameter")
+except bsb.BsbFehler as err:
+    pruefe("nur lesbar" in str(err), "Status 2 meldet einen nur lesbaren Parameter")
+
+ANLAGE["status"] = 0
+try:
+    client.setzen("50", "999")
+    pruefe(False, "Status 0 meldet einen nicht uebernommenen Wert")
+except bsb.BsbFehler as err:
+    pruefe("nicht uebernommen" in str(err).replace("ü", "ue"),
+           "Status 0 meldet einen nicht uebernommenen Wert")
+
+# Meldet BSB-LAN zusaetzlich "nur lesen", steht das als Hinweis dabei -
 # hinterher als Erklaerung, nicht vorher als Verbot.
 ANLAGE["schreibbar"] = False
 try:
-    client.setzen("50", "99")
+    client.setzen("50", "999")
 except bsb.BsbFehler as err:
     pruefe("Schreibzugriff" in str(err),
-           "bei Ablehnung nennt die Meldung den BSB-LAN-Schalter als moegliche Ursache")
-ANLAGE["status"] = 0
+           "dabei wird der BSB-LAN-Schalter als moegliche Ursache genannt")
+ANLAGE["status"] = 1
 ANLAGE["schreibbar"] = True
 
 print("\n=== Einstellungen werden geprüft ===")

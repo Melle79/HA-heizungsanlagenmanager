@@ -1,5 +1,16 @@
 # Änderungen
 
+## 1.3.1
+
+- **Behoben: Eine gelungene Änderung wurde als Fehler gemeldet.** BSB-LAN
+  quittiert ein Schreiben mit dem Rückgabewert von `set()`, und der ist nicht
+  selbsterklärend: **1 heißt gesetzt**, 2 „der Parameter ist nur lesbar“,
+  0 „fehlgeschlagen“. Ich hatte aus Gewohnheit die Null für den Erfolg
+  gehalten – damit wurde jede angenommene Änderung rot angestrichen.
+- Die drei Fälle bekommen jetzt je eine eigene, zutreffende Meldung. Der
+  Hinweis auf den BSB-LAN-Schalter erscheint nur noch dort, wo er passt: beim
+  echten Fehlschlag.
+
 ## 1.3.0
 
 - **Neu: der Reiter „Regler“.** Die Anlage bedienen wie am Gerät auf dem
