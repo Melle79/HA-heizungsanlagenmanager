@@ -1301,13 +1301,35 @@ function zpSchalter() {
   const nummer = programmNummer(name);
   if (nummer) {
     const pw = katalog.programmwahl || {};
-    return pw.nr ? {...pw, sollwert: pw.zu[nummer]} : null;
+    // „Betriebsart“ steht hier bewusst statt des Namens aus der
+    // Parameterliste. Bei Weishaupt heißt Parameter 70 dort
+    // „Brauchwassertemperatur-Reduziertsollwert“ – das ist schlicht falsch,
+    // seine Werte sind Standby, Programm 1–3, Nenn, Reduziert, Sommer. Wer
+    // den falschen Namen in einer Rückfrage liest, klickt zu Recht nicht.
+    return pw.nr ? {...pw, sollwert: pw.zu[nummer], titel: 'Betriebsart'} : null;
   }
   if (/trink|warm/i.test(name)) {
     const tw = katalog.trinkwasserwahl || {};
-    return tw.nr ? {...tw, sollwert: tw.programm} : null;
+    return tw.nr ? {...tw, sollwert: tw.programm, titel: 'Warmwasser-Betrieb'} : null;
   }
   return null;
+}
+
+// Was die Umstellung bedeutet, in einem Satz. Welches Zeitprogramm dann
+// gilt, weiß der Manager aus derselben Zuordnung, mit der er „läuft gerade“
+// anzeigt – also sagt er es auch.
+function folgeSatz(pw, wert, text) {
+  const nummer = Object.entries(pw.zu || {}).find(([, v]) => v === wert);
+  if (nummer) {
+    const kat = Object.entries(zeitprogramme)
+      .find(([, z]) => programmNummer(z.name) === nummer[0]);
+    return kat ? `Danach gilt „${kat[1].name}“ für die Heizung.`
+               : `Danach gilt Zeitprogramm ${nummer[0]}.`;
+  }
+  if (pw.programm && wert === pw.programm) {
+    return `Danach gilt die Wochentabelle dieses Programms.`;
+  }
+  return `Danach gilt kein Zeitprogramm, sondern durchgehend „${text}“.`;
 }
 
 function zpAktivZeichnen() {
@@ -1336,12 +1358,18 @@ function zpAktivZeichnen() {
   });
   wahl.disabled = !status.schreiben_erlaubt || !pw.schreibbar
                   || !!gefuehrtVon(pw.nr);
-  wahl.title = wahl.disabled ? 'Das Stellen ist nicht freigegeben'
-                             : `${pw.name || 'Betriebsart'} (Parameter ${pw.nr})`;
+  // Der Name aus der Liste steht im Hinweis – als Fußnote, nicht als Aussage.
+  const herkunft = pw.name && pw.name !== pw.titel
+    ? `\nIn der Parameterliste geführt als „${pw.name}“.` : '';
+  wahl.title = (wahl.disabled ? 'Das Stellen ist nicht freigegeben\n' : '')
+    + `${pw.titel} – Parameter ${pw.nr}${herkunft}`;
   wahl.onchange = async () => {
     const gewaehlt = wahl.value;
     const text = wahl.options[wahl.selectedIndex].textContent;
-    if (!confirm(`${pw.name || 'Betriebsart'} auf „${text}“ stellen?`)) {
+    // Die Rückfrage nennt die Folge, nicht nur den Wert: „Programm 2“ sagt
+    // niemandem, was danach anders ist.
+    const folge = folgeSatz(pw, gewaehlt, text);
+    if (!confirm(`${pw.titel} auf „${text}“ stellen?\n\n${folge}`)) {
       wahl.value = aktuell; return;
     }
     wahl.disabled = true;

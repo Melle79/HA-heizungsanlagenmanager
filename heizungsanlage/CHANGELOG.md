@@ -1,5 +1,17 @@
 # Änderungen
 
+## 1.15.1
+
+- **Behoben: Die Rückfrage beim Umschalten nannte einen falschen Namen.** Sie
+  fragte „Brauchwassertemperatur-Reduziertsollwert auf ‚Programm 2‘ stellen?“ –
+  so heißt Parameter 70 in Weishaupts Parameterliste, und das ist schlicht
+  falsch. Jetzt steht dort **Betriebsart**, und der Listenname erscheint nur
+  noch als Fußnote im Hinweis.
+- **Die Rückfrage nennt jetzt die Folge, nicht nur den Wert.** „Programm 2“
+  sagt niemandem, was danach anders ist – also steht daneben: *Danach gilt
+  „Zeitschaltprogramm 2“ für die Heizung.* Bei Standby, Sommer oder
+  Dauerbetrieb: *Danach gilt kein Zeitprogramm.*
+
 ## 1.15.0
 
 - **Eine Tabelle statt zweier.** Links die Auswahl, rechts der zuletzt
