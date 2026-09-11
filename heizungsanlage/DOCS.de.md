@@ -162,6 +162,16 @@ aus der Regelung selbst: *Uhrzeit*, *Einstellwerte*, *Urlaub*, *Betriebsart*,
 *Heizkreis*, *Warmwasser*, *Kessel* und so weiter. Niemand muss etwas
 sortieren; die Anlage weiß am besten, was zusammengehört.
 
+Das Menü hat zwei Stufen: oben die **Bereiche** – *Heizen*, *Trinkwasser*,
+*Wärmeerzeuger*, *Speicher*, *Wartung & Diagnose*, *Anlage & Konfiguration* –,
+darunter die Kategorien des gewählten Bereichs, darunter das Formular. Ein
+Bereich mit nur einer Kategorie öffnet sie gleich mit.
+
+Über **Anpassen** blendest du aus, was deine Anlage nicht braucht: die
+Kaskade, wenn nur ein Kessel dasteht, den Pufferspeicher, wenn keiner
+angeschlossen ist, und alles, was BSB-LAN für sich selbst mitbringt.
+Ausgeblendet heißt nicht gelöscht – ein Klick holt es zurück.
+
 Wählst du eine Kategorie, liest der Manager ihre Werte und zeigt sie an.
 Kategorien sind klein – meist zwischen zwei und dreißig Parametern –, das geht
 in wenigen Sekunden. Stellbare Parameter bekommen gleich das passende

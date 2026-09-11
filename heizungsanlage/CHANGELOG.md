@@ -1,5 +1,18 @@
 # Änderungen
 
+## 1.9.0
+
+- **Das Menü im Reiter „Regler“ hat jetzt zwei Stufen.** Oben die Bereiche –
+  *Heizen*, *Trinkwasser*, *Wärmeerzeuger* und so fort –, darunter die
+  Kategorien des gewählten Bereichs, darunter das Formular. Vorher standen
+  alle 27 Kategorien gleichzeitig da: vollständig, aber zum Suchen.
+- Ein Bereich mit genau einer Kategorie öffnet sie direkt – *Trinkwasser* führt
+  ohne zweiten Klick zum Warmwasser.
+- Der Wechsel des Bereichs schließt das Formular: Es gehörte zu einer
+  Kategorie, die im neuen Bereich gar nicht steht.
+- *Anpassen* zeigt weiterhin alles auf einmal mit Häkchen – dort soll man ja
+  gerade das sehen, was man ausgeblendet hat.
+
 ## 1.8.0
 
 - **Der Regler zeigt sofort etwas an.** Bisher stand beim Öffnen einer

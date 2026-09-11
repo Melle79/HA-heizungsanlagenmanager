@@ -103,6 +103,17 @@
   .tafelkopf{display:flex; align-items:center; justify-content:space-between;
     gap:var(--l3)}
   .tafelkopf h2{margin:0}
+  /* Die Bereiche stehen über einer Trennlinie, die Kategorien darunter –
+     damit man sieht, dass das zwei Stufen sind und nicht eine lange Reihe. */
+  .gruppenleiste{margin-top:var(--l3); padding-bottom:var(--l3);
+    border-bottom:1px solid var(--linie)}
+  /* Die Zahl im Knopf ist ein Hinweis, kein Fließtext – auf der hellen
+     Fläche des gewählten Bereichs braucht sie eine eigene Farbe. */
+  .kachelleiste button .notiz{margin-left:var(--l1)}
+  .kachelleiste button.an .notiz{color:#5c4508}
+  .gruppenleiste:empty{display:none}   /* im Anpassen-Modus bliebe sonst ein Strich */
+  .unterleiste{margin-top:var(--l3)}
+  #kategorienliste .notiz{margin-top:var(--l3)}
   .gruppentitel{font-size:.72rem; color:var(--leise); text-transform:uppercase;
     letter-spacing:.06em; margin:var(--l4) 0 var(--l2)}
   .gruppentitel:first-child{margin-top:var(--l3)}
@@ -263,6 +274,7 @@
     <div class="notiz">Dieselbe Gliederung, die auch am Gerät auf dem Kessel
       steht. Wählst du eine Kategorie, liest der Manager ihre Werte und zeigt
       sie an – stellbare gleich zum Ändern.</div>
+    <div class="kachelleiste gruppenleiste" id="gruppenleiste"></div>
     <div id="kategorienliste"></div>
   </div>
   <div class="tafel" id="regler-tafel" hidden>
@@ -759,12 +771,23 @@ let reglerKat = null;
 
 // Im Anpassen-Modus stehen Häkchen statt Knöpfen: Dann wird nicht geöffnet,
 // sondern aus- und eingeblendet.
+// Das Menü hat zwei Stufen: oben die Bereiche, darunter die Kategorien des
+// gewählten Bereichs, darunter das Formular. Alles auf einmal zu zeigen war
+// vollständig und unübersichtlich – man sah 27 Knöpfe und suchte einen.
 let anpassen = false;
+let reglerGruppe = null;
+
 const istVersteckt = (id) =>
   (einst.versteckte_kategorien || []).includes(String(id));
 
+// Die Bereiche, die nach dem Ausblenden noch etwas enthalten.
+function sichtbareGruppen() {
+  return (katalog.gruppen || [])
+    .map(g => ({...g, kategorien: g.kategorien.filter(k => !istVersteckt(k.id))}))
+    .filter(g => g.kategorien.length);
+}
+
 function kategorienZeichnen() {
-  const leiste = $('kategorienliste'); leiste.innerHTML = '';
   const gruppen = katalog.gruppen || [];
   const gesamt = gruppen.reduce((n, g) => n + g.kategorien.length, 0);
   if (!gesamt) {
@@ -772,43 +795,91 @@ function kategorienZeichnen() {
       „Einstellungen“ einmal ein – danach steht hier die Gliederung deiner
       Regelung.`;
     $('btn-kat-anpassen').hidden = true;
+    $('gruppenleiste').innerHTML = '';
+    $('kategorienliste').innerHTML = '';
     return;
   }
   $('btn-kat-anpassen').hidden = false;
   $('btn-kat-anpassen').textContent = anpassen ? 'Fertig' : 'Anpassen';
   const weg = (einst.versteckte_kategorien || []).length;
-  $('regler-hinweis').innerHTML = `<b>${gesamt - weg} von ${gesamt} Kategorien</b>`
-    + `, gruppiert nach dem, was sie tun. Zeitschaltprogramme haben ihren `
-    + `eigenen Reiter.`
-    + (weg && !anpassen ? ` <span class="notiz">${weg} ausgeblendet – über
-        „Anpassen“ zurückholen.</span>` : '');
+  $('regler-hinweis').innerHTML = anpassen
+    ? `<b>Was im Menü stehen soll.</b> Abgehakte Kategorien verschwinden aus
+       der Auswahl – gelöscht wird nichts, ein Klick holt sie zurück.`
+    : `<b>${gesamt - weg} von ${gesamt} Kategorien</b> in `
+      + `${sichtbareGruppen().length} Bereichen. Zeitschaltprogramme haben `
+      + `ihren eigenen Reiter.`
+      + (weg ? ` <span class="notiz">${weg} ausgeblendet – über „Anpassen“
+          zurückholen.</span>` : '');
+
+  anpassen ? anpassenZeichnen() : menueZeichnen();
+}
+
+// ── Normalbetrieb: Bereiche oben, Kategorien darunter ──
+function menueZeichnen() {
+  const oben = $('gruppenleiste'); oben.innerHTML = '';
+  const unten = $('kategorienliste'); unten.innerHTML = '';
+  const gruppen = sichtbareGruppen();
+  if (!gruppen.some(g => g.titel === reglerGruppe)) reglerGruppe = null;
 
   gruppen.forEach(gruppe => {
-    // Im Normalbetrieb fällt eine Gruppe weg, deren Kategorien alle
-    // ausgeblendet sind. Beim Anpassen steht sie da, sonst käme man an das
-    // Ausgeblendete nicht mehr heran.
-    const sichtbar = gruppe.kategorien.filter(k => anpassen || !istVersteckt(k.id));
-    if (!sichtbar.length) return;
+    const knopf = document.createElement('button');
+    knopf.innerHTML = `${gruppe.titel}
+      <span class="notiz">${gruppe.kategorien.length}</span>`;
+    knopf.className = gruppe.titel === reglerGruppe ? 'an' : '';
+    knopf.onclick = () => gruppeOeffnen(gruppe.titel);
+    oben.appendChild(knopf);
+  });
+
+  if (!reglerGruppe) {
+    unten.innerHTML = '<div class="notiz">Wähle oben einen Bereich.</div>';
+    return;
+  }
+  const gruppe = gruppen.find(g => g.titel === reglerGruppe);
+  const reihe = document.createElement('div');
+  reihe.className = 'kachelleiste unterleiste';
+  gruppe.kategorien.forEach(k => {
+    const knopf = document.createElement('button');
+    knopf.textContent = k.name;
+    knopf.className = k.id === reglerKat ? 'an' : 'leise';
+    knopf.onclick = () => reglerOeffnen(k.id);
+    reihe.appendChild(knopf);
+  });
+  unten.appendChild(reihe);
+}
+
+function gruppeOeffnen(titel) {
+  // Ein Bereichswechsel schließt das Formular: Es gehörte zu einer Kategorie,
+  // die hier gar nicht mehr steht.
+  if (reglerGruppe !== titel) { reglerKat = null; $('regler-tafel').hidden = true; }
+  reglerGruppe = titel;
+  const gruppe = sichtbareGruppen().find(g => g.titel === titel);
+  // Ein Bereich mit genau einer Kategorie braucht keinen zweiten Klick.
+  if (gruppe && gruppe.kategorien.length === 1) {
+    reglerOeffnen(gruppe.kategorien[0].id);
+    return;
+  }
+  menueZeichnen();
+}
+
+// ── Anpassen: alles auf einmal, mit Häkchen ──
+function anpassenZeichnen() {
+  $('gruppenleiste').innerHTML = '';
+  const leiste = $('kategorienliste'); leiste.innerHTML = '';
+  (katalog.gruppen || []).forEach(gruppe => {
     const kopf = document.createElement('div');
     kopf.className = 'gruppentitel';
     kopf.textContent = gruppe.titel;
     leiste.appendChild(kopf);
     const reihe = document.createElement('div');
     reihe.className = 'kachelleiste';
-    sichtbar.forEach(k => {
-      const knopf = document.createElement('button');
+    gruppe.kategorien.forEach(k => {
       const versteckt = istVersteckt(k.id);
-      knopf.textContent = k.name;
-      if (anpassen) {
-        knopf.className = 'leise' + (versteckt ? ' aus' : '');
-        knopf.title = versteckt ? 'wieder einblenden' : 'ausblenden';
-        knopf.innerHTML = `<span class="haekchen">${versteckt ? '☐' : '☑'}</span>`
-          + `${k.name} <span class="notiz">${k.anzahl}</span>`;
-        knopf.onclick = () => kategorieUmschalten(k.id);
-      } else {
-        knopf.className = k.id === reglerKat ? 'an' : '';
-        knopf.onclick = () => reglerOeffnen(k.id);
-      }
+      const knopf = document.createElement('button');
+      knopf.className = 'leise' + (versteckt ? ' aus' : '');
+      knopf.title = versteckt ? 'wieder einblenden' : 'ausblenden';
+      knopf.innerHTML = `<span class="haekchen">${versteckt ? '☐' : '☑'}</span>`
+        + `${k.name} <span class="notiz">${k.anzahl}</span>`;
+      knopf.onclick = () => kategorieUmschalten(k.id);
       reihe.appendChild(knopf);
     });
     leiste.appendChild(reihe);
@@ -850,6 +921,10 @@ function alterText(nummern) {
 
 async function reglerOeffnen(id) {
   reglerKat = id;
+  // Der Bereich folgt der Kategorie, nicht umgekehrt: Wer über einen anderen
+  // Weg hierherkommt, soll das Menü aufgeklappt vorfinden, wo er steht.
+  const dazu = sichtbareGruppen().find(g => g.kategorien.some(k => k.id === String(id)));
+  if (dazu) reglerGruppe = dazu.titel;
   kategorienZeichnen();
   if (istZeitprogramm(id)) {
     // Zeitprogramme gehören in ihren eigenen Reiter – dort kann man sie
