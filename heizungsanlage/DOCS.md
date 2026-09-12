@@ -13,6 +13,23 @@ It does three things:
 * **Set.** Change setpoints and operating modes – behind two switches, both off
   by default.
 
+## Language
+
+The interface speaks German and English. Which one appears is decided by Home
+Assistant – the add-on asks on load and follows suit.
+
+**German is the source**: the German sentence is also the key the translation
+is stored under. A forgotten entry does not break anything; it simply stays
+German instead of showing a placeholder.
+
+**What the controller says stays as the controller says it.** Categories,
+parameter names and enum values come from your device and read exactly as they
+do on the boiler's own panel. Set BSB-LAN itself to English and they arrive in
+English.
+
+Another language is one file: copy `frontend/sprachen/<code>.js` from `en.js`,
+translate the right-hand side, done.
+
 ## Requirements
 
 A running BSB-LAN on the same network and an MQTT broker in Home Assistant.

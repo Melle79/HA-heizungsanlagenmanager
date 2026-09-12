@@ -447,6 +447,15 @@
 
 </main>
 
+<script src="uebersetzung.js"></script>
+<script>
+// Sprache aus Home Assistant, vor allem anderen: Steht die Übersetzung erst
+// nach den ersten Daten, sieht man die deutsche Fassung kurz aufblitzen.
+fetch('api/sprache', {cache: 'no-store'})
+  .then(a => a.json())
+  .then(d => window.spracheAnwenden(d.sprache || 'de'))
+  .catch(() => {});
+</script>
 <script>
 // Unter Ingress läuft die Seite nicht unter "/", sondern unter
 // "/api/hassio_ingress/<token>/". Ein Aufruf mit führendem Schrägstrich
@@ -457,6 +466,11 @@
 // und treffen das Add-on, egal unter welcher Adresse es gerade läuft.
 const API = 'api/';
 const $ = (id) => document.getElementById(id);
+
+// Rückfragen zeigt der Browser selbst an – sie kommen am Beobachter der
+// Übersetzung vorbei. Deshalb hier der einzelne Satz durch dieselbe Mechanik.
+const frage = (...teile) => confirm(teile.filter(Boolean)
+  .map(t => window.uebersetzeText ? window.uebersetzeText(t) : t).join('\n\n'));
 
 let katalog = {kategorien:{}, anzahl:0};
 // Die gespeicherten Einstellungen, vollständig. Sie werden beim Sichern
@@ -614,6 +628,11 @@ function kategorienFuellen(select) {
 // Was BSB-LAN von sich aus meldet. Gegenübergestellt wird es dem, was der
 // Manager meldet – damit man sieht, ob sich zwei Programme dieselbe Arbeit
 // teilen oder gegenseitig doppeln.
+const satzEigene = (n) => `Die ${n} Entität${n === 1 ? '' : 'en'} in Home `
+  + `Assistant kommen allein aus diesem Add-on.`;
+const satzDoppelt = (n) => `Dieses Add-on meldet zusätzlich ${n} Parameter. `
+  + `Beide fragen denselben Bus ab; in Home Assistant stehen die Werte doppelt.`;
+
 async function bsblanLage() {
   const feld = $('bsblan-lage'); if (!feld) return;
   let d;
@@ -627,40 +646,40 @@ async function bsblanLage() {
   }
   const meine = auswahl.length;
   const durchBsblan = einst.melder === 'bsblan';
-  const takt = `${d.anzahl} Parameter alle ${d.intervall_s} Sekunden an `
-    + `${d.broker || 'seinen Broker'} unter <code>${d.praefix || '?'}/…</code>`;
 
   if (!d.sendet) {
     feld.className = durchBsblan ? 'hinweis warn' : 'hinweis';
     feld.innerHTML = durchBsblan
-      ? `<b>BSB-LAN meldet nichts – obwohl es soll.</b> In Home Assistant
-         kommt gerade nichts an, denn der Manager hält sich zurück. Mit
-         <i>BSB-LAN einrichten</i> schaltest du das Senden dort ein.`
-      : `<b>BSB-LAN meldet nichts von sich aus.</b> Die ${meine}
-         Entität${meine === 1 ? '' : 'en'} in Home Assistant kommen allein aus
-         diesem Add-on.`;
+      ? `<b>BSB-LAN meldet nichts – obwohl es soll.</b>
+         <div>In Home Assistant kommt gerade nichts an, denn der Manager hält
+         sich zurück. Mit „BSB-LAN einrichten“ schaltest du das Senden dort
+         ein.</div>`
+      : `<b>BSB-LAN meldet nichts von sich aus.</b>
+         <div>${satzEigene(meine)}</div>`;
     return;
   }
+
+  const takt = `${d.anzahl} Parameter alle ${d.intervall_s} Sekunden an `
+    + `${d.broker || 'seinen Broker'} unter ${d.praefix || '?'}/…`;
+  const anmeldung = d.discovery
+    ? '<div>Mit automatischer Anmeldung in Home Assistant.</div>' : '';
 
   if (durchBsblan) {
     // So ist es gewollt – hier gehört keine Warnung hin, sondern eine Bilanz.
     feld.className = 'hinweis';
-    feld.innerHTML = `<b>BSB-LAN meldet: ${takt}</b>${d.discovery
-      ? ' – mit automatischer Anmeldung in Home Assistant' : ''}.
-      <br>Der Manager hält sich zurück und meldet nichts Eigenes.${
-      d.anzahl !== meine ? ` <span class="notiz">Die Auswahl hier führt
-      ${meine} Parameter – mit „Auswahl an BSB-LAN geben“ gleichst du das
-      an.</span>` : ''}`;
+    feld.innerHTML = `<b>BSB-LAN meldet: ${takt}</b>${anmeldung}
+      <div>Der Manager hält sich zurück und meldet nichts Eigenes.</div>${
+      d.anzahl !== meine
+        ? `<div class="notiz">Die Auswahl hier führt ${meine} Parameter – mit
+           „Auswahl an BSB-LAN geben“ gleichst du das an.</div>` : ''}`;
     return;
   }
 
   feld.className = 'hinweis warn';
-  feld.innerHTML = `<b>BSB-LAN meldet selbst: ${takt}</b>${d.discovery
-    ? ' – mit automatischer Anmeldung in Home Assistant' : ''}.
-    <br>Dieses Add-on meldet zusätzlich ${meine} Parameter. Beide fragen
-    denselben Bus ab; in Home Assistant stehen die Werte doppelt.
-    <br><span class="notiz">Abstellen lässt sich das hier: „BSB-LAN meldet“
-    wählen und speichern.</span>`;
+  feld.innerHTML = `<b>BSB-LAN meldet selbst: ${takt}</b>${anmeldung}
+    <div>${satzDoppelt(meine)}</div>
+    <div class="notiz">Abstellen lässt sich das hier: „BSB-LAN meldet“ wählen
+    und speichern.</div>`;
 }
 
 async function katalogLaden() {
@@ -674,8 +693,8 @@ async function katalogLaden() {
     ? `${katalog.anzahl} Parameter, eingelesen am ${zeit(katalog.gebaut_am)}`
     : 'Noch kein Katalog eingelesen.';
   $('katalog-hinweis').innerHTML = katalog.anzahl
-    ? `<b>${katalog.anzahl} Parameter</b> kennt deine Regelung.
-       ${auswahl.length} davon gehen nach Home Assistant.`
+    ? `<b>Deine Regelung kennt ${katalog.anzahl} Parameter.</b>
+       <span>Davon gehen ${auswahl.length} nach Home Assistant.</span>`
     : `<b>Noch kein Katalog.</b> Lies ihn unter „Einstellungen“ einmal ein –
        danach steht hier die Liste deiner Regelung.`;
   fremdlingeZeichnen();
@@ -947,9 +966,9 @@ function uebernahmeBand(id, nummern) {
 }
 
 async function uebernahmeLoesen(quelle, name) {
-  if (!confirm(`Die Übernahme durch ${name} aufheben?\n\n`
-    + `Danach stellst du diese Parameter hier wieder selbst – `
-    + `${name} wird sie nicht mehr nachführen.`)) return;
+  if (!frage(`Die Übernahme durch ${name} aufheben?`,
+             `Danach stellst du diese Parameter hier wieder selbst – `
+             + `${name} wird sie nicht mehr nachführen.`)) return;
   try {
     await hole('uebernahme/' + encodeURIComponent(quelle), {method: 'DELETE'});
     await statusLaden();
@@ -1239,8 +1258,8 @@ async function parameterStellen(p, zeile, meldungsfeld, danach) {
   const feld = zeile.querySelector(`[data-nr="${p.nr}"]`);
   const wert = feld.value;
   if (wert === '') return meldung(meldungsfeld, 'Erst einen Wert eingeben');
-  if (!confirm(`Parameter ${p.nr} „${p.name}“ auf ${wert} stellen?\n\n`
-             + `Das geht unmittelbar an die Heizung.`)) return;
+  if (!frage(`Parameter ${p.nr} „${p.name}“ auf ${wert} stellen?`,
+             `Das geht unmittelbar an die Heizung.`)) return;
   const knopf = zeile.querySelector('button[data-setzen]');
   knopf.disabled = true;
   try {
@@ -1369,7 +1388,7 @@ function zpAktivZeichnen() {
     // Die Rückfrage nennt die Folge, nicht nur den Wert: „Programm 2“ sagt
     // niemandem, was danach anders ist.
     const folge = folgeSatz(pw, gewaehlt, text);
-    if (!confirm(`${pw.titel} auf „${text}“ stellen?\n\n${folge}`)) {
+    if (!frage(`${pw.titel} auf „${text}“ stellen?`, folge)) {
       wahl.value = aktuell; return;
     }
     wahl.disabled = true;
@@ -1506,7 +1525,8 @@ $('btn-zp-speichern').onclick = async () => {
                                    && !gefuehrtVon(t.nr));
   if (!offen.length) return;
   const liste = offen.map(t => `${t.name}: ${fensterSchreiben(t.fenster)}`).join('\n');
-  if (!confirm(`${offen.length} Tag(e) an die Heizung schicken?\n\n${liste}`)) return;
+  // Die Zeiten selbst bleiben, wie sie sind – sie sind Daten, keine Sprache.
+  if (!frage(`${offen.length} Tag(e) an die Heizung schicken?`, liste)) return;
 
   const knopf = $('btn-zp-speichern'); knopf.disabled = true;
   let fertig = 0, gescheitert = '';
@@ -1588,9 +1608,10 @@ async function bsblanRuf(pfad, methode, knopf, satz) {
 }
 
 $('btn-bsblan-einrichten').onclick = () => {
-  if (!confirm('Die MQTT-Einstellungen von BSB-LAN überschreiben?\n\n'
-    + 'Broker, Benutzer und Passwort kommen von Home Assistant. Was BSB-LAN '
-    + 'sonst tut – Logging auf SD-Karte etwa – bleibt unangetastet.')) return;
+  if (!frage('Die MQTT-Einstellungen von BSB-LAN überschreiben?',
+             'Broker, Benutzer und Passwort kommen von Home Assistant. Was '
+             + 'BSB-LAN sonst tut – Logging auf SD-Karte etwa – bleibt '
+             + 'unangetastet.')) return;
   bsblanRuf('bsblan/einrichten', 'POST', $('btn-bsblan-einrichten'), d =>
     (d.geschrieben || []).length
       ? `${d.geschrieben.length} Einstellung(en) geschrieben`
@@ -1604,7 +1625,7 @@ $('btn-bsblan-parameter').onclick = () =>
                    : `BSB-LAN führt ${d.anzahl} Parameter – es hat die Liste gekürzt`);
 
 $('btn-bsblan-uebernehmen').onclick = async () => {
-  if (!confirm('Die Auswahl durch BSB-LANs Liste ersetzen?')) return;
+  if (!frage('Die Auswahl durch BSB-LANs Liste ersetzen?')) return;
   const knopf = $('btn-bsblan-uebernehmen');
   knopf.disabled = true;
   try {

@@ -1,5 +1,25 @@
 # Änderungen
 
+## 1.17.0
+
+- **Die Oberfläche spricht jetzt auch Englisch.** Welche Sprache erscheint,
+  entscheidet Home Assistant; das Add-on fragt beim Laden nach. Umschalten muss
+  niemand etwas.
+- Deutsch bleibt die Quelle: Der deutsche Satz ist zugleich der Schlüssel. Ein
+  vergessener Eintrag fällt damit nicht aus – er bleibt deutsch stehen, statt
+  als Platzhalter zu erscheinen. Eine weitere Sprache ist eine Datei unter
+  `frontend/sprachen/`, am Code ändert sich nichts.
+- **Was die Regelung sagt, bleibt unübersetzt.** Kategorien, Parameternamen und
+  Auswahlwerte kommen aus dem Gerät und stehen da wie am Kessel. Vier von 27
+  Kategorien zu übersetzen ergäbe eine Scheinordnung.
+- Dafür mussten drei Sätze umgebaut werden, die sich Fettdruck und Text teilten:
+  Zerschnitten ergibt ein Satz keine übersetzbare Einheit, und im Englischen
+  steht die Zahl an anderer Stelle als im Deutschen.
+- Auch die **Rückfragen vor dem Schreiben** sind übersetzt. Die zeigt der
+  Browser selbst an, nicht die Seite – sie gehen an der Mechanik vorbei und
+  brauchten einen eigenen Weg. Ausgerechnet die Sicherheitsabfragen deutsch zu
+  lassen wäre die falsche Stelle zum Sparen.
+
 ## 1.16.1
 
 - **Behoben: Das Logo trug noch den alten Namen.** Im Add-on-Store stand

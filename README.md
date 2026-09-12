@@ -10,8 +10,9 @@ find on the boiler's own panel.
 > 📖 Full manual: **[DOCS.md](heizungsanlage/DOCS.md)** ·
 > 🇩🇪 Auf Deutsch: **[README.de.md](README.de.md)**
 
-**The interface is German.** The documentation comes in both languages; the
-add-on itself does not yet.
+The interface follows Home Assistant's language setting: **German and
+English**. What the controller itself says — category and parameter names —
+stays as your device reports it.
 
 ![The “Regelung” tab with a time programme](heizungsanlage/doku/bilder/regelung.png)
 

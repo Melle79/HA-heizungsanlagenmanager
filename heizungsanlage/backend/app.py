@@ -249,6 +249,41 @@ def statisch(datei: str):
     return send_from_directory(FRONTEND, datei)
 
 
+@app.route("/api/sprache")
+def api_sprache():
+    """Welche Sprache führt Home Assistant?
+
+    Ein eigener, winziger Endpunkt statt eines Feldes im Status: Die
+    Übersetzung soll stehen, bevor die ersten Daten eintreffen – sonst blitzt
+    die deutsche Fassung kurz auf.
+
+    Deutsch ist die Quelle. Wer eine andere Sprache eingestellt hat, bekommt
+    die passende Datei, und wenn es keine gibt, Englisch; fehlt auch das,
+    bleibt es bei Deutsch. Eine halbe Übersetzung ist besser als eine leere
+    Oberfläche.
+    """
+    return jsonify({"sprache": _ha_sprache()})
+
+
+def _ha_sprache() -> str:
+    """Die Spracheinstellung von Home Assistant, oder Deutsch."""
+    token = os.environ.get("SUPERVISOR_TOKEN")
+    if not token:
+        return "de"
+    try:
+        req = urllib.request.Request(
+            "http://supervisor/core/api/config",
+            headers={"Authorization": f"Bearer {token}"})
+        with urllib.request.urlopen(req, timeout=8) as antwort:
+            config = json.load(antwort)
+    except Exception as err:                      # noqa: BLE001
+        _LOGGER.info("Sprache nicht abfragbar: %s", err)
+        return "de"
+    # „de-DE“ und „de“ sind dieselbe Sprache – der Landesteil interessiert hier
+    # nicht, es gibt keine Datei je Region.
+    return str(config.get("language") or "de").split("-")[0].lower()
+
+
 @app.route("/api/status")
 def api_status():
     config = store.load_config()

@@ -18,19 +18,41 @@ Er tut vier Dinge:
 
 ## Inhalt
 
-1. [Voraussetzungen](#voraussetzungen)
-2. [Der Parameterkatalog](#der-parameterkatalog)
-3. [Der Reiter „Regelung“](#der-reiter-regelung)
-4. [Zeitschaltprogramme](#zeitschaltprogramme)
-5. [Stellen: die zwei Schalter](#stellen-die-zwei-schalter)
-6. [Der Reiter „Home Assistant“](#der-reiter-home-assistant)
-7. [Auswahl: was nach Home Assistant geht](#auswahl-was-nach-home-assistant-geht)
-8. [Wer meldet nach Home Assistant?](#wer-meldet-nach-home-assistant)
-9. [Gemerkte Werte](#gemerkte-werte)
-10. [Gelesen wird auf Zuruf](#gelesen-wird-auf-zuruf)
-11. [Der Bus ist langsam](#der-bus-ist-langsam)
-12. [Übernahme durch andere Add-ons](#übernahme-durch-andere-add-ons)
-13. [Zusammenspiel mit dem Heizungsplaner](#zusammenspiel-mit-dem-heizungsplaner)
+1. [Sprache](#sprache)
+2. [Voraussetzungen](#voraussetzungen)
+3. [Der Parameterkatalog](#der-parameterkatalog)
+4. [Der Reiter „Regelung“](#der-reiter-regelung)
+5. [Zeitschaltprogramme](#zeitschaltprogramme)
+6. [Stellen: die zwei Schalter](#stellen-die-zwei-schalter)
+7. [Der Reiter „Home Assistant“](#der-reiter-home-assistant)
+8. [Auswahl: was nach Home Assistant geht](#auswahl-was-nach-home-assistant-geht)
+9. [Wer meldet nach Home Assistant?](#wer-meldet-nach-home-assistant)
+10. [Gemerkte Werte](#gemerkte-werte)
+11. [Gelesen wird auf Zuruf](#gelesen-wird-auf-zuruf)
+12. [Der Bus ist langsam](#der-bus-ist-langsam)
+13. [Übernahme durch andere Add-ons](#übernahme-durch-andere-add-ons)
+14. [Zusammenspiel mit dem Heizungsplaner](#zusammenspiel-mit-dem-heizungsplaner)
+
+## Sprache
+
+Die Oberfläche spricht Deutsch und Englisch. Welche Sprache erscheint,
+entscheidet Home Assistant – das Add-on fragt beim Laden nach und stellt sich
+darauf ein. Umschalten muss man nichts.
+
+**Deutsch ist die Quelle**: Der deutsche Satz ist zugleich der Schlüssel, unter
+dem die Übersetzung steht. Das klingt unorthodox und hat einen handfesten
+Vorteil – ein vergessener Eintrag fällt nicht aus, er bleibt deutsch stehen,
+statt als Platzhalter zu erscheinen.
+
+**Was die Regelung sagt, bleibt, wie sie es sagt.** Kategorien, Parameternamen
+und Auswahlwerte kommen aus deinem Gerät; sie stehen genauso da wie am Gerät
+auf dem Kessel. Vier von 27 Kategorien zu übersetzen ergäbe eine Scheinordnung,
+während die übrigen Namen deutsch blieben – und wer BSB-LAN auf Englisch
+stellt, bekommt sie von dort ohnehin englisch.
+
+Eine weitere Sprache ist eine Datei: `frontend/sprachen/<code>.js` nach dem
+Muster von `en.js` kopieren, die rechte Seite übersetzen, fertig. Am Code
+ändert sich nichts.
 
 ## Voraussetzungen
 

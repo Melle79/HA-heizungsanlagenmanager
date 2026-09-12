@@ -10,6 +10,9 @@ derselben Gliederung, die auch am Gerät auf dem Kessel steht.
 > 📖 Ausführliche Anleitung: **[DOCS.de.md](heizungsanlage/DOCS.de.md)** ·
 > 🇬🇧 In English: **[README.md](README.md)**
 
+Die Oberfläche folgt der Spracheinstellung von Home Assistant – **Deutsch und
+Englisch**. Was die Regelung selbst sagt, bleibt so, wie dein Gerät es führt.
+
 ![Der Reiter „Regelung" mit einem Zeitschaltprogramm](heizungsanlage/doku/bilder/regelung.png)
 
 ## Was es kann
