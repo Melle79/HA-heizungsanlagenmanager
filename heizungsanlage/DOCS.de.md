@@ -69,7 +69,7 @@ weil jede Kategorie einzeln über den Bus geht.
 
 ## Der Reiter „Regelung“
 
-![Zeitschaltprogramm als Wochentabelle](https://raw.githubusercontent.com/Melle79/HA-heizungsanlagenmanager/main/bilder/regelung.png)
+![Zeitschaltprogramm als Wochentabelle](https://raw.githubusercontent.com/Melle79/HA-heizungsanlagenmanager/main/heizungsanlage/doku/bilder/regelung.png)
 
 
 Hier bedienst du die Anlage so, wie du es am Gerät auf dem Kessel tätest –
@@ -148,7 +148,7 @@ Regelung selbst als beschreibbar meldet, und fragt vor jeder Änderung nach.
 
 ## Der Reiter „Home Assistant“
 
-![Auswahl und Werte in einer Tabelle](https://raw.githubusercontent.com/Melle79/HA-heizungsanlagenmanager/main/bilder/mqtt.png)
+![Auswahl und Werte in einer Tabelle](https://raw.githubusercontent.com/Melle79/HA-heizungsanlagenmanager/main/heizungsanlage/doku/bilder/mqtt.png)
 
 
 Alles, was mit dem Weg nach Home Assistant zu tun hat, steht auf einer Seite:

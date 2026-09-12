@@ -1,5 +1,17 @@
 # Änderungen
 
+## 1.15.2
+
+- **Behoben: Das Logo trug noch den alten Namen.** Im Add-on-Store stand
+  „Kesselmanager“ – seit der Umbenennung falsch, und niemandem aufgefallen,
+  weil das Bild niemand liest, sondern nur sieht.
+- Icon und Logo haben jetzt **Quellen** (`doku/icon.svg`, `doku/logo.svg`) samt
+  Anleitung, wie man sie neu erzeugt. Vorher gab es nur die fertigen PNG.
+- Das Repository ist nach dem Muster der übrigen Add-ons vervollständigt:
+  README auf Deutsch und Englisch mit dem Knopf zum Hinzufügen des
+  Repositories, ein kurzes README im Add-on-Verzeichnis, und die Bilder unter
+  `doku/bilder/`.
+
 ## 1.16.0
 
 - **Das Add-on sagt jetzt an, wo es zu erreichen ist.** Beim Verbinden mit

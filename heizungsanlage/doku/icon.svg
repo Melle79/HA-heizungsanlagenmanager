@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <!-- Die Flamme in festen Koordinaten, nicht in der Bounding-Box: ein
+         Verlauf über objectBoundingBox verzerrt sich mit jeder Formänderung. -->
+    <linearGradient id="flamme" gradientUnits="userSpaceOnUse"
+                    x1="128" y1="96" x2="128" y2="176">
+      <stop offset="0" stop-color="#f2b24a"/>
+      <stop offset="0.55" stop-color="#f08a3c"/>
+      <stop offset="1" stop-color="#e8654e"/>
+    </linearGradient>
+    <linearGradient id="kern" gradientUnits="userSpaceOnUse"
+                    x1="128" y1="132" x2="128" y2="172">
+      <stop offset="0" stop-color="#f8a76a"/>
+      <stop offset="1" stop-color="#ef6f5c"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="256" height="256" rx="56" fill="#171b22"/>
+
+  <!-- Anschlüsse links und rechts -->
+  <rect x="40" y="96" width="20" height="14" rx="5" fill="#39414c"/>
+  <rect x="196" y="96" width="20" height="14" rx="5" fill="#39414c"/>
+
+  <!-- Kesselkörper -->
+  <rect x="58" y="58" width="140" height="150" rx="18"
+        fill="#242a33" stroke="#39414c" stroke-width="4"/>
+
+  <!-- Bedienfeld: Betriebsleuchte und Anzeige -->
+  <circle cx="80" cy="84" r="7" fill="#4cc38a"/>
+  <rect x="98" y="78" width="76" height="12" rx="6" fill="#39414c"/>
+
+  <!-- Schauglas -->
+  <rect x="76" y="104" width="104" height="76" rx="12" fill="#12151b"/>
+
+  <!-- Flamme: äußerer Mantel und heller Kern -->
+  <path d="M131 98c15 23 25 34 25 50a28 28 0 0 1-56 0c0-13 7-21 15-30
+           1 9 4 13 7 16 5-12 6-25 9-36z" fill="url(#flamme)"/>
+  <path d="M129 136c9 11 13 16 13 23a13 13 0 0 1-26 0c0-7 7-15 13-23z"
+        fill="url(#kern)"/>
+
+  <!-- Füße -->
+  <rect x="82" y="208" width="20" height="14" rx="4" fill="#39414c"/>
+  <rect x="154" y="208" width="20" height="14" rx="4" fill="#39414c"/>
+</svg>

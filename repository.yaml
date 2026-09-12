@@ -1,3 +1,5 @@
-name: "Heizungsanlagenmanager via BSB-LAN"
+# Der Name der Quelle im Add-on-Store – nicht der des Add-ons. Er steht dort
+# als Überschrift über der Kachel.
+name: "Heizungsanlagen Add-ons"
 url: "https://github.com/Melle79/HA-heizungsanlagenmanager"
 maintainer: "Melle79"

@@ -49,7 +49,7 @@ bus separately.
 
 ## The “Regelung” tab
 
-![Time programme as a weekly table](https://raw.githubusercontent.com/Melle79/HA-heizungsanlagenmanager/main/bilder/regelung.png)
+![Time programme as a weekly table](https://raw.githubusercontent.com/Melle79/HA-heizungsanlagenmanager/main/heizungsanlage/doku/bilder/regelung.png)
 
 
 Here you operate the system the way you would at the unit on the boiler –

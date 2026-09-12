@@ -1,110 +1,97 @@
-# Heizungsanlagenmanager via BSB-LAN
+# Heating System Manager · Heizungsanlagenmanager
 
-Ein Home-Assistant-Add-on, das eine Heizungsregelung über
-[BSB-LAN](https://github.com/fredlcore/BSB-LAN) bedienbar macht – mit
-derselben Gliederung, die auch am Gerät auf dem Kessel steht.
+A Home Assistant add-on that makes a heating controller usable through
+[BSB-LAN](https://github.com/fredlcore/BSB-LAN) — with the same structure you
+find on the boiler's own panel.
 
-*A Home Assistant add-on that makes a heating controller usable through
-BSB-LAN – with the same structure you find on the boiler's own panel.
-[Documentation in English](heizungsanlage/DOCS.md).*
+[![Add repository to Home Assistant](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2FMelle79%2FHA-heizungsanlagenmanager)
 
-![Der Reiter „Regelung“ mit einem Zeitschaltprogramm](bilder/regelung.png)
+> 📖 Full manual: **[DOCS.md](heizungsanlage/DOCS.md)** ·
+> 🇩🇪 Auf Deutsch: **[README.de.md](README.de.md)**
 
-## Was es kann
+**The interface is German.** The documentation comes in both languages; the
+add-on itself does not yet.
 
-**Bedienen statt nur anzeigen.** Die Kategorien kommen aus der Regelung
-selbst, gruppiert nach dem, was sie tun – Heizen, Trinkwasser, Wärmeerzeuger,
-Wartung. Stellbare Parameter bekommen gleich das passende Bedienelement.
-Zeitschaltprogramme erscheinen als **Wochentabelle** statt als Zeichenkette,
-und darüber steht, ob dieses Programm gerade läuft.
+![The “Regelung” tab with a time programme](heizungsanlage/doku/bilder/regelung.png)
 
-**Keine fest eingebauten Parameternummern.** Was auf der Übersicht steht,
-welche Kategorien Schaltzeiten führen, welcher Parameter das aktive Programm
-wählt – alles leitet das Add-on aus dem Katalog *deiner* Anlage ab, aus Namen
-und Datentypen. Damit läuft es auf jeder Regelung, die BSB-LAN bedient: BSB,
-LPB und PPS.
+## What it does
 
-**Zwei Wege nach Home Assistant.** Entweder meldet das Add-on die ausgewählten
-Parameter selbst – oder es richtet BSB-LAN so ein, dass der Adapter es tut,
-und hält sich dann heraus. Broker und Zugangsdaten kommen dabei von Home
-Assistant selbst; abtippen musst du nichts.
+**Operate, not just display.** The categories come from the controller itself,
+grouped by what they do — heating, domestic hot water, heat generator,
+maintenance. Writable parameters get the matching control. Time programmes
+appear as a **weekly table** instead of a string, and above it you see whether
+that programme is the one currently running.
 
-![Der Reiter „Home Assistant“](bilder/mqtt.png)
+**No parameter numbers baked in.** What appears on the overview, which
+categories hold switching times, which parameter selects the active
+programme — all of it is derived from *your* system's catalogue, from names
+and data types. So it runs on any controller BSB-LAN speaks to: BSB, LPB and
+PPS.
 
-**Vorsichtig mit der Anlage.** Stellen geht erst, wenn zwei Schalter stehen –
-der in BSB-LAN und der im Add-on, beide ab Werk aus. Der Bus wird in Bündeln
-mit Pausen abgefragt, nicht im Dauerfeuer. Und nach jedem Schreiben wird
-zurückgelesen: Was das Gerät danach führt, zählt, nicht was ihm geschickt
-wurde.
+**Two ways into Home Assistant.** Either the add-on publishes the selected
+parameters itself — or it configures BSB-LAN to do it and then stands back.
+Broker and credentials come from Home Assistant; you type nothing.
 
-![Eine Kategorie mit stellbaren Sollwerten](bilder/regler.png)
+![The “Home Assistant” tab](heizungsanlage/doku/bilder/mqtt.png)
 
-## Voraussetzungen
+**Careful with the system.** Writing needs two switches — one in BSB-LAN, one
+in the add-on, both off by default. The bus is polled in bundles with pauses,
+not continuously. And every write is read back: what the device holds
+afterwards counts, not what it was sent.
 
-* Ein laufendes [BSB-LAN](https://github.com/fredlcore/BSB-LAN) im selben Netz
-  (entwickelt und geprüft mit 5.1.18)
-* Ein MQTT-Broker in Home Assistant
+![A category with writable setpoints](heizungsanlage/doku/bilder/regler.png)
+
+## Requirements
+
+* A running [BSB-LAN](https://github.com/fredlcore/BSB-LAN) on the same
+  network (developed and tested against 5.1.18)
+* An MQTT broker in Home Assistant
 
 ## Installation
 
-1. In Home Assistant unter **Einstellungen → Add-ons → Add-on-Store** über das
-   Dreipunktmenü **Repositories** hinzufügen:
-   `https://github.com/Melle79/HA-heizungsanlagenmanager`
-2. *Heizungsanlagenmanager via BSB-LAN* installieren und starten.
-3. Unter **Einstellungen** die Adresse von BSB-LAN eintragen und den
-   **Parameterkatalog einlesen** – das dauert ein bis zwei Minuten, weil jede
-   Kategorie einzeln über den Bus geht.
-4. Unter **Home Assistant** anhaken, was als Entität erscheinen soll.
+Add this address as an add-on repository in Home Assistant
+(*Settings → Add-ons → Add-on Store → ⋮ → Repositories*):
 
-Alles Weitere steht im [Handbuch](heizungsanlage/DOCS.de.md)
-([English](heizungsanlage/DOCS.md)).
+```
+https://github.com/Melle79/HA-heizungsanlagenmanager
+```
 
-## Was BSB-LAN dabei beigebracht hat
+Then install *Heizungsanlagenmanager via BSB-LAN* and start it. Under
+**Einstellungen** enter the address of BSB-LAN and read the **parameter
+catalogue** — that takes a minute or two, because every category goes over the
+bus on its own. Under **Home Assistant**, tick what should become an entity.
 
-Ein paar Eigenheiten, die man erst am lebenden Gerät findet – sie stehen hier,
-damit der nächste sie nicht noch einmal suchen muss:
+## What BSB-LAN taught us along the way
 
-* `/JW` nimmt nur `parameter` und `value`. Gibt man den vollständigen Eintrag
-  aus `/JL` zurück, antwortet BSB-LAN mit einer leeren Struktur und ändert
-  nichts – ohne Fehlermeldung.
-* Die Log-Parameterliste fasst **höchstens 40** Einträge. Alles darüber fällt
-  stillschweigend weg.
-* Auto-Discovery widerrufen (`/M0!<ziel>`) wirkt nur auf das, was gerade in
-  der Liste steht. Reihenfolge also: abmelden, Liste ändern, anmelden.
-* `/JL` liefert in 5.1.18 kaputtes JSON, wenn keine One-Wire- oder DHT-Pins
-  gesetzt sind.
+A few quirks you only find on a live device — written down so the next person
+does not have to look for them:
 
-## Selber daran arbeiten
+* `/JW` accepts only `parameter` and `value`. Hand back the complete entry as
+  `/JL` delivers it and BSB-LAN answers with an empty structure and changes
+  nothing — without an error.
+* The log parameter list holds **at most 40** entries. Anything beyond that is
+  dropped silently.
+* Revoking auto-discovery (`/M0!<target>`) only affects what is currently in
+  the list. So the order is: revoke, change the list, announce.
+* `/JL` returns malformed JSON in 5.1.18 when no One-Wire or DHT pins are set.
 
-Die Prüfungen laufen ohne Heizung und ohne Home Assistant – BSB-LAN ist darin
-gefälscht:
+## Working on it
+
+The checks run without a boiler and without Home Assistant — BSB-LAN is faked:
 
 ```sh
 ./pruefen.sh
 ```
 
-Beim ersten Aufruf legt das Skript sich eine eigene Python-Umgebung unter
-`.venv/` an und holt sich, was im Add-on das Dockerfile besorgt.
+On first use the script creates its own Python environment under `.venv/` and
+fetches what the Dockerfile provides inside the add-on.
 
-## Dank
+## Thanks
 
-An [Frederik Holst](https://github.com/fredlcore) und alle, die an BSB-LAN
-mitgebaut haben. Ohne die angepasste Parameterliste für die eigene
-Gerätefamilie wäre aus „Parameter 72“ nie „Gerätebetriebsstunden“ geworden.
+To [Frederik Holst](https://github.com/fredlcore) and everyone who built
+BSB-LAN. Without the adapted parameter list for one's own device family,
+“parameter 72” would never have become “Gerätebetriebsstunden”.
 
-## Lizenz
+## Licence
 
 MIT
-
-## Haftungsausschluss
-
-Dies ist ein **privates Hobby-Projekt** ohne kommerziellen Hintergrund. Die
-Nutzung erfolgt auf eigene Gefahr – **jegliche Haftung ist ausgeschlossen**
-(siehe auch MIT-Lizenz). Es findet **kein Support** statt; Issues und Pull
-Requests werden möglicherweise nicht beantwortet.
-
-Das gilt hier mit Nachdruck: Das Add-on schreibt auf einen Bus, an dem die
-Heizungsregelung eines Hauses hängt. Das Stellen ist deshalb ab Werk
-**gesperrt** und muss bewusst freigegeben werden. Ein falscher Sollwert lässt
-im Winter eine Wohnung auskühlen – prüft jeden Parameter, bevor ihr ihn
-schreibt.
