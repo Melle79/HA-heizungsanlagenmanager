@@ -95,3 +95,16 @@ Gerätefamilie wäre aus „Parameter 72“ nie „Gerätebetriebsstunden“ gew
 ## Lizenz
 
 MIT
+
+## Haftungsausschluss
+
+Dies ist ein **privates Hobby-Projekt** ohne kommerziellen Hintergrund. Die
+Nutzung erfolgt auf eigene Gefahr – **jegliche Haftung ist ausgeschlossen**
+(siehe auch MIT-Lizenz). Es findet **kein Support** statt; Issues und Pull
+Requests werden möglicherweise nicht beantwortet.
+
+Das gilt hier mit Nachdruck: Das Add-on schreibt auf einen Bus, an dem die
+Heizungsregelung eines Hauses hängt. Das Stellen ist deshalb ab Werk
+**gesperrt** und muss bewusst freigegeben werden. Ein falscher Sollwert lässt
+im Winter eine Wohnung auskühlen – prüft jeden Parameter, bevor ihr ihn
+schreibt.
