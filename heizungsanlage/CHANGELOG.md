@@ -1,6 +1,6 @@
 # Änderungen
 
-## 1.15.2
+## 1.16.1
 
 - **Behoben: Das Logo trug noch den alten Namen.** Im Add-on-Store stand
   „Kesselmanager“ – seit der Umbenennung falsch, und niemandem aufgefallen,
@@ -11,6 +11,9 @@
   README auf Deutsch und Englisch mit dem Knopf zum Hinzufügen des
   Repositories, ein kurzes README im Add-on-Verzeichnis, und die Bilder unter
   `doku/bilder/`.
+- Der Kaffee-Knopf steht jetzt auch hier, wie in den übrigen Add-ons.
+- **Wiederhergestellt: der Haftungsausschluss im README.** Beim Aufteilen in
+  zwei Sprachen ist er verlorengegangen – er steht jetzt in beiden Fassungen.
 
 ## 1.16.0
 

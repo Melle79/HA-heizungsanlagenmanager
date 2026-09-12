@@ -5,6 +5,7 @@ Ein Home-Assistant-Add-on, das eine Heizungsregelung über
 derselben Gliederung, die auch am Gerät auf dem Kessel steht.
 
 [![Repository zu Home Assistant hinzufügen](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2FMelle79%2FHA-heizungsanlagenmanager)
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-melle79-ffdd00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/melle79)
 
 > 📖 Ausführliche Anleitung: **[DOCS.de.md](heizungsanlage/DOCS.de.md)** ·
 > 🇬🇧 In English: **[README.md](README.md)**
@@ -93,6 +94,19 @@ Beim ersten Aufruf legt das Skript sich eine eigene Python-Umgebung unter
 An [Frederik Holst](https://github.com/fredlcore) und alle, die an BSB-LAN
 mitgebaut haben. Ohne die angepasste Parameterliste für die eigene
 Gerätefamilie wäre aus „Parameter 72" nie „Gerätebetriebsstunden" geworden.
+
+## Haftungsausschluss
+
+Dies ist ein **privates Hobby-Projekt** ohne kommerziellen Hintergrund. Die
+Nutzung erfolgt auf eigene Gefahr – **jegliche Haftung ist ausgeschlossen**
+(siehe auch MIT-Lizenz). Es findet **kein Support** statt; Issues und Pull
+Requests werden möglicherweise nicht beantwortet.
+
+Das gilt hier mit Nachdruck: Das Add-on schreibt auf einen Bus, an dem die
+Heizungsregelung eines Hauses hängt. Das Stellen ist deshalb ab Werk
+**gesperrt** und muss bewusst freigegeben werden. Ein falscher Sollwert lässt
+im Winter eine Wohnung auskühlen – prüft jeden Parameter, bevor ihr ihn
+schreibt.
 
 ## Lizenz
 

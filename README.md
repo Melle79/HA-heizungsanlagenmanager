@@ -5,6 +5,7 @@ A Home Assistant add-on that makes a heating controller usable through
 find on the boiler's own panel.
 
 [![Add repository to Home Assistant](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2FMelle79%2FHA-heizungsanlagenmanager)
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-melle79-ffdd00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/melle79)
 
 > 📖 Full manual: **[DOCS.md](heizungsanlage/DOCS.md)** ·
 > 🇩🇪 Auf Deutsch: **[README.de.md](README.de.md)**
@@ -91,6 +92,17 @@ fetches what the Dockerfile provides inside the add-on.
 To [Frederik Holst](https://github.com/fredlcore) and everyone who built
 BSB-LAN. Without the adapted parameter list for one's own device family,
 “parameter 72” would never have become “Gerätebetriebsstunden”.
+
+## Disclaimer
+
+This is a **private hobby project** with no commercial background. Use it at
+your own risk – **all liability is excluded** (see also the MIT licence).
+There is **no support**; issues and pull requests may go unanswered.
+
+That carries weight here: the add-on writes to a bus that a house's heating
+controller hangs on. Writing is therefore **locked by default** and has to be
+released deliberately. A wrong setpoint lets a flat go cold in winter – check
+every parameter before you write it.
 
 ## Licence
 
