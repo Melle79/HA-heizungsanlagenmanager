@@ -1,5 +1,18 @@
 # Änderungen
 
+## 1.23.0
+
+- **Neue Entität „BSB-LAN erreichbar“** (`binary_sensor`, Geräteklasse
+  *connectivity*). BSB-LANs eigene Anmeldung kennt kein Verfügbarkeitsthema –
+  fällt der Adapter aus, behalten seine Entitäten stundenlang ihren letzten
+  Wert, ohne auszugrauen. Diese hier wird in jeder Betriebsart gemeldet und
+  sagt, ob die Verbindung steht; damit lässt sich eine Automation daran hängen.
+- Geprüft wird jede Minute über `/JI`. Das fragt nur das Gerät und belastet
+  den Bus nicht.
+- Kleinigkeit mit Folgen fürs Verständnis: Bei „BSB-LAN meldet“ steht jetzt,
+  dass der Manager ihm sagt, **was und wie oft** – seit es die Takte gibt,
+  stimmte das „was“ allein nicht mehr.
+
 ## 1.22.1
 
 - **Das Feld heißt jetzt „Grundtakt“.** In der Auswahl steht bei jedem

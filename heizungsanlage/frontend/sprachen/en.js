@@ -107,8 +107,8 @@ window.SPRACHEN.en = {
   "Er liest die Auswahl im eigenen Takt und legt die Entitäten selbst an. Steht das Add-on, kommt nichts an.":
     " It reads the selection on its own clock and creates the entities itself. While the add-on is stopped, nothing arrives.",
   "BSB-LAN meldet.": "BSB-LAN publishes.",
-  "Der Manager sagt ihm nur, was – und hält sich mit eigenen Entitäten zurück. BSB-LAN fragt den Bus ohnehin ab, meldet häufiger und legt auch Bedienelemente an.":
-    " The manager only tells it what – and holds back its own entities. BSB-LAN polls the bus anyway, publishes more often and also creates controls.",
+  "Der Manager sagt ihm nur, was und wie oft – und hält sich mit eigenen Entitäten zurück. BSB-LAN fragt den Bus ohnehin ab, meldet häufiger und legt auch Bedienelemente an.":
+    " The manager only tells it what and how often – and holds back its own entities. BSB-LAN polls the bus anyway, publishes more often and also creates controls.",
   "Speichern": "Save",
   "Topic-Präfix des Managers": "The manager's topic prefix",
   "Unter diesem Präfix legt der Manager seine MQTT-Themen ab.":

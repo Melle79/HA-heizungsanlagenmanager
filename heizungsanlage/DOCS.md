@@ -175,6 +175,17 @@ would leave the new prefix in the add-on while BSB-LAN kept publishing under
 the old one. Anything else BSB-LAN does –
 logging to SD card, say – is left alone; only differences are written.
 
+### The “BSB-LAN reachable” entity
+
+BSB-LAN's own discovery carries **no availability topic**. When the adapter
+drops out – a Wi-Fi hiccup is enough – its entities stay “available” and keep
+showing their last value. The manager therefore publishes one entity of its
+own: `binary_sensor.heizungsanlage_bsblan_erreichbar`, device class
+*connectivity*, categorised as diagnostic. It is published in every mode, even
+when BSB-LAN does all the publishing – it says nothing about the heating
+system, only about the connection to it. Checked once a minute via `/JI`,
+which asks the device alone and leaves the bus untouched.
+
 ### When BSB-LAN answers but publishes nothing
 
 There is a state that looks like “running” from the outside and is not:

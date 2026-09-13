@@ -259,6 +259,23 @@ In dieser Betriebsart übernimmt der Manager die Einrichtung:
 * Was BSB-LAN sonst tut – etwa auf SD-Karte protokollieren –, bleibt
   unangetastet: Geschrieben wird nur, was sich unterscheidet.
 
+### Die Entität „BSB-LAN erreichbar“
+
+BSB-LANs eigene Anmeldung in Home Assistant kennt **kein Verfügbarkeitsthema**.
+Fällt der Adapter aus – ein Funkabriss reicht –, bleiben seine Entitäten
+„verfügbar“ und zeigen ihren letzten Wert weiter. Auf dem Dashboard sieht das
+aus wie eine Anlage, die 74,6 °C hält.
+
+Deshalb meldet der Manager eine eigene Entität:
+`binary_sensor.heizungsanlage_bsblan_erreichbar`, Geräteklasse *connectivity*,
+als Diagnose eingestuft. Sie wird **in jeder Betriebsart** gemeldet, auch wenn
+BSB-LAN sonst alles selbst meldet – sie sagt nichts über die Heizung, sondern
+über die Verbindung zu ihr. Geprüft wird einmal je Minute über `/JI`, was nur
+das Gerät fragt und den Bus nicht belastet.
+
+Damit lässt sich eine Automation bauen, die sich meldet, wenn der Adapter
+länger als ein paar Minuten weg ist.
+
 ### Wenn BSB-LAN antwortet, aber nichts meldet
 
 Es gibt einen Zustand, der von außen wie „läuft“ aussieht und keiner ist:

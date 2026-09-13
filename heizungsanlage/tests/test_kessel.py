@@ -888,6 +888,26 @@ lauscher._nachricht(None, None, _Nachricht("BSBLAN/anderes", b"online"))
 pruefe(anwendung.bsblan_meldet() is False, "andere Themen aendern daran nichts")
 anwendung._publisher = None
 
+# Die Erreichbarkeit ist eine eigene Entitaet - sie sagt nichts ueber die
+# Heizung, sondern ueber die Verbindung zu ihr, und darum meldet der Manager
+# sie auch dann, wenn BSB-LAN das Melden uebernommen hat.
+melder2 = mqtt_publisher.Publisher.__new__(mqtt_publisher.Publisher)
+melder2._client = _Klient()
+melder2.connected = threading.Event(); melder2.connected.set()
+melder2.basis = "heizungsanlage"
+melder2.verfuegbarkeit = "heizungsanlage/availability"
+melder2.erreichbarkeit_anmelden({})
+melder2.erreichbarkeit(False)
+themen = [t for t, _, _ in melder2._client.gesendet]
+pruefe(any(t.endswith("binary_sensor/heizungsanlage/bsblan_erreichbar/config")
+           for t in themen), f"die Entitaet wird angemeldet: {themen}")
+anmeldung = json.loads(melder2._client.gesendet[0][1])
+pruefe(anmeldung.get("device_class") == "connectivity"
+       and anmeldung.get("availability_topic") == "heizungsanlage/availability",
+       "als Verbindungssensor, der mit dem Add-on verschwindet")
+pruefe(melder2._client.gesendet[-1][1] == "OFF",
+       "und ihr Zustand geht als OFF hinaus, wenn nichts antwortet")
+
 # Neustart geht ueber /N. /NE waere ein Buchstabe mehr und das EEPROM leer.
 GERAET["befehle"].clear()
 kunde.post("/api/bsblan/neustart")

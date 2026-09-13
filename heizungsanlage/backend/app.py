@@ -38,6 +38,7 @@ app = Flask(__name__, static_folder=None)
 _takt_lock = threading.Lock()
 _wecker = threading.Event()
 _poll_wecker = threading.Event()
+_erreichbar_seit = 0.0
 _publisher = None
 _letzter_fehler = ""
 # Der Katalogaufbau dauert Minuten. Damit die Oberfläche nicht ins Leere
@@ -149,12 +150,47 @@ def _lesen(auswahl=None, nummern=None) -> dict:
 POLL_TAKT_S = 15
 
 
+def _erreichbarkeit_pruefen() -> None:
+    """Antwortet BSB-LAN? – und die Antwort nach Home Assistant melden.
+
+    ``/JI`` fragt nur das Gerät selbst, nicht den Bus: Es kostet die Heizung
+    nichts, darf also jede Minute laufen. Gemeldet wird nur, was sich ändert,
+    plus einmal je Viertelstunde, damit die Entität nicht als vergessen
+    dasteht.
+    """
+    global _erreichbar_seit
+    try:
+        info = _client().info()
+        jetzt_erreichbar = True
+    except bsb_modul.BsbFehler:
+        info, jetzt_erreichbar = {}, False
+
+    state = store.load_state()
+    vorher = state.get("erreichbar")
+    if jetzt_erreichbar != vorher:
+        _LOGGER.info("BSB-LAN ist %s", "wieder da" if jetzt_erreichbar else "weg")
+    felder = {"erreichbar": jetzt_erreichbar}
+    if info:
+        felder["info"] = info
+    store.merke_state(**felder)
+
+    if _publisher is not None and _publisher.connected.is_set():
+        if jetzt_erreichbar != vorher or time.time() - _erreichbar_seit > 900:
+            _erreichbar_seit = time.time()
+            _publisher.erreichbarkeit_anmelden(info or state.get("info") or {})
+            _publisher.erreichbarkeit(jetzt_erreichbar)
+
+
 def _poll_schleife() -> None:
     faellig = {}
+    naechste_pruefung = 0.0
     while True:
         _poll_wecker.wait(timeout=POLL_TAKT_S)
         _poll_wecker.clear()
         try:
+            if time.time() >= naechste_pruefung:
+                naechste_pruefung = time.time() + 60
+                _erreichbarkeit_pruefen()
             config = store.load_config()
             e = config["einstellungen"]
             if e.get("melder") != "bsblan" or _publisher is None:
@@ -257,6 +293,11 @@ def _discovery_auffrischen() -> None:
         config = store.load_config()
         state = store.load_state()
         katalog = store.load_katalog()
+
+        # Diese eine Entität bleibt in jeder Betriebsart: Sie sagt nichts über
+        # die Heizung, sondern über die Verbindung zu ihr.
+        _publisher.erreichbarkeit_anmelden(state.get("info") or {})
+        _publisher.erreichbarkeit(bool(state.get("erreichbar")))
 
         # Meldet BSB-LAN selbst, hält der Manager sich heraus – und räumt ab,
         # was er früher angemeldet hat. Zwei Absender für dieselbe Anlage

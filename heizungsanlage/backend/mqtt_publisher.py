@@ -228,6 +228,33 @@ class Publisher:
             _LOGGER.info("Entität %s abgemeldet", alt)
         return aktuell
 
+    # Diese eine Entität meldet der Manager **immer**, auch wenn BSB-LAN das
+    # Melden übernommen hat: Sie sagt nichts über die Heizung, sondern über die
+    # Verbindung zu ihr. Und gerade dann wird sie gebraucht – BSB-LANs eigene
+    # Discovery kennt kein Verfügbarkeitsthema, seine Entitäten behalten bei
+    # einem Funkabriss stundenlang ihren letzten Wert, ohne auszugrauen.
+    ERREICHBAR = "bsblan_erreichbar"
+
+    def erreichbarkeit_anmelden(self, info: dict) -> None:
+        nutzlast = {
+            "name": "BSB-LAN erreichbar",
+            "unique_id": f"{DEVICE_ID}_{self.ERREICHBAR}",
+            "default_entity_id": f"binary_sensor.{DEVICE_ID}_{self.ERREICHBAR}",
+            "state_topic": f"{self.basis}/{self.ERREICHBAR}/state",
+            "availability_topic": self.verfuegbarkeit,
+            "device_class": "connectivity",
+            "entity_category": "diagnostic",
+            "payload_on": "ON", "payload_off": "OFF",
+            "device": self._geraet(info),
+        }
+        self._publish(
+            f"{DISCOVERY_PREFIX}/binary_sensor/{DEVICE_ID}/{self.ERREICHBAR}/config",
+            json.dumps(nutzlast))
+
+    def erreichbarkeit(self, erreichbar: bool) -> None:
+        self._publish(f"{self.basis}/{self.ERREICHBAR}/state",
+                      "ON" if erreichbar else "OFF")
+
     def altes_geraet_abraeumen(self, geraet: str, praefix: str,
                                entitaeten: list) -> None:
         """Die Anmeldungen einer früheren Kennung zurücknehmen.
