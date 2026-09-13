@@ -1,5 +1,17 @@
 # Änderungen
 
+## 1.26.2
+
+- **Pflichtparameter werden im Betrieb nachgetragen.** Bisher geschah das nur
+  beim Speichern der Auswahl – eine Kachel, die mit einer neuen Fassung
+  dazukam, stand deshalb als „nicht ausgewählt“ da, bis jemand zufällig
+  speicherte. Genau so ging es der Legionellenkachel.
+- **„Noch nicht gelesen“ war eine Ausrede.** Seit der Manager mithört, statt
+  selbst zu lesen, erfuhr er nie mehr, dass ein Kachelwert von der Anlage gar
+  nicht beantwortet wird – die Vorlauftemperatur etwa. Kacheln außerhalb der
+  Auswahl werden jetzt einmal am Tag selbst gelesen; damit steht dort wieder
+  der Grund und nicht eine Vertröstung.
+
 ## 1.26.1
 
 - **„Schreibzugriff in BSB-LAN gesperrt“ stimmte nicht.** Die Auskunft kam aus

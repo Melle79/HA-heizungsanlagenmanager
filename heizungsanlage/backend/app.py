@@ -300,6 +300,48 @@ def pflicht_nummern() -> dict:
     return raus
 
 
+def _um_pflicht_ergaenzt(auswahl: list) -> list:
+    """Die Werte der Übersicht in die Auswahl aufnehmen, falls sie fehlen."""
+    vorhanden = {str(e["nr"]) for e in auswahl}
+    katalog_p = (store.load_katalog().get("parameter") or {})
+    for nr in pflicht_nummern():
+        if nr in vorhanden:
+            continue
+        eintrag = katalog_p.get(nr) or {}
+        auswahl.append({"nr": nr,
+                        "name": eintrag.get("name") or f"Parameter {nr}",
+                        "anzeige": "", "einheit": eintrag.get("unit") or "",
+                        "device_class": eintrag.get("device_class") or "",
+                        "state_class": eintrag.get("state_class") or "",
+                        "takt_s": 0})
+    return auswahl
+
+
+def pflicht_nachtragen() -> list:
+    """Fehlende Pflichtparameter im Betrieb nachtragen.
+
+    Nicht nur beim Speichern: Kommt eine Kachel durch eine neue Fassung dazu –
+    wie die Legionellenschaltung –, stünde sie sonst als „nicht ausgewählt“ auf
+    der Übersicht, bis jemand zufällig die Auswahl speichert.
+    """
+    config = store.load_config()
+    vorher = {str(e["nr"]) for e in config["auswahl"]}
+    neu = store.validate_auswahl(_um_pflicht_ergaenzt(list(config["auswahl"])))
+    dazu = [str(e["nr"]) for e in neu if str(e["nr"]) not in vorher]
+    if not dazu:
+        return []
+    config["auswahl"] = neu
+    store.save_config(config)
+    _LOGGER.info("Für die Übersicht nachgetragen: %s", ", ".join(dazu))
+    _discovery_auffrischen()
+    if config["einstellungen"].get("melder") == "bsblan":
+        try:
+            _bsblan_parameter_schreiben()
+        except bsb_modul.BsbFehler as err:
+            _LOGGER.warning("Nachtrag nicht an BSB-LAN übergeben: %s", err)
+    return dazu
+
+
 def _werte_aus_mqtt() -> int:
     """Was BSB-LAN gemeldet hat, in den Zustand des Managers übernehmen.
 
@@ -407,6 +449,13 @@ def _takt_ausfuehren() -> dict:
     dieselbe Anlage dasselbe zu fragen und die Leitung doppelt zu belegen.
     Der Manager hört also mit und fragt nur nach, was dabei fehlt oder alt ist.
     """
+    # Erst nachtragen, dann lesen: Sonst fehlte ein neu hinzugekommener
+    # Pflichtwert genau eine Runde lang.
+    try:
+        pflicht_nachtragen()
+    except Exception as err:  # noqa: BLE001
+        _LOGGER.warning("Pflichtparameter nicht nachgetragen: %s", err)
+
     config = store.load_config()
     e = config["einstellungen"]
     if e.get("melder") != "bsblan":
@@ -416,15 +465,26 @@ def _takt_ausfuehren() -> dict:
     grenze = max(int(e["intervall_s"]) * FRISCH_FAKTOR, 900)
     werte = (store.load_state().get("werte") or {})
     jetzt = datetime.now()
+
+    # Die Kacheln der Übersicht, die *nicht* in der Auswahl stehen, gehören
+    # dazu – aber mit langem Atem. Es sind genau die, die die Anlage nicht
+    # beantwortet: Erst dieses eine Lesen macht aus „noch nicht gelesen“ die
+    # ehrliche Auskunft „kein Fühler angeschlossen“.
+    zu_pruefen = [(str(a["nr"]), grenze) for a in config["auswahl"]]
+    dabei = {nr for nr, _ in zu_pruefen}
+    for kachel in katalog_modul.kacheln(store.load_katalog()):
+        nr = str(kachel.get("nr") or "")
+        if nr and nr not in dabei:
+            zu_pruefen.append((nr, 86400))
+
     veraltet = []
-    for eintrag in config["auswahl"]:
-        nr = str(eintrag["nr"])
+    for nr, wie_alt_darf in zu_pruefen:
         zeit = (werte.get(nr) or {}).get("zeit")
         try:
             alter = (jetzt - datetime.fromisoformat(zeit)).total_seconds()
         except (TypeError, ValueError):
             alter = float("inf")
-        if alter > grenze:
+        if alter > wie_alt_darf:
             veraltet.append(nr)
 
     store.merke_state(letzter_lauf=jetzt.isoformat(timespec="seconds"))
@@ -1291,21 +1351,7 @@ def api_auswahl():
         neu = store.validate_auswahl(request.get_json(force=True) or [])
     except store.ValidationError as err:
         return jsonify({"fehler": str(err)}), 400
-    # Was der Manager für seine Übersicht braucht, ergänzt er selbst – sonst
-    # bliebe seine eigene Startseite leer, weil BSB-LAN diese Werte gar nicht
-    # erst meldet.
-    vorhanden = {str(e["nr"]) for e in neu}
-    katalog_p = (store.load_katalog().get("parameter") or {})
-    for nr in pflicht_nummern():
-        if nr in vorhanden:
-            continue
-        eintrag = katalog_p.get(nr) or {}
-        neu.append({"nr": nr, "name": eintrag.get("name") or f"Parameter {nr}",
-                    "anzeige": "", "einheit": eintrag.get("unit") or "",
-                    "device_class": eintrag.get("device_class") or "",
-                    "state_class": eintrag.get("state_class") or "",
-                    "takt_s": 0})
-    neu = store.validate_auswahl(neu)
+    neu = store.validate_auswahl(_um_pflicht_ergaenzt(neu))
 
     config["auswahl"] = neu
     store.save_config(config)

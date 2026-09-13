@@ -996,6 +996,17 @@ GERAET["konfig"]["4"]["value"] = "0"
 pruefe(anwendung.bsblan_schreibt() is False, "Ebene 0 heisst: gesperrt")
 pruefe(anwendung.bsblan_schreibt() is False, "und die Antwort wird gemerkt")
 
+# Eine Kachel, die erst mit einer neuen Fassung dazukommt, stuende sonst als
+# "nicht ausgewaehlt" auf der Uebersicht, bis jemand zufaellig speichert.
+config = store.load_config()
+config["auswahl"] = [e for e in config["auswahl"]
+                     if str(e["nr"]) not in anwendung.pflicht_nummern()]
+store.save_config(config)
+dazu = anwendung.pflicht_nachtragen()
+pruefe(bool(dazu), f"fehlende Pflichtparameter werden im Betrieb nachgetragen: {dazu}")
+pruefe(anwendung.pflicht_nachtragen() == [],
+       "und beim zweiten Mal ist nichts mehr zu tun")
+
 # Neustart geht ueber /N. /NE waere ein Buchstabe mehr und das EEPROM leer.
 GERAET["befehle"].clear()
 kunde.post("/api/bsblan/neustart")
