@@ -175,6 +175,18 @@ would leave the new prefix in the add-on while BSB-LAN kept publishing under
 the old one. Anything else BSB-LAN does –
 logging to SD card, say – is left alone; only differences are written.
 
+### Every parameter at its own rate
+
+BSB-LAN's publish interval applies to all parameters alike, and that is where
+the limit of 40 comes from: a bus query takes one to two seconds, so forty
+parameters every minute occupy the bus completely. The **Rate** column in the
+selection lets each parameter run at its own pace – boiler temperature often,
+operating hours once an hour. Left on *base rate*, BSB-LAN's own interval
+applies; with a value set, the manager asks for that parameter over MQTT
+(`<prefix>/poll`), the same interface one would otherwise drive with Home
+Assistant automations. Next to the selection stands what it costs: queries per
+minute and the estimated share of bus time.
+
 The selection is pushed into BSB-LAN's log parameter list on save, and *take
 over the list from BSB-LAN* does the reverse. Both buttons sit with the
 selection itself, and only while BSB-LAN publishes. Every write is read back: BSB-LAN

@@ -259,6 +259,25 @@ In dieser Betriebsart übernimmt der Manager die Einrichtung:
 * Was BSB-LAN sonst tut – etwa auf SD-Karte protokollieren –, bleibt
   unangetastet: Geschrieben wird nur, was sich unterscheidet.
 
+### Jeder Parameter im eigenen Takt
+
+Der feste Sendeintervall von BSB-LAN gilt für alle Parameter gleich, und das
+ist der Grund für die Grenze von 40: Eine Busabfrage dauert ein bis zwei
+Sekunden, vierzig Parameter jede Minute belegen den Bus vollständig. Frederik
+Holst, der BSB-LAN gebaut hat, rät deshalb dazu, jeden Parameter so oft zu
+holen, wie er es verdient – die Kesseltemperatur oft, die Betriebsstunden
+einmal in der Stunde.
+
+Dafür steht in der Auswahl je Parameter eine Spalte **Takt**. Bleibt sie auf
+*Grundtakt*, gilt das Sendeintervall von BSB-LAN. Steht dort ein Wert, fordert
+der Manager diesen Parameter über MQTT (`<Präfix>/poll`) selbst an – dieselbe
+Schnittstelle, die man sonst mit Automationen in Home Assistant bedient, nur
+dass sich hier niemand welche bauen muss.
+
+Neben der Auswahl steht, was das kostet: **Abfragen je Minute** und der
+geschätzte Anteil an der Buszeit. Über 60 % wird die Zahl orange – dann fragt
+die Anlage öfter, als sie antworten kann.
+
 Die **Auswahl** wandert beim Speichern gleich mit in BSB-LANs Log-Parameter-
 liste. Umgekehrt geht es auch: *Liste aus BSB-LAN übernehmen* holt, was dort
 über die Jahre zusammengekommen ist, in die Auswahl. Beide Knöpfe stehen bei

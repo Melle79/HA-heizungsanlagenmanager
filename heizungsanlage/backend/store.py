@@ -273,8 +273,17 @@ def validate_auswahl(roh) -> list:
         if nr in gesehen:      # doppelte Auswahl ist keine Fehlermeldung wert
             continue
         gesehen.add(nr)
+        # 0 heißt: kein eigener Takt, es gilt der Grundtakt von BSB-LAN.
+        try:
+            takt = int(eintrag.get("takt_s") or 0)
+        except (TypeError, ValueError):
+            raise ValidationError(f"Ungültiger Takt bei Parameter {nr}")
+        if takt and not 30 <= takt <= 86400:
+            raise ValidationError("Ein eigener Takt liegt zwischen 30 Sekunden "
+                                  "und einem Tag")
         raus.append({
             "nr": nr,
+            "takt_s": takt,
             "name": str(eintrag.get("name") or "").strip(),
             "anzeige": str(eintrag.get("anzeige") or "").strip(),
             "einheit": str(eintrag.get("einheit") or "").strip(),

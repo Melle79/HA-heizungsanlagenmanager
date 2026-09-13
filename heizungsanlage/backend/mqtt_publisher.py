@@ -121,6 +121,23 @@ class Publisher:
         if self.connected.is_set():
             self._client.publish(topic, payload, retain=True)
 
+    def abfragen(self, praefix: str, nummern: list) -> None:
+        """BSB-LAN auffordern, diese Parameter jetzt zu lesen und zu melden.
+
+        BSB-LAN hört auf ``<praefix>/poll`` und nimmt dort eine
+        kommagetrennte Liste entgegen. Damit lässt sich das, was die Firmware
+        sonst im festen Takt für alle tut, für einzelne Parameter häufiger
+        auslösen – ohne den Bus mit dem Rest zu belegen.
+
+        **Nicht retained.** Ein liegengebliebener Abfragebefehl würde bei jedem
+        Verbindungsaufbau erneut zugestellt und den Bus zu Zeiten belasten, zu
+        denen ihn niemand darum gebeten hat.
+        """
+        if not (self.connected.is_set() and praefix and nummern):
+            return
+        self._client.publish(f"{praefix.strip('/')}/poll",
+                             ",".join(str(n) for n in nummern), retain=False)
+
     def _geraet(self, info: dict) -> dict:
         # Der Gerätename nennt den Regler, nicht das Add-on: In Home Assistant
         # steht dann "WRS-CPU-B2/E" im Gerätebaum und nicht "Add-on".

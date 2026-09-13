@@ -28,6 +28,8 @@
   .kopf-rechts{display:flex; align-items:center; gap:var(--l4); flex-wrap:wrap}
   /* Die Fassung steht dort, wo man ohnehin nach dem Zustand schaut. Der
      Hinweis auf eine neuere erscheint nur, wenn es eine gibt. */
+  .notiz.warn{color:var(--warm)}
+  select.takt{padding:2px 4px; font-size:.78rem; min-width:96px}
   .marke-neu{font-size:.68rem; color:var(--warm); border:1px solid var(--warm);
     border-radius:4px; padding:0 5px; margin-left:var(--l2);
     text-decoration:none; white-space:nowrap}
@@ -389,6 +391,7 @@
       <button class="leise" id="btn-vorschlag">Sinnvolle Auswahl vorschlagen</button>
       <button class="leise" id="btn-kat-alle">Alle aufklappen</button>
       <span class="notiz" id="auswahl-zahl"></span>
+      <span class="notiz" id="buslast"></span>
       <span class="meldung" id="m-auswahl"></span>
     </div>
     <div class="zeile-aktionen" id="bsblan-listen" hidden>
@@ -404,6 +407,7 @@
       <thead><tr><th style="width:34px"></th>
         <th data-sort="nr">Nr</th><th data-sort="name">Name</th>
         <th data-sort="einheit">Einheit</th>
+        <th class="nur-bsblan" hidden>Takt</th>
         <th data-sort="wert" style="text-align:right">zuletzt gelesen</th></tr></thead>
       <tbody id="katalogtabelle"></tbody>
     </table></div>
@@ -858,6 +862,47 @@ function sortKoepfeZeichnen() {
   });
 }
 
+// Frederiks Faustzahl: Eine Busabfrage dauert ein bis zwei Sekunden. Vierzig
+// Parameter jede Minute belegen den Bus vollständig – deshalb bekommt hier
+// jeder Parameter den Takt, den er verdient, statt alle denselben.
+const TAKTE = [[0, 'Grundtakt'], [30, '30 s'], [60, '1 min'], [120, '2 min'],
+               [300, '5 min'], [900, '15 min'], [3600, '1 Stunde']];
+let taktNach = {};
+const durchBsblan = () => (einst || {}).melder === 'bsblan';
+
+function taktFeld(nr) {
+  const jetzt = taktNach[nr] || 0;
+  const zeilen = TAKTE.map(([s, name]) =>
+    `<option value="${s}"${s === jetzt ? ' selected' : ''}>${name}</option>`);
+  // Ein Takt für etwas, das gar nicht gemeldet wird, wäre eine Einstellung
+  // ohne Wirkung – also erst anhaken, dann takten.
+  const aus = auswahlNr.has(nr) ? '' : ' disabled';
+  return `<select class="takt" data-nr="${nr}"${aus}>${zeilen.join('')}</select>`;
+}
+
+// Was die Auswahl an Buszeit kostet: Abfragen je Minute mal anderthalb
+// Sekunden. Keine Messung, eine Ansage – aber sie zeigt sofort, wenn zwei
+// Sekunden Takt gegen sechzig Parameter stehen.
+function buslast() {
+  const grund = parseInt($('e-bsblan-intervall').value, 10)
+                || (einst || {}).bsblan_intervall_s || 60;
+  let jeMinute = 0;
+  auswahlNr.forEach(nr => {
+    const takt = taktNach[nr] || grund;
+    jeMinute += 60 / Math.max(takt, 1);
+  });
+  return {jeMinute: Math.round(jeMinute * 10) / 10,
+          anteil: Math.round(jeMinute * 1.5 / 60 * 100)};
+}
+
+function buslastZeigen() {
+  const feld = $('buslast'); if (!feld) return;
+  if (!durchBsblan() || !auswahlNr.size) { feld.textContent = ''; return; }
+  const {jeMinute, anteil} = buslast();
+  feld.textContent = `${jeMinute} Abfragen je Minute · rund ${anteil} % Buszeit`;
+  feld.className = 'notiz' + (anteil > 60 ? ' warn' : '');
+}
+
 function wertZelle(p) {
   if (!auswahlNr.has(p.nr)) return '';
   const w = werte[p.nr];
@@ -915,7 +960,7 @@ async function katalogZeichnen(neuLaden = true) {
   const gewaehlt_n = teil.filter(p => auswahlNr.has(p.nr)).length;
   const kopf = document.createElement('tr');
   kopf.className = 'gruppe';
-  kopf.innerHTML = `<td colspan="5"><span class="pfeil">${offen ? '▾' : '▸'}</span>`
+  kopf.innerHTML = `<td colspan="${durchBsblan() ? 6 : 5}"><span class="pfeil">${offen ? '▾' : '▸'}</span>`
     + `${teil[0].kategorie_name || 'Kategorie ' + kid}`
     + `<span class="notiz">${teil.length} Parameter${
         gewaehlt_n ? ` · ${gewaehlt_n} ausgewählt` : ''}</span></td>`;
@@ -937,12 +982,22 @@ async function katalogZeichnen(neuLaden = true) {
       <td>${p.name}${p.schreibbar ? '<span class="marke-rw">stellbar</span>' : ''}
         <div class="notiz">${[p.device_class, p.state_class].filter(Boolean).join(' · ') || ''}</div></td>
       <td class="kat">${p.unit || ''}</td>
+      <td class="kat nur-bsblan" ${durchBsblan() ? '' : 'hidden'}>${taktFeld(p.nr)}</td>
       <td class="wert">${wertZelle(p)}</td>`;
-    zeile.querySelector('input').onchange = (ev) => {
+    const wahl = zeile.querySelector('select.takt');
+    if (wahl) wahl.onchange = (ev) => {
+      const wert = parseInt(ev.target.value, 10) || 0;
+      if (wert) taktNach[ev.target.dataset.nr] = wert;
+      else delete taktNach[ev.target.dataset.nr];
+      buslastZeigen();
+    };
+    zeile.querySelector('input[type=checkbox]').onchange = (ev) => {
       const nr = ev.target.dataset.nr;
       if (ev.target.checked) { auswahlNr.add(nr); zeile.classList.remove('aus'); }
       else { auswahlNr.delete(nr); zeile.classList.add('aus'); }
+      if (wahl) wahl.disabled = !ev.target.checked;
       $('auswahl-zahl').textContent = `${auswahlNr.size} ausgewählt`;
+      buslastZeigen();
     };
     koerper.appendChild(zeile);
   });
@@ -950,6 +1005,8 @@ async function katalogZeichnen(neuLaden = true) {
   $('katalog-leer').hidden = liste.length > 0;
   // Wer sucht, sieht ohnehin alles offen – dann wäre der Knopf ein Blindgänger.
   $('btn-kat-alle').hidden = gesucht;
+  document.querySelectorAll('th.nur-bsblan').forEach(k => k.hidden = !durchBsblan());
+  buslastZeigen();
   $('auswahl-zahl').textContent = `${auswahlNr.size} ausgewählt`;
 }
 
@@ -987,11 +1044,13 @@ $('btn-speichern-auswahl').onclick = async () => {
             anzeige: alt.anzeige || '',
             einheit: p.unit !== undefined ? p.unit : (alt.einheit || ''),
             device_class: p.device_class !== undefined ? p.device_class : (alt.device_class||''),
+            takt_s: taktNach[nr] || 0,
             state_class: p.state_class !== undefined ? p.state_class : (alt.state_class||'')};
   });
   try {
     auswahl = await sendeJSON('auswahl', 'PUT', koerper);
     auswahlNr = new Set(auswahl.map(a => a.nr));
+    taktAusAuswahl();
     meldung('m-auswahl', `${auswahl.length} Parameter gespeichert`, true);
     await statusLaden();
   } catch (err) { meldung('m-auswahl', err.message); }
@@ -1772,6 +1831,7 @@ $('btn-bsblan-uebernehmen').onclick = async () => {
   try {
     auswahl = await sendeJSON('bsblan/uebernehmen', 'POST', {});
     auswahlNr = new Set(auswahl.map(a => a.nr));
+    taktAusAuswahl();
     meldung('m-auswahl', `${auswahl.length} Parameter übernommen`, true);
     katalogZeichnen(); await statusLaden();
   } catch (err) { meldung('m-auswahl', err.message); }
@@ -1827,11 +1887,17 @@ async function werteLaden() {
   werte = d.werte || {};
 }
 
+function taktAusAuswahl() {
+  taktNach = {};
+  auswahl.forEach(a => { if (a.takt_s) taktNach[a.nr] = a.takt_s; });
+}
+
 async function anlauf() {
   const e = await hole('einstellungen');
   einstellungenZeichnen(e);
   auswahl = await hole('auswahl');
   auswahlNr = new Set(auswahl.map(a => a.nr));
+  taktAusAuswahl();
   await werteLaden();
   await katalogLaden();
   await statusLaden();

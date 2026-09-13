@@ -1,5 +1,19 @@
 # Änderungen
 
+## 1.21.0
+
+- **Jeder Parameter im eigenen Takt.** In der Auswahl steht je Parameter eine
+  Spalte *Takt*. Wer dort etwas einträgt, bekommt diesen Wert vom Manager über
+  `<Präfix>/poll` angefordert – dieselbe Schnittstelle, die man sonst mit
+  Automationen in Home Assistant bedient. Der Rest läuft weiter im Grundtakt
+  von BSB-LAN.
+- **Und daneben steht, was es kostet:** Abfragen je Minute und der geschätzte
+  Anteil an der Buszeit, gerechnet mit anderthalb Sekunden je Abfrage. Über
+  60 % wird die Zahl orange.
+- Der Grund für beides kommt von Frederik Holst: Eine Busabfrage dauert ein bis
+  zwei Sekunden, vierzig Parameter im Minutentakt belegen den Bus vollständig –
+  daher auch die Grenze von 40 Log-Parametern in BSB-LAN.
+
 ## 1.20.0
 
 - **Die Broker-Adresse trägt jetzt auch bis zum Adapter.** Der Supervisor nennt

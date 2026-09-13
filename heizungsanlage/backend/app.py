@@ -37,6 +37,7 @@ app = Flask(__name__, static_folder=None)
 
 _takt_lock = threading.Lock()
 _wecker = threading.Event()
+_poll_wecker = threading.Event()
 _publisher = None
 _letzter_fehler = ""
 # Der Katalogaufbau dauert Minuten. Damit die Oberfläche nicht ins Leere
@@ -137,6 +138,49 @@ def _lesen(auswahl=None, nummern=None) -> dict:
     # „126 Werte gelesen“ melden, wo dreizehn abgefragt wurden.
     return {"werte": state["werte"], "letzter_lauf": state["letzter_lauf"],
             "gelesen": gelesen}
+
+
+# Frederik Holst, der BSB-LAN gebaut hat, rät vom festen Sendeintervall ab:
+# Jede Busabfrage dauert ein bis zwei Sekunden, vierzig Parameter im
+# Minutentakt belegen den Bus vollständig. Sein Weg – in einem Video über
+# Home-Assistant-Automationen gezeigt – ist, jeden Parameter so oft abzufragen,
+# wie er es verdient. BSB-LAN hört dafür auf ``<praefix>/poll``. Das Add-on
+# nimmt dem Nutzer die Automationen ab und schickt die Aufforderung selbst.
+POLL_TAKT_S = 15
+
+
+def _poll_schleife() -> None:
+    faellig = {}
+    while True:
+        _poll_wecker.wait(timeout=POLL_TAKT_S)
+        _poll_wecker.clear()
+        try:
+            config = store.load_config()
+            e = config["einstellungen"]
+            if e.get("melder") != "bsblan" or _publisher is None:
+                faellig.clear()
+                continue
+            jetzt = time.time()
+            dran = []
+            eigene = set()
+            for eintrag in config["auswahl"]:
+                takt = int(eintrag.get("takt_s") or 0)
+                if not takt:
+                    continue
+                nr = str(eintrag["nr"])
+                eigene.add(nr)
+                if jetzt - faellig.get(nr, 0) >= takt:
+                    faellig[nr] = jetzt
+                    dran.append(nr)
+            # Was nicht mehr ausgewählt ist, muss auch nicht gemerkt werden.
+            for nr in list(faellig):
+                if nr not in eigene:
+                    faellig.pop(nr, None)
+            if dran:
+                _publisher.abfragen(e.get("bsblan_praefix") or "", dran)
+                _LOGGER.info("Abfrage an BSB-LAN: %s", ", ".join(dran))
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.exception("Abfragetakt fehlgeschlagen: %s", err)
 
 
 def _takt_schleife() -> None:
@@ -953,6 +997,7 @@ def main() -> None:
     _zeitzone_uebernehmen()
     _mqtt_starten()
     threading.Thread(target=_takt_schleife, daemon=True).start()
+    threading.Thread(target=_poll_schleife, daemon=True).start()
     port = int(os.environ.get("INGRESS_PORT", 8099))
     _LOGGER.info("Heizungsanlagenmanager %s startet auf Port %d", VERSION, port)
     app.run(host="0.0.0.0", port=port, threaded=True, use_reloader=False)

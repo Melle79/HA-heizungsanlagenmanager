@@ -22,6 +22,7 @@ durchaus eine Null.
 """
 import json
 import os
+import threading
 import sys
 import tempfile
 
@@ -834,6 +835,32 @@ pruefe(anwendung.broker_fuer_bsblan() == "",
 os.environ["MQTT_HOST"] = "192.168.1.222"
 pruefe(anwendung.broker_fuer_bsblan() == "192.168.1.222:1883",
        "eine IP wird unveraendert durchgereicht")
+
+# Der eigene Takt je Parameter: Frederiks Rat, nicht alles gleich oft zu holen.
+gespeichert = kunde.put("/api/auswahl", json=[
+    {"nr": "115", "name": "Kessel", "takt_s": 60},
+    {"nr": "72", "name": "Stunden"}]).get_json()
+pruefe([e.get("takt_s") for e in gespeichert] == [60, 0],
+       "ein eigener Takt wird gespeichert, ohne Angabe gilt der Grundtakt")
+antwort = kunde.put("/api/auswahl", json=[{"nr": "115", "name": "K", "takt_s": 5}])
+pruefe(antwort.status_code == 400, "ein Takt von fünf Sekunden wird abgelehnt")
+
+# Abgefragt wird über MQTT, und zwar ohne retain: Ein liegengebliebener
+# Abfragebefehl würde den Bus bei jedem Verbindungsaufbau erneut belasten.
+class _Klient:
+    def __init__(self): self.gesendet = []
+    def publish(self, topic, payload, retain=False):
+        self.gesendet.append((topic, payload, retain))
+
+import mqtt_publisher
+melder = mqtt_publisher.Publisher.__new__(mqtt_publisher.Publisher)
+melder._client = _Klient()
+melder.connected = threading.Event(); melder.connected.set()
+melder.abfragen("BSBLAN", ["115", "72"])
+pruefe(melder._client.gesendet == [("BSBLAN/poll", "115,72", False)],
+       f"die Abfrage geht an BSBLAN/poll, ohne retain: {melder._client.gesendet}")
+melder.abfragen("BSBLAN", [])
+pruefe(len(melder._client.gesendet) == 1, "ohne faellige Parameter geht nichts raus")
 
 # Und im Betrieb: Wer die Auswahl speichert, findet sie in BSB-LAN wieder.
 kunde.put("/api/auswahl", json=[{"nr": "115", "name": "Kessel"}])
