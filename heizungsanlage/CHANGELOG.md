@@ -1,5 +1,12 @@
 # Änderungen
 
+## 1.30.1
+
+- **Jede Tafel unter „Einstellungen“ hat jetzt ihren eigenen Speichern-Knopf.**
+  Bisher gab es genau einen, und der stand im Bereich *Schreibzugriff* – wer
+  oben etwas änderte, suchte ihn dort, wo er nicht war. Gespeichert wird nach
+  wie vor alles zusammen; der Knopf steht nur endlich da, wo man ihn drückt.
+
 ## 1.30.0
 
 - **Legionellenaufheizung durch den Manager.** Unter *Einstellungen* stellst du

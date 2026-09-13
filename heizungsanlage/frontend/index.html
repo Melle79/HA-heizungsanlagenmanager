@@ -449,6 +449,10 @@
           für Home Assistant. Das läuft auch dann, wenn BSB-LAN meldet: Beide
           Takte belegen denselben Bus.</div></div>
     </div>
+    <div class="zeile-aktionen">
+      <button id="btn-speichern-verbindung">Speichern</button>
+      <span class="meldung" id="m-verbindung"></span>
+    </div>
   </div>
 
   <!-- Wie in den übrigen Add-ons: Der Meldeweg gehört in die Einstellungen,
@@ -469,6 +473,7 @@
           wenn sie vorbei ist.</div></div>
     </div>
     <div class="zeile-aktionen">
+      <button id="btn-speichern-melden">Speichern</button>
       <button class="leise" id="btn-probemeldung">Probemeldung schicken</button>
       <span class="meldung" id="m-melden"></span>
     </div>
@@ -513,6 +518,7 @@
     </div>
     <div class="hinweis" id="leg-lage" style="margin-top:var(--l3)"></div>
     <div class="zeile-aktionen">
+      <button id="btn-speichern-leg">Speichern</button>
       <button class="leise" id="btn-leg-start">Jetzt aufheizen</button>
       <button class="leise" id="btn-leg-stop" hidden>Abbrechen</button>
       <span class="meldung" id="m-leg"></span>
@@ -527,7 +533,7 @@
       BSB-LAN selbst. Beide sind ab Werk aus, und das mit Absicht – ein
       falscher Sollwert lässt im Winter eine Wohnung auskühlen.</div>
     <div class="zeile-aktionen">
-      <button id="btn-speichern-einst">Einstellungen speichern</button>
+      <button id="btn-speichern-einst">Speichern</button>
       <span class="meldung" id="m-einst"></span>
     </div>
   </div>
@@ -543,6 +549,10 @@
       <br>Ab Werk aus, und zwar aus einem Grund: Wer die Anlage auch am Gerät
       auf dem Kessel verstellt, sieht für diese paar Sekunden den alten Wert.
       Läuft bei dir alles über Home Assistant, kann das nicht schiefgehen.</div>
+    <div class="zeile-aktionen">
+      <button id="btn-speichern-anzeige">Speichern</button>
+      <span class="meldung" id="m-anzeige"></span>
+    </div>
   </div>
 
   <div class="tafel">
@@ -1976,6 +1986,13 @@ async function einstellungenSpeichern(feld) {
   } catch (err) { meldung(feld, err.message); }
 }
 
+// Jede Tafel speichert für sich. Gespeichert wird dabei immer alles – aber
+// wer in einer Tafel etwas ändert, sucht den Knopf dort und nicht drei
+// Tafeln weiter unten.
+['verbindung', 'melden', 'leg', 'anzeige'].forEach(teil => {
+  const knopf = $('btn-speichern-' + teil);
+  if (knopf) knopf.onclick = () => einstellungenSpeichern('m-' + teil);
+});
 $('btn-speichern-einst').onclick = () => einstellungenSpeichern('m-einst');
 $('btn-speichern-melder-oben').onclick = () => einstellungenSpeichern('m-melder');
 

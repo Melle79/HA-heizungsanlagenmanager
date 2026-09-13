@@ -223,7 +223,6 @@ window.SPRACHEN.en = {
   "Stellen von Parametern erlauben": "Allow setting parameters",
   "Zwei Schalter müssen dafür stehen: dieser und der in BSB-LAN selbst. Beide sind ab Werk aus, und das mit Absicht – ein falscher Sollwert lässt im Winter eine Wohnung auskühlen.":
     "Two switches have to be on: this one and the one in BSB-LAN itself. Both are off by default, and deliberately so – a wrong setpoint lets a flat go cold in winter.",
-  "Einstellungen speichern": "Save settings",
   "Gespeichert": "Saved",
   "Eigenen Namen vergeben": "Give it a name of your own",
   "Name gespeichert": "Name saved",
