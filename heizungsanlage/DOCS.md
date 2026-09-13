@@ -205,6 +205,21 @@ MQTT while the Wi-Fi silently reconnects. The manager therefore listens on
 while the device is reachable, a hint appears with a **Restart adapter**
 button. The restart uses `/N` and leaves every setting in the device alone.
 
+### Asking twice is once too often
+
+When BSB-LAN publishes, its values are already on the broker as retained
+messages. The manager **listens in** instead of asking the same system again;
+it only goes to the bus for what is missing – categories opened in the
+*Regelung* tab, time programmes, and any published value that has not been
+refreshed for three times the polling rate.
+
+What the overview needs – boiler and outside temperature, operating hours and
+the other tile values – the manager adds to the selection itself and does not
+let you remove it: without those, its own start page would be empty. They are
+marked *for the overview* and run at a **minimum rate of five minutes**.
+Parameters the controller does not answer are never forced in; they would only
+become an empty entity.
+
 ### Every parameter at its own rate
 
 BSB-LAN's publish interval applies to all parameters alike, and that is where

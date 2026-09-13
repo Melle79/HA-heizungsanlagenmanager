@@ -843,8 +843,9 @@ pruefe(anwendung.broker_fuer_bsblan() == "192.168.1.222:1883",
 gespeichert = kunde.put("/api/auswahl", json=[
     {"nr": "115", "name": "Kessel", "takt_s": 60},
     {"nr": "72", "name": "Stunden"}]).get_json()
-pruefe([e.get("takt_s") for e in gespeichert] == [60, 0],
-       "ein eigener Takt wird gespeichert, ohne Angabe gilt der Grundtakt")
+takte = {e["nr"]: e.get("takt_s") for e in gespeichert}
+pruefe(takte.get("115") == 60 and takte.get("72") == 0,
+       f"ein eigener Takt wird gespeichert, ohne Angabe gilt der Grundtakt: {takte}")
 antwort = kunde.put("/api/auswahl", json=[{"nr": "115", "name": "K", "takt_s": 5}])
 pruefe(antwort.status_code == 400, "ein Takt von fünf Sekunden wird abgelehnt")
 
@@ -876,6 +877,9 @@ lauscher._client.subscribe = lambda t: None
 lauscher._client.unsubscribe = lambda t: None
 lauscher.connected = threading.Event(); lauscher.connected.set()
 lauscher._horcht = ""
+lauscher._horcht_werte = ""
+lauscher.fremde_werte = {}
+lauscher.auf_wert = None
 lauscher.fremd_stand = {"topic": "", "wert": "", "zeit": 0.0}
 lauscher.horchen("BSBLAN/status")
 anwendung._publisher = lauscher
@@ -941,6 +945,22 @@ pruefe(len(gesendet) == 2 and "zurueck" in gesendet[1][1].replace("ü", "ue"),
 anwendung._stoerung_melden("", True, True)
 pruefe(len(gesendet) == 2, "aber nur einmal")
 
+# Was die Uebersicht braucht, ergaenzt der Manager beim Speichern selbst -
+# sonst bliebe seine Startseite leer, weil BSB-LAN nur meldet, was in seiner
+# Liste steht. Ein Parameter, den die Anlage nicht beantwortet, wird dabei
+# nicht erzwungen: Er waere eine ewig leere Entitaet.
+kachel_nummern = [x["nr"] for x in katalog.kacheln(store.load_katalog())]
+pruefe(bool(kachel_nummern), f"die Uebersicht kennt Kacheln: {kachel_nummern}")
+store.merke_state(werte={kachel_nummern[0]: {"value": "---", "error": 7}})
+pflicht = anwendung.pflicht_nummern()
+pruefe(kachel_nummern[0] not in pflicht,
+       "ein Parameter ohne Antwort wird nicht erzwungen")
+gespeichert = kunde.put("/api/auswahl", json=[{"nr": "999", "name": "Fremd"}]).get_json()
+nummern = [e["nr"] for e in gespeichert]
+pruefe(all(nr in nummern for nr in pflicht),
+       f"die Pflichtparameter stehen danach in der Auswahl: {nummern}")
+store.merke_state(werte={})
+
 # Neustart geht ueber /N. /NE waere ein Buchstabe mehr und das EEPROM leer.
 GERAET["befehle"].clear()
 kunde.post("/api/bsblan/neustart")
@@ -948,8 +968,11 @@ pruefe(GERAET.get("neustart") == "N", f"der Neustart nutzt /N, nicht /NE ({GERAE
 
 # Und im Betrieb: Wer die Auswahl speichert, findet sie in BSB-LAN wieder.
 kunde.put("/api/auswahl", json=[{"nr": "115", "name": "Kessel"}])
-pruefe(GERAET["konfig"]["34"]["value"] == "115",
-       "auch das Speichern der Auswahl wandert dorthin")
+gefuehrt = GERAET["konfig"]["34"]["value"].split(",")
+pruefe("115" in gefuehrt, "auch das Speichern der Auswahl wandert dorthin")
+# Und die Pflichtparameter der Uebersicht sind gleich mitgegangen.
+pruefe(all(nr in gefuehrt for nr in anwendung.pflicht_nummern()),
+       f"samt dem, was die Uebersicht braucht: {gefuehrt}")
 
 # Dasselbe gilt fuer die Einstellungen: Wer speichert, erwartet, dass es dort
 # ankommt, wo es wirkt. Vorher stand das neue Praefix im Add-on und BSB-LAN

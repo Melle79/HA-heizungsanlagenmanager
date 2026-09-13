@@ -1,5 +1,22 @@
 # Änderungen
 
+## 1.25.0
+
+- **Der Manager fragt nicht mehr doppelt.** Meldet BSB-LAN, hört er dessen
+  Werte über MQTT mit, statt dieselben Parameter ein zweites Mal über den Bus
+  zu holen. Möglich ist das, weil BSB-LAN „retained“ sendet: Ein frisches
+  Abonnement bekommt sofort den letzten Stand jedes Werts. Auf dieser Anlage
+  fällt damit etwa die Hälfte der Buslast weg.
+- Über den Bus geht er nur noch für das, was dort nicht ankommt – und wenn ein
+  Wert länger als das Dreifache des Abfragetakts nicht aufgefrischt wurde.
+  Dann liest er ihn selbst, statt ihn stehen zu lassen.
+- **Was die Übersicht braucht, ist jetzt Voraussetzung**: Die Kachelwerte
+  trägt der Manager selbst in die Auswahl ein und lässt sie nicht abwählen –
+  sie stehen mit dem Vermerk *für die Übersicht* in der Liste. Dazu ein
+  **Mindesttakt von fünf Minuten** für genau diese Werte.
+- Was die Anlage nicht beantwortet, wird nicht erzwungen. Eine
+  Vorlauftemperatur ohne Fühler bliebe eine leere Entität.
+
 ## 1.24.1
 
 - **Das Feld „Abfrageintervall“ heißt jetzt „Abfragetakt des Managers“** – und

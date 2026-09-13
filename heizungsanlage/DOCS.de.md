@@ -310,6 +310,25 @@ hinterlegt. Bleibt dort „offline“ stehen, während das Gerät erreichbar ist
 erscheint ein Hinweis mit dem Knopf **Adapter neu starten**. Der Neustart geht
 über `/N` und lässt alle Einstellungen im Gerät unangetastet.
 
+### Zweimal fragen ist einmal zu viel
+
+Meldet BSB-LAN, sind die Werte längst über den Bus gekommen – und liegen als
+`retained`-Nachrichten beim Broker, also sofort abrufbar. Der Manager **hört
+sie deshalb mit**, statt dieselbe Anlage ein zweites Mal zu fragen. Über den
+Bus geht er nur noch dort, wo etwas fehlt: für Kategorien, die man im Reiter
+*Regelung* öffnet, für Zeitprogramme – und wenn ein gemeldeter Wert länger als
+das Dreifache des Abfragetakts nicht mehr aufgefrischt wurde.
+
+**Was die Übersicht braucht, gehört dazu.** Kesseltemperatur, Außentemperatur,
+Betriebsstunden und die übrigen Kachelwerte trägt der Manager selbst in die
+Auswahl ein; abwählen lässt sich das nicht, denn ohne sie bliebe seine eigene
+Startseite leer. In der Liste stehen sie mit dem Vermerk *für die Übersicht*.
+Für sie gilt zusätzlich ein **Mindesttakt von fünf Minuten** – ein Grundtakt
+von einer Stunde würde die Übersicht sonst zu einer Erinnerung machen.
+
+Was die Anlage nicht beantwortet, wird dabei **nicht** erzwungen: Für eine
+Vorlauftemperatur ohne Fühler entstünde nur eine ewig leere Entität.
+
 ### Jeder Parameter im eigenen Takt
 
 Der **Grundtakt** von BSB-LAN gilt für alle Parameter gleich, und das

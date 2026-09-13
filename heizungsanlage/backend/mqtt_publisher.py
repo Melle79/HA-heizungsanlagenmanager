@@ -105,6 +105,14 @@ class Publisher:
         # <Präfix>/status; bleibt es weg, trägt der Broker dort „offline“ ein.
         self._horcht = ""
         self.fremd_stand = {"topic": "", "wert": "", "zeit": 0.0}
+        # Was BSB-LAN selbst meldet, kommt hier an: <Präfix>/<Ziel>/<Kat>/<Nr>/status.
+        # Alles davon ist „retained“ – ein frisches Abonnement bekommt sofort
+        # den letzten Stand jedes Parameters, nicht erst bei der nächsten
+        # Änderung. Genau deshalb muss der Manager dieselben Werte nicht ein
+        # zweites Mal über den Bus holen.
+        self._horcht_werte = ""
+        self.fremde_werte = {}
+        self.auf_wert = None
 
     # ----------------------------------------------------------- Technik ----
 
@@ -121,6 +129,8 @@ class Publisher:
         client.publish(self.anschrift, json.dumps(_anschrift()), retain=True)
         if self._horcht:
             client.subscribe(self._horcht)
+        if self._horcht_werte:
+            client.subscribe(self._horcht_werte)
         _LOGGER.info("Mit MQTT-Broker verbunden")
         if self.on_ready:
             self.on_ready()
@@ -142,12 +152,37 @@ class Publisher:
         if topic and self.connected.is_set():
             self._client.subscribe(topic)
 
-    def _nachricht(self, client, userdata, nachricht):
-        if nachricht.topic != self._horcht:
+    def werte_horchen(self, praefix: str) -> None:
+        """Die Werte mithören, die BSB-LAN ohnehin verschickt."""
+        praefix = (praefix or "").strip("/")
+        muster = f"{praefix}/+/+/+/status" if praefix else ""
+        if muster == self._horcht_werte:
             return
-        self.fremd_stand = {"topic": nachricht.topic,
-                            "wert": nachricht.payload.decode("utf-8", "replace").strip(),
-                            "zeit": time.time()}
+        if self._horcht_werte and self.connected.is_set():
+            self._client.unsubscribe(self._horcht_werte)
+        self._horcht_werte = muster
+        self.fremde_werte = {}
+        if muster and self.connected.is_set():
+            self._client.subscribe(muster)
+
+    def _nachricht(self, client, userdata, nachricht):
+        if nachricht.topic == self._horcht:
+            self.fremd_stand = {"topic": nachricht.topic,
+                                "wert": nachricht.payload.decode("utf-8", "replace").strip(),
+                                "zeit": time.time()}
+            return
+        if not self._horcht_werte:
+            return
+        teile = nachricht.topic.split("/")
+        # <Präfix>/<Ziel>/<Kategorie>/<Nummer>/status – die Nummer ist das,
+        # was hier zählt; sie ist dieselbe wie im Katalog.
+        if len(teile) < 5 or teile[-1] != "status":
+            return
+        nr = teile[-2]
+        wert = nachricht.payload.decode("utf-8", "replace").strip()
+        self.fremde_werte[nr] = {"wert": wert, "zeit": time.time()}
+        if self.auf_wert:
+            self.auf_wert(nr, wert)
 
     def _publish(self, topic: str, payload: str) -> None:
         if self.connected.is_set():

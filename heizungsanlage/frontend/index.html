@@ -370,7 +370,9 @@
   <div class="tafel">
     <h2>Parameter auswählen</h2>
     <div class="notiz">Angehakt heißt: Der Wert wird regelmäßig gelesen und als
-      Entität nach Home Assistant gemeldet. Einheit und Geräteklasse schlägt
+      Entität nach Home Assistant gemeldet. Was mit „für die Übersicht“
+      gekennzeichnet ist, braucht der Manager für seine eigene Startseite –
+      das bleibt angehakt und läuft mindestens alle fünf Minuten. Einheit und Geräteklasse schlägt
       der Manager aus dem Datentyp vor – Betriebsstunden und Zählerstände
       bekommen automatisch eine Langzeitstatistik.</div>
     <div class="felder" style="margin-top:var(--l3)">
@@ -924,6 +926,11 @@ function sortKoepfeZeichnen() {
 const TAKTE = [[0, 'Grundtakt'], [30, '30 s'], [60, '1 min'], [120, '2 min'],
                [300, '5 min'], [900, '15 min'], [3600, '1 Stunde']];
 let taktNach = {};
+// Was die Übersicht des Managers braucht: fest angehakt, mit eigenem
+// Mindesttakt. Ohne diese Werte bliebe seine Startseite leer, weil BSB-LAN
+// nur meldet, was in seiner Liste steht.
+let pflicht = new Set();
+let mindesttakt = 300;
 const durchBsblan = () => (einst || {}).melder === 'bsblan';
 
 function taktFeld(nr) {
@@ -947,13 +954,18 @@ function buslast() {
   // rechnet sich die Buslast schön.
   let jeMinute = auswahlNr.size * 60 / Math.max(grund, 1);
   auswahlNr.forEach(nr => {
-    if (taktNach[nr]) jeMinute += 60 / taktNach[nr];
+    // Was die Übersicht braucht, holt der Manager mindestens im Mindesttakt.
+    let takt = taktNach[nr] || 0;
+    if (pflicht.has(nr)) takt = Math.min(takt || grund, mindesttakt);
+    if (takt) jeMinute += 60 / takt;
   });
-  // Und der Manager liest zusätzlich in seinem eigenen Takt – auch dann, wenn
-  // BSB-LAN meldet. Wer das wegrechnet, sieht die halbe Buslast.
-  const eigen = parseInt($('e-intervall').value, 10)
-                || (einst || {}).intervall_s || 300;
-  jeMinute += auswahlNr.size * 60 / Math.max(eigen, 1);
+  // Der Manager selbst liest nur noch, wenn er meldet – hört BSB-LAN zu,
+  // nimmt er dessen Werte, statt dieselbe Frage ein zweites Mal zu stellen.
+  if (!durchBsblan()) {
+    const eigen = parseInt($('e-intervall').value, 10)
+                  || (einst || {}).intervall_s || 300;
+    jeMinute += auswahlNr.size * 60 / Math.max(eigen, 1);
+  }
   return {jeMinute: Math.round(jeMinute * 10) / 10,
           anteil: Math.round(jeMinute * 1.5 / 60 * 100)};
 }
@@ -1040,9 +1052,10 @@ async function katalogZeichnen(neuLaden = true) {
     if (!auswahlNr.has(p.nr)) zeile.className = 'aus';
     zeile.innerHTML = `
       <td><input type="checkbox" data-nr="${p.nr}"
-          ${auswahlNr.has(p.nr) ? 'checked' : ''}></td>
+          ${auswahlNr.has(p.nr) ? 'checked' : ''}${pflicht.has(p.nr) ? ' disabled' : ''}></td>
       <td class="nr">${p.nr}</td>
-      <td>${p.name}${p.schreibbar ? '<span class="marke-rw">stellbar</span>' : ''}
+      <td>${p.name}${p.schreibbar ? '<span class="marke-rw">stellbar</span>' : ''}${
+        pflicht.has(p.nr) ? '<span class="marke-rw">für die Übersicht</span>' : ''}
         <div class="notiz">${[p.device_class, p.state_class].filter(Boolean).join(' · ') || ''}</div></td>
       <td class="kat">${p.unit || ''}</td>
       <td class="kat nur-bsblan" ${durchBsblan() ? '' : 'hidden'}>${taktFeld(p.nr)}</td>
@@ -1931,6 +1944,8 @@ async function katalogLauf() {
 async function statusLaden() {
   status = await hole('status');
   $('fassung').textContent = 'v' + (status.version || '');
+  pflicht = new Set(status.pflicht || []);
+  mindesttakt = status.mindesttakt_s || 300;
   const bsb = status.bsb || {};
   $('punkt-bsb').className = 'punkt' + (status.verbunden ? ' ok' : '');
   // Die Fassung ohne Bau-Zeitstempel: „5.1.18-20260908204932“ sagt oben rechts

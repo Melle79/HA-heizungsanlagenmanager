@@ -135,8 +135,8 @@ window.SPRACHEN.en = {
 
   // ── Home Assistant: Auswahl und Werte ──
   "Parameter auswählen": "Choose parameters",
-  "Angehakt heißt: Der Wert wird regelmäßig gelesen und als Entität nach Home Assistant gemeldet. Einheit und Geräteklasse schlägt der Manager aus dem Datentyp vor – Betriebsstunden und Zählerstände bekommen automatisch eine Langzeitstatistik.":
-    "Ticked means: the value is read regularly and published to Home Assistant as an entity. Unit and device class are proposed from the data type – operating hours and counters automatically get long-term statistics.",
+  "Angehakt heißt: Der Wert wird regelmäßig gelesen und als Entität nach Home Assistant gemeldet. Was mit „für die Übersicht“ gekennzeichnet ist, braucht der Manager für seine eigene Startseite – das bleibt angehakt und läuft mindestens alle fünf Minuten. Einheit und Geräteklasse schlägt der Manager aus dem Datentyp vor – Betriebsstunden und Zählerstände bekommen automatisch eine Langzeitstatistik.":
+    "Ticked means: the value is read regularly and published to Home Assistant as an entity. Whatever is marked “for the overview” is what the manager needs for its own start page – it stays ticked and runs at least every five minutes. Unit and device class are suggested from the data type – operating hours and counters automatically get long-term statistics.",
   "Suche": "Search",
   "Name oder Nummer …": "Name or number …",
   "Kategorie": "Category",
@@ -194,6 +194,7 @@ window.SPRACHEN.en = {
     "Two switches have to be on: this one and the one in BSB-LAN itself. Both are off by default, and deliberately so – a wrong setpoint lets a flat go cold in winter.",
   "Einstellungen speichern": "Save settings",
   "Gespeichert": "Saved",
+  "für die Übersicht": "for the overview",
   "BSB-LAN antwortet, meldet aber nichts.": "BSB-LAN answers, but publishes nothing.",
   "Der Adapter ist erreichbar, hat sich beim Broker aber nicht angemeldet. Das kommt nach einem WLAN-Abriss vor: BSB-LAN macht dann einen eigenen Zugangspunkt auf und lässt MQTT bis zum Neustart aus.":
     "The adapter is reachable but has not signed in with the broker. This happens after a Wi-Fi dropout: BSB-LAN then opens an access point of its own and leaves MQTT off until it restarts.",

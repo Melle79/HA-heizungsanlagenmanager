@@ -221,11 +221,17 @@ def _poll_schleife() -> None:
             jetzt = time.time()
             dran = []
             eigene = set()
+            pflicht = set(pflicht_nummern())
+            grund = int(e.get("bsblan_intervall_s") or 60)
             for eintrag in config["auswahl"]:
+                nr = str(eintrag["nr"])
                 takt = int(eintrag.get("takt_s") or 0)
+                # Was die Übersicht braucht, bekommt mindestens den Mindesttakt
+                # – auch wenn der Grundtakt viel langsamer steht.
+                if nr in pflicht:
+                    takt = min(takt or grund, MINDESTTAKT_S)
                 if not takt:
                     continue
-                nr = str(eintrag["nr"])
                 eigene.add(nr)
                 if jetzt - faellig.get(nr, 0) >= takt:
                     faellig[nr] = jetzt
@@ -247,8 +253,86 @@ def _horchen_stellen() -> None:
         return
     e = store.load_config()["einstellungen"]
     praefix = str(e.get("bsblan_praefix") or "").strip("/")
-    _publisher.horchen(f"{praefix}/status"
-                       if e.get("melder") == "bsblan" and praefix else "")
+    durch_bsblan = e.get("melder") == "bsblan" and praefix
+    _publisher.horchen(f"{praefix}/status" if durch_bsblan else "")
+    _publisher.werte_horchen(praefix if durch_bsblan else "")
+
+
+# Wie lange ein über MQTT gehörter Wert als frisch gilt, bevor der Manager
+# doch selbst nachfragt. Das Dreifache des eigenen Takts ist großzügig – es
+# soll nur den Ausfall auffangen, nicht den Normalbetrieb.
+FRISCH_FAKTOR = 3
+
+
+# Die Übersicht des Managers lebt von diesen Werten. Meldet BSB-LAN, kommen
+# sie nur an, wenn sie auch in dessen Liste stehen – deshalb gehören sie zur
+# Auswahl dazu und lassen sich nicht abwählen. Und sie brauchen einen Takt,
+# der die Anzeige nicht altern lässt: Ein Grundtakt von einer Stunde macht aus
+# der Übersicht sonst eine Erinnerung.
+MINDESTTAKT_S = 300
+
+
+def pflicht_nummern() -> list:
+    """Was der Manager für seine Übersicht braucht – und was die Anlage kennt.
+
+    Ein Parameter, den die Regelung nicht beantwortet, wird nicht erzwungen:
+    Er würde in Home Assistant als ewig leere Entität stehen. Bei dieser
+    Anlage trifft das die Vorlauftemperatur – es gibt keinen Fühler dafür.
+    """
+    katalog = store.load_katalog()
+    werte = store.load_state().get("werte") or {}
+    raus = []
+    # Abgeleitet, nicht gespeichert – wie überall beim Katalog.
+    for kachel in katalog_modul.kacheln(katalog):
+        nr = str(kachel.get("nr") or "")
+        if not nr:
+            continue
+        bekannt = werte.get(nr)
+        if bekannt:
+            wert = str(bekannt.get("value") or "").strip()
+            if bekannt.get("error") == 7 or wert in ("", "---"):
+                continue
+        raus.append(nr)
+    return raus
+
+
+def _werte_aus_mqtt() -> int:
+    """Was BSB-LAN gemeldet hat, in den Zustand des Managers übernehmen.
+
+    Der Bus wird dabei nicht angefasst: Diese Werte sind schon über ihn
+    gekommen, nur eben auf Bestellung von BSB-LAN. Sie ein zweites Mal zu
+    holen wäre dieselbe Frage an dieselbe Anlage – und doppelte Buslast.
+    """
+    if _publisher is None or not _publisher.fremde_werte:
+        return 0
+    katalog = store.load_katalog()
+    parameter = katalog.get("parameter") or {}
+    state = store.load_state()
+    werte = dict(state.get("werte") or {})
+    uebernommen = 0
+    for nr, gehoert in list(_publisher.fremde_werte.items()):
+        eintrag = parameter.get(str(nr)) or {}
+        alt = werte.get(str(nr)) or {}
+        if alt.get("value") == gehoert["wert"] and alt.get("quelle") == "mqtt":
+            # Nichts Neues – aber der Zeitstempel darf mitwandern, sonst sähe
+            # ein Wert, der sich selten ändert, ewig veraltet aus.
+            alt["zeit"] = datetime.fromtimestamp(gehoert["zeit"]).isoformat(
+                timespec="seconds")
+            werte[str(nr)] = alt
+            continue
+        werte[str(nr)] = {
+            "value": gehoert["wert"],
+            "desc": "",
+            "unit": eintrag.get("unit") or "",
+            "name": eintrag.get("name") or "",
+            "error": 0,
+            "quelle": "mqtt",
+            "zeit": datetime.fromtimestamp(gehoert["zeit"]).isoformat(
+                timespec="seconds"),
+        }
+        uebernommen += 1
+    store.merke_state(werte=werte)
+    return uebernommen
 
 
 def bsblan_meldet() -> bool | None:
@@ -266,15 +350,57 @@ def bsblan_meldet() -> bool | None:
     return stand["wert"].lower() == "online"
 
 
+def _takt_ausfuehren() -> dict:
+    """Eine Runde – aber nur so viel Bus, wie nötig.
+
+    Meldet BSB-LAN, sind die Werte längst über den Bus gekommen und liegen als
+    „retained“-Nachrichten beim Broker. Sie ein zweites Mal zu holen hieße,
+    dieselbe Anlage dasselbe zu fragen und die Leitung doppelt zu belegen.
+    Der Manager hört also mit und fragt nur nach, was dabei fehlt oder alt ist.
+    """
+    config = store.load_config()
+    e = config["einstellungen"]
+    if e.get("melder") != "bsblan":
+        return _lesen()
+
+    gehoert = _werte_aus_mqtt()
+    grenze = max(int(e["intervall_s"]) * FRISCH_FAKTOR, 900)
+    werte = (store.load_state().get("werte") or {})
+    jetzt = datetime.now()
+    veraltet = []
+    for eintrag in config["auswahl"]:
+        nr = str(eintrag["nr"])
+        zeit = (werte.get(nr) or {}).get("zeit")
+        try:
+            alter = (jetzt - datetime.fromisoformat(zeit)).total_seconds()
+        except (TypeError, ValueError):
+            alter = float("inf")
+        if alter > grenze:
+            veraltet.append(nr)
+
+    store.merke_state(letzter_lauf=jetzt.isoformat(timespec="seconds"))
+    if not veraltet:
+        return {"werte": werte, "gelesen": 0, "gehoert": gehoert}
+    # Was BSB-LAN nicht (mehr) meldet, holt der Manager doch selbst – sonst
+    # stünde ein Wert für immer auf seinem letzten Stand.
+    _LOGGER.info("Nicht über MQTT gekommen, wird selbst gelesen: %s",
+                 ", ".join(veraltet))
+    ergebnis = _lesen(nummern=veraltet)
+    ergebnis["gehoert"] = gehoert
+    return ergebnis
+
+
 def _takt_schleife() -> None:
     while True:
         try:
-            ergebnis = _lesen()
+            ergebnis = _takt_ausfuehren()
             anzahl = int(ergebnis.get("gelesen") or 0)
+            gehoert = int(ergebnis.get("gehoert") or 0)
             if ergebnis.get("fehler"):
                 _LOGGER.warning("Takt mit Fehler: %s", ergebnis["fehler"])
-            elif anzahl:
-                _LOGGER.info("Takt: %d Werte gelesen", anzahl)
+            elif anzahl or gehoert:
+                _LOGGER.info("Takt: %d Werte gelesen, %d von BSB-LAN gehört",
+                             anzahl, gehoert)
         except Exception as err:  # noqa: BLE001
             _LOGGER.exception("Takt fehlgeschlagen: %s", err)
         pause = int(store.load_config()["einstellungen"]["intervall_s"])
@@ -633,6 +759,8 @@ def api_status():
         "katalog_lauf": dict(_katalog_lauf),
         "fehler": _letzter_fehler,
         "mqtt": _publisher is not None and _publisher.connected.is_set(),
+        "pflicht": pflicht_nummern(),
+        "mindesttakt_s": MINDESTTAKT_S,
         "schreiben_erlaubt": config["einstellungen"]["schreiben_erlaubt"],
     }
     # Fährt beim Statusabruf mit, damit die Oberfläche mitbekommt, wenn ein
@@ -1110,6 +1238,22 @@ def api_auswahl():
         neu = store.validate_auswahl(request.get_json(force=True) or [])
     except store.ValidationError as err:
         return jsonify({"fehler": str(err)}), 400
+    # Was der Manager für seine Übersicht braucht, ergänzt er selbst – sonst
+    # bliebe seine eigene Startseite leer, weil BSB-LAN diese Werte gar nicht
+    # erst meldet.
+    vorhanden = {str(e["nr"]) for e in neu}
+    katalog_p = (store.load_katalog().get("parameter") or {})
+    for nr in pflicht_nummern():
+        if nr in vorhanden:
+            continue
+        eintrag = katalog_p.get(nr) or {}
+        neu.append({"nr": nr, "name": eintrag.get("name") or f"Parameter {nr}",
+                    "anzeige": "", "einheit": eintrag.get("unit") or "",
+                    "device_class": eintrag.get("device_class") or "",
+                    "state_class": eintrag.get("state_class") or "",
+                    "takt_s": 0})
+    neu = store.validate_auswahl(neu)
+
     config["auswahl"] = neu
     store.save_config(config)
     _discovery_auffrischen()
