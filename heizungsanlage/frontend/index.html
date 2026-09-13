@@ -440,6 +440,29 @@
     </div>
   </div>
 
+  <!-- Wie in den übrigen Add-ons: Der Meldeweg gehört in die Einstellungen,
+       nicht in eine Automation, die man später niemandem mehr erklären kann. -->
+  <div class="tafel">
+    <h2>Melden</h2>
+    <div class="felder">
+      <div class="feld"><label>Meldeweg</label>
+        <select id="e-melden-an"><option value="">keiner</option></select>
+        <div class="notiz">Ein notify-Dienst von Home Assistant – etwa dein
+          Handy. Ohne Meldeweg steht eine Störung nur hier.</div></div>
+      <div class="feld"><label>Erst nach (Minuten)</label>
+        <input type="number" id="e-melden-nach" min="1" max="1440" step="1">
+        <div class="notiz">Kurze Funklöcher sollen nicht melden. Erst wenn die
+          Störung so lange steht, geht eine Nachricht raus – und eine zweite,
+          wenn sie vorbei ist.</div></div>
+    </div>
+    <div class="zeile-aktionen">
+      <button class="leise" id="btn-probemeldung">Probemeldung schicken</button>
+      <span class="meldung" id="m-melden"></span>
+    </div>
+    <div class="notiz">Gemeldet wird zweierlei: dass der Adapter nicht
+      antwortet – und dass er antwortet, aber nichts mehr meldet.</div>
+  </div>
+
   <div class="tafel">
     <h2>Schreibzugriff</h2>
     <label class="haken"><input type="checkbox" id="e-schreiben">
@@ -1774,6 +1797,8 @@ function einstellungenZeichnen(e) {
   $('e-intervall').value = e.intervall_s; $('e-praefix').value = e.praefix;
   $('e-schreiben').checked = e.schreiben_erlaubt;
   $('e-merken').checked = !!e.werte_merken;
+  $('e-melden-an').value = (e.melden_an || [])[0] || '';
+  $('e-melden-nach').value = e.melden_nach_min;
   $('e-melder-' + (e.melder === 'bsblan' ? 'bsblan' : 'addon')).checked = true;
   melderFelder(e.melder === 'bsblan');
   $('e-bsblan-praefix').value = e.bsblan_praefix || '';
@@ -1806,6 +1831,8 @@ async function einstellungenSpeichern(feld) {
       praefix: $('e-praefix').value,
       schreiben_erlaubt: $('e-schreiben').checked,
       werte_merken: $('e-merken').checked,
+      melden_an: $('e-melden-an').value ? [$('e-melden-an').value] : [],
+      melden_nach_min: parseInt($('e-melden-nach').value, 10),
       melder: $('e-melder-bsblan').checked ? 'bsblan' : 'addon',
       bsblan_praefix: $('e-bsblan-praefix').value,
       bsblan_geraete_id: $('e-bsblan-id').value,
@@ -1921,7 +1948,32 @@ function taktAusAuswahl() {
   auswahl.forEach(a => { if (a.takt_s) taktNach[a.nr] = a.takt_s; });
 }
 
+// Die Liste der Meldewege kommt von Home Assistant, nicht aus einem Formular.
+async function meldewegeFuellen() {
+  try {
+    const d = await hole('notify-dienste');
+    const feld = $('e-melden-an'), vorher = feld.value;
+    feld.innerHTML = '<option value="">keiner</option>';
+    (d.dienste || []).forEach(dienst => {
+      const o = document.createElement('option');
+      o.value = dienst; o.textContent = dienst;
+      feld.appendChild(o);
+    });
+    feld.value = vorher;
+  } catch (err) { /* ohne Liste bleibt „keiner“ stehen */ }
+}
+
+$('btn-probemeldung').onclick = async () => {
+  const knopf = $('btn-probemeldung'); knopf.disabled = true;
+  try {
+    const d = await sendeJSON('notify-probe', 'POST', {});
+    meldung('m-melden', `Probemeldung an ${(d.gesendet || []).join(', ')}`, true);
+  } catch (err) { meldung('m-melden', err.message); }
+  finally { knopf.disabled = false; }
+};
+
 async function anlauf() {
+  await meldewegeFuellen();
   const e = await hole('einstellungen');
   einstellungenZeichnen(e);
   auswahl = await hole('auswahl');

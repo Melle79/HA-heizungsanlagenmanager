@@ -908,6 +908,39 @@ pruefe(anmeldung.get("device_class") == "connectivity"
 pruefe(melder2._client.gesendet[-1][1] == "OFF",
        "und ihr Zustand geht als OFF hinaus, wenn nichts antwortet")
 
+melder2._client.gesendet.clear()
+melder2.sendet_anmelden({}); melder2.sendet(False)
+themen2 = [t for t, _, _ in melder2._client.gesendet]
+pruefe(any(t.endswith("binary_sensor/heizungsanlage/bsblan_meldet/config")
+           for t in themen2), "auch „meldet“ ist eine eigene Entitaet")
+melder2._client.gesendet.clear()
+melder2.sendet_abmelden()
+pruefe([n for _, n, _ in melder2._client.gesendet] == ["", ""],
+       "und sie verschwindet, wenn der Manager selbst meldet")
+
+# Der Meldeweg gehoert in die Einstellungen, nicht in eine Automation.
+gesendet = []
+anwendung.ha_notify = lambda dienst, titel, text: gesendet.append((dienst, titel)) or True
+store.save_config({"einstellungen": dict(store.load_config()["einstellungen"],
+                                         melden_an=["notify.test"],
+                                         melden_nach_min=10),
+                   "auswahl": store.load_config()["auswahl"]})
+
+anwendung._stoerung_melden("weg", False, None)
+pruefe(gesendet == [], "vor Ablauf der Wartezeit wird nichts gemeldet")
+lage = store.load_state()["stoerung"]
+store.merke_state(stoerung=dict(lage, seit=lage["seit"] - 601))
+anwendung._stoerung_melden("weg", False, None)
+pruefe(len(gesendet) == 1 and "antwortet nicht" in gesendet[0][1],
+       f"nach der Wartezeit genau einmal: {gesendet}")
+anwendung._stoerung_melden("weg", False, None)
+pruefe(len(gesendet) == 1, "und kein zweites Mal fuer dieselbe Stoerung")
+anwendung._stoerung_melden("", True, True)
+pruefe(len(gesendet) == 2 and "zurueck" in gesendet[1][1].replace("ü", "ue"),
+       f"die Entwarnung kommt hinterher: {gesendet}")
+anwendung._stoerung_melden("", True, True)
+pruefe(len(gesendet) == 2, "aber nur einmal")
+
 # Neustart geht ueber /N. /NE waere ein Buchstabe mehr und das EEPROM leer.
 GERAET["befehle"].clear()
 kunde.post("/api/bsblan/neustart")

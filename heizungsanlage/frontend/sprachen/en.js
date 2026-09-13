@@ -177,6 +177,17 @@ window.SPRACHEN.en = {
   "Abfrageintervall (Sekunden)": "Polling interval (seconds)",
   "Eine Heizung ist träge – fünf Minuten reichen. Jede Abfrage belegt den Bus.":
     "A heating system is slow – five minutes is enough. Every query occupies the bus.",
+  "Melden": "Alerts",
+  "Meldeweg": "Alert channel",
+  "keiner": "none",
+  "Ein notify-Dienst von Home Assistant – etwa dein Handy. Ohne Meldeweg steht eine Störung nur hier.":
+    "A notify service of Home Assistant – your phone, say. Without one, a fault shows up here only.",
+  "Erst nach (Minuten)": "Only after (minutes)",
+  "Kurze Funklöcher sollen nicht melden. Erst wenn die Störung so lange steht, geht eine Nachricht raus – und eine zweite, wenn sie vorbei ist.":
+    "Short radio dropouts should not raise an alert. Only when the fault has lasted this long does a message go out – and a second one when it is over.",
+  "Probemeldung schicken": "Send a test alert",
+  "Gemeldet wird zweierlei: dass der Adapter nicht antwortet – und dass er antwortet, aber nichts mehr meldet.":
+    "Two things are reported: that the adapter does not answer – and that it answers but no longer publishes.",
   "Schreibzugriff": "Write access",
   "Stellen von Parametern erlauben": "Allow setting parameters",
   "Zwei Schalter müssen dafür stehen: dieser und der in BSB-LAN selbst. Beide sind ab Werk aus, und das mit Absicht – ein falscher Sollwert lässt im Winter eine Wohnung auskühlen.":
@@ -295,6 +306,7 @@ window.SPRACHEN.en = {
   [/^(\d+) Parameter gespeichert$/, "$1 parameters saved"],
   [/^(\d+) Parameter übernommen$/, "$1 parameters taken over"],
   [/^(\d+) ausgewählt$/, "$1 selected"],
+  [/^Probemeldung an (.+)$/, "Test alert sent to $1"],
   [/^([\d.]+) Abfragen je Minute · rund (\d+) % Buszeit$/,
    "$1 queries per minute · roughly $2 % bus time"],
   [/^BSB-LAN ([\d.]+)$/, "BSB-LAN $1"],

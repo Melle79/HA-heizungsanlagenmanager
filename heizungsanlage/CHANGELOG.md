@@ -1,5 +1,20 @@
 # Änderungen
 
+## 1.24.0
+
+- **Der Meldeweg steht jetzt in den Einstellungen**, wie in den übrigen
+  Add-ons: ein notify-Dienst von Home Assistant, dazu eine Wartezeit. Dafür
+  braucht es keine Automation mehr, die man ein Jahr später niemandem mehr
+  erklären kann.
+- Gemeldet wird zweierlei: **der Adapter antwortet nicht** – und **er
+  antwortet, meldet aber nichts**. Beides erst, wenn es die Wartezeit
+  übersteht (ab Werk zehn Minuten), und mit Entwarnung, wenn es vorbei ist.
+  Jede Störung genau einmal, auch über einen Neustart des Add-ons hinweg.
+- **Probemeldung schicken** prüft den Weg, bevor man ihn braucht.
+- Zweite neue Entität: **„BSB-LAN meldet“** – sie sagt, ob der Adapter beim
+  Broker angemeldet ist. Meldet der Manager selbst, verschwindet sie wieder,
+  statt eine Auskunft über einen Zustand zu geben, den es dann nicht gibt.
+
 ## 1.23.0
 
 - **Neue Entität „BSB-LAN erreichbar“** (`binary_sensor`, Geräteklasse

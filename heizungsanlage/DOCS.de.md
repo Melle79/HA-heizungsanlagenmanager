@@ -259,6 +259,26 @@ In dieser Betriebsart übernimmt der Manager die Einrichtung:
 * Was BSB-LAN sonst tut – etwa auf SD-Karte protokollieren –, bleibt
   unangetastet: Geschrieben wird nur, was sich unterscheidet.
 
+### Melden, wenn etwas ausfällt
+
+Unter *Einstellungen → Melden* steht, wohin eine Störung geht: ein
+**notify-Dienst von Home Assistant**, ausgewählt aus dem, was deine Installation
+anbietet – das Handy, ein Lautsprecher, eine dauerhafte Benachrichtigung. Ohne
+Meldeweg steht eine Störung nur in dieser Oberfläche.
+
+Zwei Fälle werden gemeldet:
+
+* **Der Adapter antwortet nicht.** Kein Netz, kein Strom, abgestürzt.
+* **Er antwortet, meldet aber nichts.** Der Zustand nach einem Funkabriss, in
+  dem BSB-LAN erreichbar bleibt und MQTT trotzdem ausgelassen hat.
+
+Beides erst, wenn es die eingestellte **Wartezeit** übersteht – ab Werk zehn
+Minuten. Kurze Funklöcher sind bei WLAN normal, und wer bei jedem Ruckler eine
+Nachricht bekommt, liest ab der dritten keine mehr. Ist die Störung vorbei,
+kommt eine Entwarnung; beides genau einmal.
+
+Mit *Probemeldung schicken* prüfst du den Weg, bevor du ihn brauchst.
+
 ### Die Entität „BSB-LAN erreichbar“
 
 BSB-LANs eigene Anmeldung in Home Assistant kennt **kein Verfügbarkeitsthema**.

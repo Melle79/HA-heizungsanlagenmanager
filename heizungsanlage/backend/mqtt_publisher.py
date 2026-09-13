@@ -234,13 +234,14 @@ class Publisher:
     # Discovery kennt kein Verfügbarkeitsthema, seine Entitäten behalten bei
     # einem Funkabriss stundenlang ihren letzten Wert, ohne auszugrauen.
     ERREICHBAR = "bsblan_erreichbar"
+    MELDET = "bsblan_meldet"
 
-    def erreichbarkeit_anmelden(self, info: dict) -> None:
+    def _binaer_anmelden(self, key: str, name: str, info: dict) -> None:
         nutzlast = {
-            "name": "BSB-LAN erreichbar",
-            "unique_id": f"{DEVICE_ID}_{self.ERREICHBAR}",
-            "default_entity_id": f"binary_sensor.{DEVICE_ID}_{self.ERREICHBAR}",
-            "state_topic": f"{self.basis}/{self.ERREICHBAR}/state",
+            "name": name,
+            "unique_id": f"{DEVICE_ID}_{key}",
+            "default_entity_id": f"binary_sensor.{DEVICE_ID}_{key}",
+            "state_topic": f"{self.basis}/{key}/state",
             "availability_topic": self.verfuegbarkeit,
             "device_class": "connectivity",
             "entity_category": "diagnostic",
@@ -248,12 +249,34 @@ class Publisher:
             "device": self._geraet(info),
         }
         self._publish(
-            f"{DISCOVERY_PREFIX}/binary_sensor/{DEVICE_ID}/{self.ERREICHBAR}/config",
+            f"{DISCOVERY_PREFIX}/binary_sensor/{DEVICE_ID}/{key}/config",
             json.dumps(nutzlast))
 
+    def _binaer(self, key: str, an: bool) -> None:
+        self._publish(f"{self.basis}/{key}/state", "ON" if an else "OFF")
+
+    def erreichbarkeit_anmelden(self, info: dict) -> None:
+        self._binaer_anmelden(self.ERREICHBAR, "BSB-LAN erreichbar", info)
+
     def erreichbarkeit(self, erreichbar: bool) -> None:
-        self._publish(f"{self.basis}/{self.ERREICHBAR}/state",
-                      "ON" if erreichbar else "OFF")
+        self._binaer(self.ERREICHBAR, erreichbar)
+
+    def sendet_anmelden(self, info: dict) -> None:
+        self._binaer_anmelden(self.MELDET, "BSB-LAN meldet", info)
+
+    def sendet(self, meldet: bool) -> None:
+        self._binaer(self.MELDET, meldet)
+
+    def sendet_abmelden(self) -> None:
+        """Meldet der Manager selbst, hat diese Auskunft keinen Gegenstand.
+
+        Eine Entität, die niemand füllt, steht sonst für immer auf ihrem
+        letzten Wert – und behauptet etwas über einen Zustand, den es in dieser
+        Betriebsart gar nicht gibt.
+        """
+        self._publish(
+            f"{DISCOVERY_PREFIX}/binary_sensor/{DEVICE_ID}/{self.MELDET}/config", "")
+        self._publish(f"{self.basis}/{self.MELDET}/state", "")
 
     def altes_geraet_abraeumen(self, geraet: str, praefix: str,
                                entitaeten: list) -> None:

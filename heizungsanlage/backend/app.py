@@ -174,11 +174,33 @@ def _erreichbarkeit_pruefen() -> None:
         felder["info"] = info
     store.merke_state(**felder)
 
+    # Der zweite Zustand, der heute gefehlt hat: BSB-LAN kann antworten und
+    # trotzdem nichts melden. Beides zusammen ergibt erst das Bild.
+    meldet = bsblan_meldet()
+    durch_bsblan = store.load_config()["einstellungen"].get("melder") == "bsblan"
+
     if _publisher is not None and _publisher.connected.is_set():
-        if jetzt_erreichbar != vorher or time.time() - _erreichbar_seit > 900:
+        neu = (jetzt_erreichbar != vorher or meldet != state.get("meldet")
+               or time.time() - _erreichbar_seit > 900)
+        if neu:
             _erreichbar_seit = time.time()
-            _publisher.erreichbarkeit_anmelden(info or state.get("info") or {})
+            angaben = info or state.get("info") or {}
+            _publisher.erreichbarkeit_anmelden(angaben)
             _publisher.erreichbarkeit(jetzt_erreichbar)
+            if durch_bsblan and meldet is not None:
+                _publisher.sendet_anmelden(angaben)
+                _publisher.sendet(meldet)
+            elif not durch_bsblan:
+                _publisher.sendet_abmelden()
+    store.merke_state(meldet=meldet)
+
+    # „Weg“ wiegt schwerer als „stumm“: Wer nicht antwortet, meldet auch nicht.
+    if not jetzt_erreichbar:
+        _stoerung_melden("weg", jetzt_erreichbar, meldet)
+    elif durch_bsblan and meldet is False:
+        _stoerung_melden("stumm", jetzt_erreichbar, meldet)
+    else:
+        _stoerung_melden("", jetzt_erreichbar, meldet)
 
 
 def _poll_schleife() -> None:
@@ -362,6 +384,26 @@ def statisch(datei: str):
     return send_from_directory(FRONTEND, datei)
 
 
+@app.route("/api/notify-dienste")
+def api_notify_dienste():
+    return jsonify({"dienste": ha_notify_dienste()})
+
+
+@app.route("/api/notify-probe", methods=["POST"])
+def api_notify_probe():
+    """Eine Probemeldung – damit man den Weg kennt, bevor man ihn braucht."""
+    dienste = store.load_config()["einstellungen"].get("melden_an") or []
+    if not dienste:
+        return jsonify({"fehler": "Es ist kein Meldeweg eingestellt"}), 400
+    erfolg = [d for d in dienste
+              if ha_notify(d, "Heizung: Probemeldung",
+                           "Der Heizungsanlagenmanager kann dich erreichen. "
+                           "Diese Nachricht ist nur der Test des Weges.")]
+    if not erfolg:
+        return jsonify({"fehler": "Kein Meldeweg hat die Nachricht angenommen"}), 502
+    return jsonify({"gesendet": erfolg})
+
+
 @app.route("/api/sprache")
 def api_sprache():
     """Welche Sprache führt Home Assistant?
@@ -473,6 +515,89 @@ def _aelter(hier: str, dort: str) -> bool:
         return [int(t) for t in re.findall(r"\d+", str(text).split("-")[0])][:3]
     a, b = zahlen(hier), zahlen(dort)
     return bool(a and b and a < b)
+
+
+def ha_notify_dienste() -> list:
+    """Alle notify-Dienste von Home Assistant, für die Auswahl in der Oberfläche."""
+    dienste = _supervisor("core/api/services") or []
+    raus = []
+    for eintrag in dienste if isinstance(dienste, list) else []:
+        if eintrag.get("domain") != "notify":
+            continue
+        for name in sorted(eintrag.get("services") or {}):
+            raus.append(f"notify.{name}")
+    return raus
+
+
+def ha_notify(dienst: str, titel: str, text: str) -> bool:
+    """Eine Meldung über einen notify-Dienst schicken."""
+    token = os.environ.get("SUPERVISOR_TOKEN")
+    if not token or not dienst:
+        return False
+    name = dienst.split(".", 1)[-1]
+    try:
+        req = urllib.request.Request(
+            f"http://supervisor/core/api/services/notify/{name}",
+            data=json.dumps({"title": titel, "message": text}).encode(),
+            headers={"Authorization": f"Bearer {token}",
+                     "Content-Type": "application/json"})
+        urllib.request.urlopen(req, timeout=10).close()
+        _LOGGER.info("Gemeldet über %s: %s", dienst, titel)
+        return True
+    except Exception as err:                      # noqa: BLE001
+        _LOGGER.warning("Meldung über %s fehlgeschlagen: %s", dienst, err)
+        return False
+
+
+# Was gemeldet wird, und wovon man sich danach wieder erholt. Der Schlüssel
+# steht im Zustand, damit ein Neustart des Add-ons keine zweite Meldung
+# derselben Störung auslöst.
+STOERUNGEN = {
+    "weg": ("Heizung: BSB-LAN antwortet nicht",
+            "Der Adapter ist seit {dauer} Minuten nicht erreichbar. Die Werte in "
+            "Home Assistant stehen still – die Heizung selbst läuft weiter.",
+            "Heizung: BSB-LAN ist zurück",
+            "Der Adapter antwortet wieder."),
+    "stumm": ("Heizung: BSB-LAN meldet nichts mehr",
+              "Der Adapter antwortet, hat sich beim Broker aber seit {dauer} "
+              "Minuten nicht angemeldet. Meist hilft „Adapter neu starten“ im "
+              "Heizungsanlagenmanager.",
+              "Heizung: BSB-LAN meldet wieder",
+              "Die Werte kommen wieder an."),
+}
+
+
+def _stoerung_melden(art: str, erreichbar: bool, meldet) -> None:
+    """Aus dem Zustand eine Meldung machen – oder eine Entwarnung.
+
+    Gemeldet wird erst, wenn die Störung die eingestellte Wartezeit übersteht.
+    Kurze Funklöcher sind bei WLAN normal; eine Nachricht, die dreimal am Tag
+    grundlos kommt, wird nach der zweiten weggewischt.
+    """
+    e = store.load_config()["einstellungen"]
+    dienste = e.get("melden_an") or []
+    wartezeit = int(e.get("melden_nach_min") or 10) * 60
+
+    state = store.load_state()
+    lage = dict(state.get("stoerung") or {})
+    jetzt = time.time()
+
+    if art:
+        if lage.get("art") != art:
+            lage = {"art": art, "seit": jetzt, "gemeldet": False}
+        dauer = jetzt - float(lage.get("seit") or jetzt)
+        if not lage.get("gemeldet") and dauer >= wartezeit:
+            titel, text, _, _ = STOERUNGEN[art]
+            for dienst in dienste:
+                ha_notify(dienst, titel, text.format(dauer=int(dauer // 60)))
+            lage["gemeldet"] = True
+    else:
+        if lage.get("gemeldet"):
+            _, _, titel, text = STOERUNGEN[lage["art"]]
+            for dienst in dienste:
+                ha_notify(dienst, titel, text)
+        lage = {"art": "", "seit": 0.0, "gemeldet": False}
+    store.merke_state(stoerung=lage)
 
 
 def _ha_sprache() -> str:

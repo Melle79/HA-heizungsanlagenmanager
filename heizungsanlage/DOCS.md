@@ -175,6 +175,15 @@ would leave the new prefix in the add-on while BSB-LAN kept publishing under
 the old one. Anything else BSB-LAN does –
 logging to SD card, say – is left alone; only differences are written.
 
+### Alerts when something fails
+
+Under *Settings → Alerts* you choose where a fault goes: a **notify service of
+Home Assistant**, picked from what your installation offers. Two cases are
+reported – the adapter does not answer, and it answers but publishes nothing –
+each only once the fault outlasts the configured delay (ten minutes by
+default), with an all-clear when it is over. *Send a test alert* proves the
+path before you need it.
+
 ### The “BSB-LAN reachable” entity
 
 BSB-LAN's own discovery carries **no availability topic**. When the adapter

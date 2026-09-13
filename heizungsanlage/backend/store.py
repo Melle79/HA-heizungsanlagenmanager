@@ -53,6 +53,12 @@ STANDARD_EINSTELLUNGEN = {
     # PPS-Emulation, bei der anderen die Kaskade. Das gehört eingestellt, nicht
     # weggeworfen: Ausgeblendetes ist einen Klick weit weg, nicht weg.
     "versteckte_kategorien": [],
+    # Wohin gemeldet wird, wenn der Adapter ausfällt – notify-Dienste von Home
+    # Assistant, wie in den übrigen Add-ons. Leer heißt: nur in der Oberfläche.
+    # Die Wartezeit hält kurze Funklöcher aus der Meldung heraus; wer bei jedem
+    # Ruckler eine Nachricht bekommt, liest ab der dritten keine mehr.
+    "melden_an": [],
+    "melden_nach_min": 10,
     # Zeigt der Regler beim Öffnen zuerst die zuletzt gelesenen Werte und
     # holt frische erst im Hintergrund? Das ist schnell und fast immer
     # richtig – aber eben nur fast: Wer am Gerät auf dem Kessel selbst dreht,
@@ -228,6 +234,16 @@ def validate_einstellungen(roh: dict) -> dict:
     e["praefix"] = praefix
 
     e["werte_merken"] = bool(e.get("werte_merken"))
+
+    e["melden_an"] = [str(d).strip() for d in (e.get("melden_an") or [])
+                      if str(d).strip()]
+    try:
+        e["melden_nach_min"] = int(e["melden_nach_min"])
+    except (TypeError, ValueError):
+        raise ValidationError("Die Wartezeit vor einer Meldung muss eine Zahl sein")
+    if not 1 <= e["melden_nach_min"] <= 1440:
+        raise ValidationError("Die Wartezeit liegt zwischen einer Minute und "
+                              "einem Tag")
 
     if e.get("melder") not in ("addon", "bsblan"):
         raise ValidationError("„melder“ kennt nur „addon“ und „bsblan“.")
