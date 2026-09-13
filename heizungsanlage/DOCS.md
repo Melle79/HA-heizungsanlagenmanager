@@ -144,7 +144,8 @@ and you keep your history.
 ## Who publishes to Home Assistant?
 
 Two programs can publish the same system, and both do it well – just not at the
-same time. Under *Settings* you choose: **the manager publishes** (default,
+same time. Under *Home Assistant* you choose – with the fields belonging to
+the chosen path right below it: **the manager publishes** (default,
 curated device classes, but nothing arrives while the add-on is stopped), or
 **BSB-LAN publishes** – it carries its own MQTT with auto-discovery, polls the
 bus anyway, publishes more often and also creates controls.
@@ -152,7 +153,8 @@ bus anyway, publishes more often and also creates controls.
 In the second mode the manager configures the adapter: broker, user and
 password come from Home Assistant itself (passed through, never shown or
 stored here), prefix, device id, interval, units and MQTT flavour come from
-these settings, and auto-discovery is switched on. Anything else BSB-LAN does –
+the fields below the choice, and auto-discovery is switched on. Whichever way
+you pick, only the prefix that is actually in effect is on screen. Anything else BSB-LAN does –
 logging to SD card, say – is left alone; only differences are written.
 
 The selection is pushed into BSB-LAN's log parameter list on save, and *take

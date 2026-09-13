@@ -80,6 +80,10 @@
   .zeile-aktionen{display:flex; gap:var(--l2); flex-wrap:wrap; align-items:center;
     margin-top:var(--l3)}
 
+  /* Jedes display: ... schlaegt das hidden-Attribut des Browsers. Ohne diese
+     Zeile bleibt eine ausgeblendete Knopfreihe sichtbar. */
+  [hidden]{display:none !important}
+
   table{width:100%; border-collapse:collapse; font-size:.85rem}
   th{text-align:left; font-weight:600; color:var(--leise); font-size:.74rem;
     text-transform:uppercase; letter-spacing:.04em; padding:var(--l2) var(--l2)}
@@ -290,9 +294,16 @@
         meldet häufiger und legt auch Bedienelemente an.</span>
     </label>
 
-    <div class="zeile-aktionen" id="melder-sichern">
-      <button id="btn-speichern-melder-oben">Speichern</button>
-      <span class="meldung" id="m-melder"></span>
+    <!-- Das Präfix des Managers stand früher unter „Einstellungen“, das von
+         BSB-LAN hier – zwei Felder mit derselben Aufgabe, einen Reiter
+         auseinander. Jetzt steht bei jedem Meldeweg, was er braucht. -->
+    <div id="addon-felder" hidden>
+      <div class="felder" style="margin-top:var(--l3)">
+        <div class="feld"><label>Topic-Präfix des Managers</label>
+          <input type="text" id="e-praefix">
+          <div class="notiz">Unter diesem Präfix legt der Manager seine
+            MQTT-Themen ab.</div></div>
+      </div>
     </div>
 
     <div id="bsblan-felder" hidden>
@@ -322,12 +333,18 @@
         Assistant selbst – dieselben, mit denen dieses Add-on am Broker hängt.
         Sie werden beim Einrichten durchgereicht und hier weder angezeigt noch
         gespeichert; abtippen musst du nichts.</div>
-      <div class="zeile-aktionen">
-        <button id="btn-bsblan-einrichten">BSB-LAN einrichten</button>
-        <button class="leise" id="btn-bsblan-parameter">Auswahl an BSB-LAN geben</button>
-        <button class="leise" id="btn-bsblan-uebernehmen">Liste aus BSB-LAN übernehmen</button>
-        <span class="meldung" id="m-bsblan"></span>
-      </div>
+    </div>
+
+    <div class="zeile-aktionen" id="melder-sichern">
+      <button id="btn-speichern-melder-oben">Speichern</button>
+      <span class="meldung" id="m-melder"></span>
+    </div>
+
+    <div class="zeile-aktionen" id="bsblan-aktionen" hidden>
+      <button id="btn-bsblan-einrichten">BSB-LAN einrichten</button>
+      <button class="leise" id="btn-bsblan-parameter">Auswahl an BSB-LAN geben</button>
+      <button class="leise" id="btn-bsblan-uebernehmen">Liste aus BSB-LAN übernehmen</button>
+      <span class="meldung" id="m-bsblan"></span>
     </div>
   </div>
   <div class="hinweis" id="katalog-hinweis"></div>
@@ -396,10 +413,6 @@
         <input type="number" id="e-intervall" min="30" max="3600" step="10">
         <div class="notiz">Eine Heizung ist träge – fünf Minuten reichen.
           Jede Abfrage belegt den Bus.</div></div>
-      <div class="feld"><label>MQTT-Präfix des Managers</label>
-        <input type="text" id="e-praefix">
-        <div class="notiz">Nur wirksam, solange der Manager selbst meldet.
-          Das Präfix von BSB-LAN steht unter „Home Assistant“.</div></div>
     </div>
   </div>
 
@@ -1558,7 +1571,7 @@ function einstellungenZeichnen(e) {
   $('e-schreiben').checked = e.schreiben_erlaubt;
   $('e-merken').checked = !!e.werte_merken;
   $('e-melder-' + (e.melder === 'bsblan' ? 'bsblan' : 'addon')).checked = true;
-  $('bsblan-felder').hidden = e.melder !== 'bsblan';
+  melderFelder(e.melder === 'bsblan');
   $('e-bsblan-praefix').value = e.bsblan_praefix || '';
   $('e-bsblan-id').value = e.bsblan_geraete_id || '';
   $('e-bsblan-intervall').value = e.bsblan_intervall_s;
@@ -1592,8 +1605,16 @@ async function einstellungenSpeichern(feld) {
 $('btn-speichern-einst').onclick = () => einstellungenSpeichern('m-einst');
 $('btn-speichern-melder-oben').onclick = () => einstellungenSpeichern('m-melder');
 
+// Jeder Meldeweg zeigt nur seine eigenen Felder – sonst stehen zwei Präfixe
+// nebeneinander und man muss raten, welches gerade gilt.
+function melderFelder(durchBsblan) {
+  $('addon-felder').hidden = durchBsblan;
+  $('bsblan-felder').hidden = !durchBsblan;
+  $('bsblan-aktionen').hidden = !durchBsblan;
+}
+
 document.querySelectorAll('input[name="melder"]').forEach(knopf => {
-  knopf.onchange = () => { $('bsblan-felder').hidden = !$('e-melder-bsblan').checked; };
+  knopf.onchange = () => melderFelder($('e-melder-bsblan').checked);
 });
 
 async function bsblanRuf(pfad, methode, knopf, satz) {

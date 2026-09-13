@@ -207,7 +207,8 @@ umbenennt, behält also seine Historie.
 ## Wer meldet nach Home Assistant?
 
 Zwei Programme können dieselbe Anlage melden, und beide können es gut – nur
-nicht gleichzeitig. Unter *Einstellungen* steht die Wahl:
+nicht gleichzeitig. Unter *Home Assistant* steht die Wahl – und darunter
+gleich die Felder, die zum gewählten Weg gehören:
 
 **Der Manager meldet** (ab Werk). Er liest die Auswahl in seinem Takt und legt
 die Entitäten selbst an, mit kuratierten Geräteklassen. Steht das Add-on,
@@ -227,6 +228,8 @@ In dieser Betriebsart übernimmt der Manager die Einrichtung:
   weitergegeben, aber weder angezeigt noch hier gespeichert. Abtippen musst du
   nichts.
 * **Präfix, Geräte-ID, Intervall, Einheiten und MQTT-Art** stellst du hier ein.
+  Meldet dagegen der Manager, steht an derselben Stelle nur *sein* Präfix – es
+  ist immer das eine Feld sichtbar, das gerade gilt.
 * **Auto-Discovery** wird eingeschaltet, damit die Entitäten von selbst in Home
   Assistant erscheinen.
 * Was BSB-LAN sonst tut – etwa auf SD-Karte protokollieren –, bleibt

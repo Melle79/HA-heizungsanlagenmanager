@@ -1,5 +1,15 @@
 # Änderungen
 
+## 1.17.1
+
+- **Beide MQTT-Präfixe stehen jetzt an einer Stelle.** Das des Managers lag
+  unter *Einstellungen*, das von BSB-LAN unter *Home Assistant* – zwei Felder
+  mit derselben Aufgabe, einen Reiter auseinander. Sie stehen nun beide unter
+  der Frage, wer meldet, und sichtbar ist immer nur das Feld, das gerade gilt.
+- Die Knöpfe *BSB-LAN einrichten*, *Auswahl an BSB-LAN geben* und *Liste aus
+  BSB-LAN übernehmen* stehen jetzt unter dem Speichern, nicht darüber – erst
+  einstellen, dann sichern, dann übergeben.
+
 ## 1.17.0
 
 - **Die Oberfläche spricht jetzt auch Englisch.** Welche Sprache erscheint,

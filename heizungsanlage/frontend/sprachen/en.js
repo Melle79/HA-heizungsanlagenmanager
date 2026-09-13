@@ -110,6 +110,9 @@ window.SPRACHEN.en = {
   "Der Manager sagt ihm nur, was – und hält sich mit eigenen Entitäten zurück. BSB-LAN fragt den Bus ohnehin ab, meldet häufiger und legt auch Bedienelemente an.":
     " The manager only tells it what – and holds back its own entities. BSB-LAN polls the bus anyway, publishes more often and also creates controls.",
   "Speichern": "Save",
+  "Topic-Präfix des Managers": "The manager's topic prefix",
+  "Unter diesem Präfix legt der Manager seine MQTT-Themen ab.":
+    "The manager files its MQTT topics under this prefix.",
   "Topic-Präfix in BSB-LAN": "Topic prefix in BSB-LAN",
   "Geräte-ID (optional)": "Device ID (optional)",
   "Sendeintervall (Sekunden)": "Publish interval (seconds)",
@@ -173,9 +176,6 @@ window.SPRACHEN.en = {
   "Abfrageintervall (Sekunden)": "Polling interval (seconds)",
   "Eine Heizung ist träge – fünf Minuten reichen. Jede Abfrage belegt den Bus.":
     "A heating system is slow – five minutes is enough. Every query occupies the bus.",
-  "MQTT-Präfix des Managers": "The manager's MQTT prefix",
-  "Nur wirksam, solange der Manager selbst meldet. Das Präfix von BSB-LAN steht unter „Home Assistant“.":
-    "Only in effect while the manager publishes itself. BSB-LAN's prefix is under “Home Assistant”.",
   "Schreibzugriff": "Write access",
   "Stellen von Parametern erlauben": "Allow setting parameters",
   "Zwei Schalter müssen dafür stehen: dieser und der in BSB-LAN selbst. Beide sind ab Werk aus, und das mit Absicht – ein falscher Sollwert lässt im Winter eine Wohnung auskühlen.":
