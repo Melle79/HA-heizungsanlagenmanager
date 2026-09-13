@@ -65,6 +65,9 @@
 
   .felder{display:grid; gap:var(--l3);
     grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}
+  /* Fünf Felder in einer Reihe, die vier fasst, lassen eines allein stehen.
+     Drei Spalten teilen sie sauber auf: 3 + 2. */
+  @media (min-width:760px){ .felder.drei{grid-template-columns:repeat(3,1fr)} }
   .feld label{display:block; font-size:.78rem; color:var(--leise); margin-bottom:var(--l1)}
   input,select,button{font-family:inherit; font-size:.88rem}
   input[type=text],input[type=number],input[type=password],select{
@@ -129,6 +132,13 @@
   /* Übernommenes ist nicht kaputt, nur fremdgeführt – darum blass statt rot,
      und immer mit dem Namen dessen, der es führt. */
   .gefuehrt{opacity:.55}
+  /* 242 Parameter am Stück sind keine Liste, sondern eine Wand. Die
+     Regelung führt sie in Kategorien – also führt die Tabelle sie auch so. */
+  tr.gruppe td{background:var(--flaeche2); font-weight:600; cursor:pointer;
+    user-select:none; border-top:1px solid var(--linie)}
+  tr.gruppe:hover td{color:var(--warm)}
+  tr.gruppe .pfeil{display:inline-block; width:1em; color:var(--leise)}
+  tr.gruppe .notiz{display:inline; margin-left:var(--l2); font-weight:400}
   th.sortierbar{cursor:pointer; user-select:none}
   th.sortierbar:hover{color:var(--text)}
   th.sortierbar.an{color:var(--warm)}
@@ -307,7 +317,7 @@
     </div>
 
     <div id="bsblan-felder" hidden>
-      <div class="felder" style="margin-top:var(--l3)">
+      <div class="felder drei" style="margin-top:var(--l3)">
         <div class="feld"><label>Topic-Präfix in BSB-LAN</label>
           <input type="text" id="e-bsblan-praefix"></div>
         <div class="feld"><label>Geräte-ID (optional)</label>
@@ -331,7 +341,7 @@
       </div>
       <div class="notiz">Broker, Benutzer und Passwort kommen von Home
         Assistant selbst – dieselben, mit denen dieses Add-on am Broker hängt.
-        Sie werden beim Einrichten durchgereicht und hier weder angezeigt noch
+        Sie werden beim Speichern durchgereicht und hier weder angezeigt noch
         gespeichert; abtippen musst du nichts.</div>
     </div>
 
@@ -369,10 +379,14 @@
     <div class="zeile-aktionen">
       <button id="btn-speichern-auswahl">Auswahl speichern</button>
       <button class="leise" id="btn-vorschlag">Sinnvolle Auswahl vorschlagen</button>
-      <button class="leise" id="btn-bsblan-parameter" hidden>Auswahl an BSB-LAN geben</button>
-      <button class="leise" id="btn-bsblan-uebernehmen" hidden>Liste aus BSB-LAN übernehmen</button>
+      <button class="leise" id="btn-kat-alle">Alle aufklappen</button>
       <span class="notiz" id="auswahl-zahl"></span>
       <span class="meldung" id="m-auswahl"></span>
+    </div>
+    <div class="zeile-aktionen" id="bsblan-listen" hidden>
+      <span class="notiz">Liste in BSB-LAN:</span>
+      <button class="leise" id="btn-bsblan-parameter">Auswahl an BSB-LAN geben</button>
+      <button class="leise" id="btn-bsblan-uebernehmen">Liste aus BSB-LAN übernehmen</button>
     </div>
     <!-- Links, was ausgewählt ist; rechts, was zuletzt davon ankam. Vorher
          standen beide Listen untereinander, und man musste zwischen ihnen
@@ -381,7 +395,7 @@
     <div class="rollbar"><table>
       <thead><tr><th style="width:34px"></th>
         <th data-sort="nr">Nr</th><th data-sort="name">Name</th>
-        <th data-sort="kategorie">Kategorie</th><th data-sort="einheit">Einheit</th>
+        <th data-sort="einheit">Einheit</th>
         <th data-sort="wert" style="text-align:right">zuletzt gelesen</th></tr></thead>
       <tbody id="katalogtabelle"></tbody>
     </table></div>
@@ -762,6 +776,9 @@ function fremdlingeZeichnen() {
 // liefert nach Parameternummer, und das ist nur eine von fünf Ordnungen, die
 // man vor einer Liste mit 242 Einträgen braucht.
 let sortSpalte = 'nr', sortRichtung = 1;
+// Zugeklappt ist der Ausgangszustand: 27 Überschriften sind eine Übersicht,
+// 242 Zeilen sind es nicht.
+const offeneKategorien = new Set();
 
 function sortWert(p, spalte) {
   if (spalte === 'nr') return parseFloat(p.nr) || 0;
@@ -811,15 +828,18 @@ function wertZelle(p) {
   return `${w.desc || w.value}${w.desc ? '' : ' ' + (p.unit || '')}`;
 }
 
-async function katalogZeichnen() {
+// Aufklappen ist reine Ansichtssache – dafür muss nichts nachgeladen werden.
+async function katalogZeichnen(neuLaden = true) {
   const filter = $('rw-filter').value;
-  const args = new URLSearchParams({
-    q: $('such').value,
-    kat: $('kat-filter').value,
-    rw: filter === '1' ? '1' : '',
-  });
-  const d = await hole('katalog/suche?' + args);
-  parameterListe = d.parameter || [];
+  if (neuLaden) {
+    const args = new URLSearchParams({
+      q: $('such').value,
+      kat: $('kat-filter').value,
+      rw: filter === '1' ? '1' : '',
+    });
+    const d = await hole('katalog/suche?' + args);
+    parameterListe = d.parameter || [];
+  }
 
   // Was das Backend nicht filtern kann, weil es die Auswahl und die zuletzt
   // gelesenen Werte nicht kennt.
@@ -837,7 +857,39 @@ async function katalogZeichnen() {
   sortKoepfeZeichnen();
 
   const koerper = $('katalogtabelle'); koerper.innerHTML = '';
+
+  // Gruppiert nach den Kategorien der Regelung, in deren eigener Reihenfolge.
+  // Wer sucht oder filtert, will Treffer sehen und nicht erst klicken – dann
+  // stehen die Gruppen offen.
+  const gruppen = new Map();
   liste.forEach(p => {
+    const kid = String(p.kategorie ?? '');
+    if (!gruppen.has(kid)) gruppen.set(kid, []);
+    gruppen.get(kid).push(p);
+  });
+  const gesucht = !!$('such').value.trim() || !!$('kat-filter').value
+                  || !!$('rw-filter').value;
+
+  [...gruppen.entries()]
+    .sort((a, b) => (parseFloat(a[0]) || 0) - (parseFloat(b[0]) || 0))
+    .forEach(([kid, teil]) => {
+  const offen = gesucht || offeneKategorien.has(kid);
+  const gewaehlt_n = teil.filter(p => auswahlNr.has(p.nr)).length;
+  const kopf = document.createElement('tr');
+  kopf.className = 'gruppe';
+  kopf.innerHTML = `<td colspan="5"><span class="pfeil">${offen ? '▾' : '▸'}</span>`
+    + `${teil[0].kategorie_name || 'Kategorie ' + kid}`
+    + `<span class="notiz">${teil.length} Parameter${
+        gewaehlt_n ? ` · ${gewaehlt_n} ausgewählt` : ''}</span></td>`;
+  kopf.onclick = () => {
+    if (offeneKategorien.has(kid)) offeneKategorien.delete(kid);
+    else offeneKategorien.add(kid);
+    katalogZeichnen(false);
+  };
+  koerper.appendChild(kopf);
+  if (!offen) return;
+
+  teil.forEach(p => {
     const zeile = document.createElement('tr');
     if (!auswahlNr.has(p.nr)) zeile.className = 'aus';
     zeile.innerHTML = `
@@ -846,7 +898,6 @@ async function katalogZeichnen() {
       <td class="nr">${p.nr}</td>
       <td>${p.name}${p.schreibbar ? '<span class="marke-rw">stellbar</span>' : ''}
         <div class="notiz">${[p.device_class, p.state_class].filter(Boolean).join(' · ') || ''}</div></td>
-      <td class="kat">${p.kategorie_name}</td>
       <td class="kat">${p.unit || ''}</td>
       <td class="wert">${wertZelle(p)}</td>`;
     zeile.querySelector('input').onchange = (ev) => {
@@ -857,7 +908,10 @@ async function katalogZeichnen() {
     };
     koerper.appendChild(zeile);
   });
+    });
   $('katalog-leer').hidden = liste.length > 0;
+  // Wer sucht, sieht ohnehin alles offen – dann wäre der Knopf ein Blindgänger.
+  $('btn-kat-alle').hidden = gesucht;
   $('auswahl-zahl').textContent = `${auswahlNr.size} ausgewählt`;
 }
 
@@ -865,6 +919,15 @@ async function katalogZeichnen() {
   const el = $(id);
   el.oninput = el.onchange = () => katalogZeichnen();
 });
+
+$('btn-kat-alle').onclick = () => {
+  const alle = (parameterListe || []).map(p => String(p.kategorie ?? ''));
+  const zu = alle.some(kid => !offeneKategorien.has(kid));
+  offeneKategorien.clear();
+  if (zu) alle.forEach(kid => offeneKategorien.add(kid));
+  $('btn-kat-alle').textContent = zu ? 'Alle zuklappen' : 'Alle aufklappen';
+  katalogZeichnen(false);
+};
 
 $('btn-vorschlag').onclick = () => {
   // Was man bei einer Ölheizung eigentlich immer sehen will: Temperaturen,
@@ -1623,8 +1686,7 @@ $('btn-speichern-melder-oben').onclick = () => einstellungenSpeichern('m-melder'
 function melderFelder(durchBsblan) {
   $('addon-felder').hidden = durchBsblan;
   $('bsblan-felder').hidden = !durchBsblan;
-  $('btn-bsblan-parameter').hidden = !durchBsblan;
-  $('btn-bsblan-uebernehmen').hidden = !durchBsblan;
+  $('bsblan-listen').hidden = !durchBsblan;
 }
 
 document.querySelectorAll('input[name="melder"]').forEach(knopf => {

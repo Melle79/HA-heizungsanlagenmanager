@@ -1,5 +1,17 @@
 # Änderungen
 
+## 1.19.0
+
+- **Die Parameterliste ist nach Kategorien gegliedert und klappt auf.** In der
+  Reihenfolge, in der die Regelung ihre Kategorien selbst führt. Jede Zeile
+  sagt, wie viele Parameter dahinterstecken und wie viele davon angehakt sind.
+  Zugeklappt sind 27 Überschriften eine Übersicht – 242 Zeilen am Stück waren
+  eine Wand. Wer sucht oder filtert, bekommt die Treffer offen hingelegt.
+- Die Spalte *Kategorie* entfällt: Sie steht jetzt als Überschrift darüber.
+- **Aufgeräumt.** Die fünf Felder von BSB-LAN stehen in drei Spalten statt
+  vier plus einem Nachzügler, und die Knöpfe für die Liste in BSB-LAN haben
+  eine eigene Zeile bekommen, statt sich zu viert nebeneinander zu drängen.
+
 ## 1.18.0
 
 - **Speichern speichert dort, wo es wirkt.** Meldet BSB-LAN, gehen Präfix,

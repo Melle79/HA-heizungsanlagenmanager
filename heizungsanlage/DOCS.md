@@ -121,6 +121,11 @@ controller itself reports as writable, and asks before every change.
 
 ## Selection: what reaches Home Assistant
 
+The list is grouped by the controller's own categories, in the controller's own
+order. Each group starts collapsed and states how many parameters it holds and
+how many are ticked; a click opens it. Searching or filtering opens the
+matching groups for you.
+
 Every ticked parameter becomes a sensor. Unit and device class are suggested
 from the data type:
 

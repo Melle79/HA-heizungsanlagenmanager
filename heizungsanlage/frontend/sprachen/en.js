@@ -126,8 +126,8 @@ window.SPRACHEN.en = {
   "Einfach": "Plain",
   "JSON": "JSON",
   "Rich JSON": "Rich JSON",
-  "Broker, Benutzer und Passwort kommen von Home Assistant selbst – dieselben, mit denen dieses Add-on am Broker hängt. Sie werden beim Einrichten durchgereicht und hier weder angezeigt noch gespeichert; abtippen musst du nichts.":
-    "Broker, user and password come from Home Assistant itself – the same ones this add-on uses. They are passed through when configuring and neither shown nor stored here; you type nothing.",
+  "Broker, Benutzer und Passwort kommen von Home Assistant selbst – dieselben, mit denen dieses Add-on am Broker hängt. Sie werden beim Speichern durchgereicht und hier weder angezeigt noch gespeichert; abtippen musst du nichts.":
+    "Broker, user and password come from Home Assistant itself – the same ones this add-on uses. They are passed through when you save and are neither shown nor stored here; you don't have to type anything.",
   "Auswahl an BSB-LAN geben": "Hand the selection to BSB-LAN",
   "Liste aus BSB-LAN übernehmen": "Take over the list from BSB-LAN",
   "Der Manager hält sich zurück und meldet nichts Eigenes.":
@@ -151,6 +151,9 @@ window.SPRACHEN.en = {
   "ausgewählt, aber ohne Wert": "selected but without a value",
   "Auswahl speichern": "Save selection",
   "Sinnvolle Auswahl vorschlagen": "Propose a sensible selection",
+  "Alle aufklappen": "Expand all",
+  "Alle zuklappen": "Collapse all",
+  "Liste in BSB-LAN:": "List in BSB-LAN:",
   "Vorschlag übernommen – noch nicht gespeichert": "Proposal applied – not saved yet",
   "Nr": "No",
   "Name": "Name",
@@ -269,6 +272,8 @@ window.SPRACHEN.en = {
   [/^(\d+) Parameter gespeichert$/, "$1 parameters saved"],
   [/^(\d+) Parameter übernommen$/, "$1 parameters taken over"],
   [/^(\d+) ausgewählt$/, "$1 selected"],
+  [/^(\d+) Parameter$/, "$1 parameters"],
+  [/^(\d+) Parameter · (\d+) ausgewählt$/, "$1 parameters · $2 selected"],
   [/^(\d+) Eintrag\(e\) entfernt$/, "$1 entr(ies) removed"],
   [/^(\d+) Tag\(e\) gespeichert$/, "$1 day(s) saved"],
   [/^(\d+) Tag\(e\) gespeichert, dann: (.+)$/, "$1 day(s) saved, then: $2"],

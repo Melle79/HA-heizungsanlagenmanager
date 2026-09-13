@@ -178,9 +178,15 @@ wer meldet, welche Parameter, und was davon zuletzt ankam.
 
 Die Tabelle führt beides nebeneinander: links das Häkchen und der Name, rechts
 der zuletzt gelesene Wert. Die Spaltenköpfe sortieren – nach Nummer, Name,
-Kategorie, Einheit oder Wert –, und der Filter kennt neben „nur stellbare“ und
+Einheit oder Wert –, und der Filter kennt neben „nur stellbare“ und
 „nur ausgewählte“ auch **„ausgewählt, aber ohne Wert“**: Damit findest du in
 einem Griff, was in Home Assistant als leere Entität landen würde.
+
+**Sortiert ist sie nach den Kategorien der Regelung** – in deren eigener
+Reihenfolge, nicht in einer erfundenen. Jede Kategorie ist zugeklappt und
+zeigt, wie viele Parameter sie führt und wie viele davon angehakt sind; ein
+Klick auf die Zeile öffnet sie. Wer sucht oder filtert, bekommt die Treffer
+offen hingelegt und muss nicht erst klicken.
 
 ## Auswahl: was nach Home Assistant geht
 
