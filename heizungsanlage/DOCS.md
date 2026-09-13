@@ -188,6 +188,25 @@ would leave the new prefix in the add-on while BSB-LAN kept publishing under
 the old one. Anything else BSB-LAN does –
 logging to SD card, say – is left alone; only differences are written.
 
+### Legionella heat-up
+
+The controller can run a legionella cycle itself – but on older controllers
+only as *every n days*, with no weekday and no time. With a tank and **no
+thermostatic mixing valve**, the timing is half the matter: 60 °C in the tank
+means 60 °C at the tap.
+
+The manager can therefore run the heat-up itself, under *Settings → Legionella
+heat-up*: rhythm in days, weekday, hour, target temperature and a maximum
+duration. It raises the hot-water setpoint **and** its upper limit, then puts
+both back.
+
+Three things are deliberate: the way back is recorded *before* the way up, so
+an add-on that dies mid-run restores on its next start; nothing happens without
+the write switch, because this function writes on its own; and a time limit
+puts everything back even if the target is never reached. After reaching the
+target the temperature is held for another quarter of an hour, so the part of
+the tank the sensor does not sit in gets warm too.
+
 ### Alerts when something fails
 
 Under *Settings → Alerts* you choose where a fault goes: a **notify service of

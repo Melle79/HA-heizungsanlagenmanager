@@ -474,6 +474,51 @@
     </div>
   </div>
 
+  <!-- Die Aufheizung ist die einzige Funktion, die von sich aus in die Anlage
+       schreibt. Deshalb steht sie hier bei den Einstellungen, ab Werk aus,
+       und sagt oben, was sie tut. -->
+  <div class="tafel">
+    <h2>Legionellenaufheizung</h2>
+    <div class="notiz">Die Regelung kann das auch – aber nur als „alle n Tage“,
+      ohne Wochentag und ohne Uhrzeit. Der Manager fährt den Speicher deshalb
+      selbst hoch, zu einer Zeit, die du bestimmst, und stellt danach zurück
+      auf den vorherigen Wert. <b>Ohne thermostatische Mischeinrichtung steht
+      diese Temperatur währenddessen auch am Wasserhahn.</b></div>
+    <label class="haken" style="margin-top:var(--l3)">
+      <input type="checkbox" id="e-leg-an">
+      <span>Aufheizung durch den Manager</span></label>
+    <div class="felder drei" style="margin-top:var(--l3)">
+      <div class="feld"><label>Alle wie viel Tage</label>
+        <input type="number" id="e-leg-tage" min="1" max="90" step="1">
+        <div class="notiz">7 ist wöchentlich, 14 alle zwei Wochen. Ein
+          Speicher, der täglich geleert wird, braucht seltener.</div></div>
+      <div class="feld"><label>Wochentag</label>
+        <select id="e-leg-tag">
+          <option value="0">Montag</option><option value="1">Dienstag</option>
+          <option value="2">Mittwoch</option><option value="3">Donnerstag</option>
+          <option value="4">Freitag</option><option value="5">Samstag</option>
+          <option value="6">Sonntag</option>
+        </select></div>
+      <div class="feld"><label>Um wie viel Uhr</label>
+        <input type="number" id="e-leg-stunde" min="0" max="23" step="1">
+        <div class="notiz">Nachts, wenn niemand duscht.</div></div>
+      <div class="feld"><label>Zieltemperatur (°C)</label>
+        <input type="number" id="e-leg-ziel" min="55" max="70" step="0.5">
+        <div class="notiz">Unter 55 sterben Legionellen nicht. 60 ist die
+          übliche Vorgabe.</div></div>
+      <div class="feld"><label>Höchstens (Minuten)</label>
+        <input type="number" id="e-leg-dauer" min="30" max="480" step="10">
+        <div class="notiz">Wird das Ziel nicht erreicht, stellt der Manager
+          danach trotzdem zurück.</div></div>
+    </div>
+    <div class="hinweis" id="leg-lage" style="margin-top:var(--l3)"></div>
+    <div class="zeile-aktionen">
+      <button class="leise" id="btn-leg-start">Jetzt aufheizen</button>
+      <button class="leise" id="btn-leg-stop" hidden>Abbrechen</button>
+      <span class="meldung" id="m-leg"></span>
+    </div>
+  </div>
+
   <div class="tafel">
     <h2>Schreibzugriff</h2>
     <label class="haken"><input type="checkbox" id="e-schreiben">
@@ -1865,6 +1910,13 @@ function einstellungenZeichnen(e) {
   $('e-intervall').value = e.intervall_s; $('e-praefix').value = e.praefix;
   $('e-schreiben').checked = e.schreiben_erlaubt;
   $('e-merken').checked = !!e.werte_merken;
+  const leg = e.legionellen || {};
+  $('e-leg-an').checked = !!leg.an;
+  $('e-leg-tage').value = leg.tage;
+  $('e-leg-tag').value = leg.wochentag;
+  $('e-leg-stunde').value = leg.stunde;
+  $('e-leg-ziel').value = leg.ziel;
+  $('e-leg-dauer').value = leg.hoechstens_min;
   $('e-melden-an').value = (e.melden_an || [])[0] || '';
   $('e-melden-nach').value = e.melden_nach_min;
   $('e-melder-' + (e.melder === 'bsblan' ? 'bsblan' : 'addon')).checked = true;
@@ -1899,6 +1951,13 @@ async function einstellungenSpeichern(feld) {
       praefix: $('e-praefix').value,
       schreiben_erlaubt: $('e-schreiben').checked,
       werte_merken: $('e-merken').checked,
+      legionellen: {
+        an: $('e-leg-an').checked,
+        tage: parseInt($('e-leg-tage').value, 10),
+        wochentag: parseInt($('e-leg-tag').value, 10),
+        stunde: parseInt($('e-leg-stunde').value, 10),
+        ziel: parseFloat($('e-leg-ziel').value),
+        hoechstens_min: parseInt($('e-leg-dauer').value, 10)},
       melden_an: $('e-melden-an').value ? [$('e-melden-an').value] : [],
       melden_nach_min: parseInt($('e-melden-nach').value, 10),
       melder: $('e-melder-bsblan').checked ? 'bsblan' : 'addon',
@@ -2006,6 +2065,7 @@ async function statusLaden() {
   $('punkt-mqtt').className = 'punkt' + (status.mqtt ? ' ok' : '');
   $('zustand-mqtt').textContent = status.mqtt ? 'MQTT verbunden' : 'kein MQTT';
   uebersichtZeichnen();
+  legLageZeigen();
 }
 
 async function werteLaden() {
@@ -2017,6 +2077,64 @@ function taktAusAuswahl() {
   taktNach = {};
   auswahl.forEach(a => { if (a.takt_s) taktNach[a.nr] = a.takt_s; });
 }
+
+// Was die Aufheizung gerade tut – im Zweifel: nichts, und wann sie das
+// zuletzt getan hat.
+function legLageZeigen() {
+  const feld = $('leg-lage'); if (!feld) return;
+  const l = (status && status.legionellen) || {};
+  const teile = l.parameter || {};
+  const knopfStop = $('btn-leg-stop');
+  if (!teile.sollwert || !teile.maximum || !teile.istwert) {
+    feld.className = 'hinweis warn';
+    feld.textContent = 'Diese Anlage führt nicht alle drei Werte, die dafür '
+      + 'nötig sind: Sollwert, Obergrenze und Istwert des Trinkwassers.';
+    knopfStop.hidden = true;
+    return;
+  }
+  if (l.phase === 'laeuft') {
+    const seit = l.seit ? new Date(l.seit * 1000).toLocaleTimeString('de-DE',
+      {hour: '2-digit', minute: '2-digit'}) : '';
+    feld.className = 'hinweis warn';
+    feld.innerHTML = `<b>Die Aufheizung läuft seit ${seit}.</b>
+      <div>Höchster Wert bisher: ${l.hoechster != null ? l.hoechster + ' °C'
+        : 'noch keiner'}. Danach stellt der Manager auf
+        ${(l.letzter && l.letzter.zurueck && l.letzter.zurueck.sollwert) || 'den vorherigen Wert'}
+        zurück.</div>`;
+    knopfStop.hidden = false;
+    return;
+  }
+  knopfStop.hidden = true;
+  const letzter = l.letzter || {};
+  feld.className = 'hinweis';
+  feld.textContent = letzter.start
+    ? `Zuletzt am ${zeit(letzter.start)}: ${letzter.ergebnis}`
+      + (letzter.hoechster != null ? `, höchstens ${letzter.hoechster} °C` : '')
+    : 'Noch nicht gelaufen.';
+}
+
+$('btn-leg-start').onclick = async () => {
+  if (!frage('Den Speicher jetzt aufheizen?',
+             'Das Wasser wird für die nächste Stunde deutlich heißer – ohne '
+             + 'Mischeinrichtung auch am Wasserhahn.')) return;
+  const knopf = $('btn-leg-start'); knopf.disabled = true;
+  try {
+    await sendeJSON('legionellen/start', 'POST', {});
+    meldung('m-leg', 'Aufheizung gestartet', true);
+    await statusLaden();
+  } catch (err) { meldung('m-leg', err.message); }
+  finally { knopf.disabled = false; }
+};
+
+$('btn-leg-stop').onclick = async () => {
+  const knopf = $('btn-leg-stop'); knopf.disabled = true;
+  try {
+    await sendeJSON('legionellen/stop', 'POST', {});
+    meldung('m-leg', 'Abgebrochen – die alten Werte stehen wieder', true);
+    await statusLaden();
+  } catch (err) { meldung('m-leg', err.message); }
+  finally { knopf.disabled = false; }
+};
 
 // Die Liste der Meldewege kommt von Home Assistant, nicht aus einem Formular.
 async function meldewegeFuellen() {

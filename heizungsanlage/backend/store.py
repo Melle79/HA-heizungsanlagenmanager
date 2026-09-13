@@ -59,6 +59,18 @@ STANDARD_EINSTELLUNGEN = {
     # Ruckler eine Nachricht bekommt, liest ab der dritten keine mehr.
     "melden_an": [],
     "melden_nach_min": 10,
+    # Die Legionellenaufheizung, die der Manager selbst fährt. Die Regelung
+    # kann das auch – aber ohne Wochentag und ohne Uhrzeit, und heißes Wasser
+    # zur Unzeit ist bei einem Speicher ohne Mischer keine Kleinigkeit.
+    # Ab Werk aus: Sie schreibt von sich aus in die Anlage.
+    "legionellen": {
+        "an": False,
+        "tage": 14,
+        "wochentag": 6,        # 0 = Montag … 6 = Sonntag
+        "stunde": 2,
+        "ziel": 60.0,
+        "hoechstens_min": 180,
+    },
     # Zeigt der Regler beim Öffnen zuerst die zuletzt gelesenen Werte und
     # holt frische erst im Hintergrund? Das ist schnell und fast immer
     # richtig – aber eben nur fast: Wer am Gerät auf dem Kessel selbst dreht,
@@ -259,6 +271,30 @@ def validate_einstellungen(roh: dict) -> dict:
     e["praefix"] = praefix
 
     e["werte_merken"] = bool(e.get("werte_merken"))
+
+    l = dict(STANDARD_EINSTELLUNGEN["legionellen"])
+    l.update({k: v for k, v in (e.get("legionellen") or {}).items() if k in l})
+    l["an"] = bool(l["an"])
+    try:
+        l["tage"] = int(l["tage"]); l["wochentag"] = int(l["wochentag"])
+        l["stunde"] = int(l["stunde"]); l["ziel"] = float(l["ziel"])
+        l["hoechstens_min"] = int(l["hoechstens_min"])
+    except (TypeError, ValueError):
+        raise ValidationError("Die Legionellenaufheizung braucht Zahlen")
+    if not 1 <= l["tage"] <= 90:
+        raise ValidationError("Der Rhythmus liegt zwischen einem und 90 Tagen")
+    if not 0 <= l["wochentag"] <= 6:
+        raise ValidationError("Der Wochentag liegt zwischen 0 und 6")
+    if not 0 <= l["stunde"] <= 23:
+        raise ValidationError("Die Stunde liegt zwischen 0 und 23")
+    # Unter 55 °C sterben Legionellen nicht, über 70 °C wird es am Hahn
+    # gefährlich und für den Kessel unnötig.
+    if not 55 <= l["ziel"] <= 70:
+        raise ValidationError("Die Zieltemperatur liegt zwischen 55 und 70 °C")
+    if not 30 <= l["hoechstens_min"] <= 480:
+        raise ValidationError("Die Höchstdauer liegt zwischen 30 Minuten und "
+                              "acht Stunden")
+    e["legionellen"] = l
 
     e["melden_an"] = [str(d).strip() for d in (e.get("melden_an") or [])
                       if str(d).strip()]

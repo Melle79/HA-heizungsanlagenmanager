@@ -1060,6 +1060,75 @@ zurueck = json.loads(melder3._client.gesendet[-1][1])
 pruefe(zurueck["name"].startswith("00-07"), "geloescht heisst: wieder wie vorher")
 anwendung._publisher = None
 
+# Die Legionellenaufheizung: hochsetzen, warten, zurueckstellen - und der
+# Rueckweg steht im Zustand, bevor der Hinweg beginnt.
+TW = {
+    "55": {"name": "Trinkwassertemperatur-Nennsollwert", "unit": "°C",
+           "dataType_name": "TEMP", "readwrite": 0, "possibleValues": []},
+    "164": {"name": "Warmwassertemperatur-Nennsollwertmaximum", "unit": "°C",
+            "dataType_name": "TEMP", "readwrite": 0, "possibleValues": []},
+    "118": {"name": "Warmwassertemperatur-Istwert", "unit": "°C",
+            "dataType_name": "TEMP", "readwrite": 2, "possibleValues": []},
+}
+PARAMETER["5"].update(TW)
+alt_katalog = store.load_katalog()
+store.save_katalog({"kategorien": {}, "parameter": {
+    nr: dict(e, nr=nr, schreibbar=(e["readwrite"] == 0)) for nr, e in TW.items()}})
+
+tw = katalog.trinkwasser_regelung(store.load_katalog())
+pruefe(tw["sollwert"]["nr"] == "55" and tw["maximum"]["nr"] == "164"
+       and tw["istwert"]["nr"] == "118",
+       f"Sollwert, Obergrenze und Istwert werden aus dem Katalog erkannt: "
+       f"{ {r: t['nr'] for r, t in tw.items()} }")
+
+config = store.load_config()
+config["einstellungen"] = dict(config["einstellungen"], schreiben_erlaubt=True)
+store.save_config(config)
+store.merke_state(legionellen_lauf={}, legionellen_letzter={})
+
+ANLAGE["gesetzt"].clear()
+anwendung.legionellen_starten(von_hand=True)
+pruefe(anwendung.legionellen_lage()["phase"] == "laeuft", "die Aufheizung laeuft")
+zurueck = store.load_state()["legionellen_lauf"]["zurueck"]
+pruefe(zurueck == {"sollwert": "42", "maximum": "42"},
+       f"der Rueckweg steht fest, bevor geschrieben wird: {zurueck}")
+ziel = store.load_config()["einstellungen"]["legionellen"]["ziel"]
+gesetzt = [(g["Parameter"], g["Value"]) for g in ANLAGE["gesetzt"]]
+pruefe(gesetzt == [("164", f"{ziel:.1f}"), ("55", f"{ziel:.1f}")],
+       f"erst die Obergrenze, dann der Sollwert: {gesetzt}")
+
+ANLAGE["gesetzt"].clear()
+anwendung.legionellen_beenden("von Hand beendet")
+gesetzt = [(g["Parameter"], g["Value"]) for g in ANLAGE["gesetzt"]]
+pruefe(gesetzt == [("55", "42"), ("164", "42")],
+       f"und zurueck erst der Sollwert, dann die Grenze: {gesetzt}")
+pruefe(store.load_state()["legionellen_letzter"]["ergebnis"] == "von Hand beendet",
+       "der Lauf wird im Zustand vermerkt")
+pruefe(not store.load_state()["legionellen_lauf"], "und der Lauf ist beendet")
+
+# Ein abgebrochener Lauf - etwa durch einen Neustart des Add-ons - wird beim
+# naechsten Takt zurueckgestellt. Sonst bliebe der Speicher heiss.
+store.merke_state(legionellen_lauf={"phase": "laeuft", "seit": 0,
+                                    "zurueck": {"sollwert": "48", "maximum": "48"},
+                                    "hoechster": None, "erreicht_seit": 0})
+ANLAGE["gesetzt"].clear()
+anwendung._legionellen_takt()
+pruefe([g["Value"] for g in ANLAGE["gesetzt"]] == ["48", "48"],
+       "ein abgebrochener Lauf wird zurueckgestellt")
+
+config = store.load_config()
+config["einstellungen"] = dict(config["einstellungen"], schreiben_erlaubt=False)
+store.save_config(config)
+try:
+    anwendung.legionellen_starten()
+    pruefe(False, "ohne Freigabe darf nichts geschrieben werden")
+except bsb.BsbFehler:
+    pruefe(True, "ohne Freigabe darf nichts geschrieben werden")
+
+store.save_katalog(alt_katalog)
+for nr in TW:
+    PARAMETER["5"].pop(nr, None)
+
 # Neustart geht ueber /N. /NE waere ein Buchstabe mehr und das EEPROM leer.
 GERAET["befehle"].clear()
 kunde.post("/api/bsblan/neustart")

@@ -214,6 +214,7 @@ def _poll_schleife() -> None:
                 naechste_pruefung = time.time() + 60
                 _erreichbarkeit_pruefen()
             namen_durchsetzen()
+            _legionellen_takt()
             config = store.load_config()
             e = config["einstellungen"]
             if e.get("melder") != "bsblan" or _publisher is None:
@@ -490,6 +491,183 @@ def namen_durchsetzen() -> list:
     return geaendert
 
 
+# ───────────────────────────────────────── Legionellenaufheizung ──
+#
+# Die Regelung kann das auch – aber nur als „alle n Tage“, ohne Wochentag und
+# ohne Uhrzeit. Bei einem Speicher ohne Mischeinrichtung ist der Zeitpunkt
+# aber die halbe Miete: 60 °C im Speicher heißen 60 °C am Hahn. Also fährt der
+# Manager die Aufheizung selbst – nachts, mit Rückweg und Zeitgrenze.
+#
+# Zwei Dinge sind hier wichtiger als Eleganz:
+#   * Der Rückweg steht im Zustand, bevor der Hinweg beginnt. Stirbt das
+#     Add-on mitten im Lauf, stellt es beim Start zurück.
+#   * Ohne Freigabe zum Stellen passiert nichts. Diese Funktion schreibt von
+#     sich aus, und das darf nur, wer es eingeschaltet hat.
+NACHLAUF_MIN = 15
+
+
+def _trinkwasser() -> dict:
+    return katalog_modul.trinkwasser_regelung(store.load_katalog())
+
+
+def _zahl(wert):
+    try:
+        return float(str(wert).replace(",", "."))
+    except (TypeError, ValueError):
+        return None
+
+
+def legionellen_lage() -> dict:
+    """Was die Aufheizung gerade tut – für Oberfläche und Entscheidung."""
+    state = store.load_state()
+    lauf = dict(state.get("legionellen_lauf") or {})
+    return {"phase": lauf.get("phase") or "",
+            "seit": lauf.get("seit") or 0,
+            "hoechster": lauf.get("hoechster"),
+            "erreicht_seit": lauf.get("erreicht_seit") or 0,
+            "letzter": state.get("legionellen_letzter") or {},
+            "parameter": _trinkwasser()}
+
+
+def legionellen_starten(von_hand: bool = False) -> dict:
+    """Sollwert und Obergrenze hochsetzen – und den Rückweg festhalten."""
+    config = store.load_config()
+    if not config["einstellungen"]["schreiben_erlaubt"]:
+        raise bsb_modul.BsbFehler("Das Stellen ist in den Einstellungen noch "
+                                  "nicht freigegeben")
+    teile = _trinkwasser()
+    for rolle in ("sollwert", "maximum", "istwert"):
+        if rolle not in teile:
+            raise bsb_modul.BsbFehler(
+                f"Diese Anlage führt keinen {rolle} für das Trinkwasser – "
+                "eine Aufheizung ließe sich damit nicht steuern")
+    ziel = float(config["einstellungen"]["legionellen"]["ziel"])
+
+    # Frisch lesen, nicht aus dem Zwischenspeicher: Der Rückweg muss stimmen.
+    roh = _client().werte([teile["sollwert"]["nr"], teile["maximum"]["nr"],
+                           teile["istwert"]["nr"]])
+    zurueck = {rolle: str((roh.get(teile[rolle]["nr"]) or {}).get("value") or "")
+               for rolle in ("sollwert", "maximum")}
+    if not all(zurueck.values()):
+        raise bsb_modul.BsbFehler("Die jetzigen Sollwerte ließen sich nicht "
+                                  "lesen – ohne sie gibt es keinen Rückweg")
+
+    store.merke_state(legionellen_lauf={
+        "phase": "laeuft", "seit": time.time(), "zurueck": zurueck,
+        "hoechster": _zahl((roh.get(teile["istwert"]["nr"]) or {}).get("value")),
+        "erreicht_seit": 0, "von_hand": bool(von_hand)})
+
+    # Erst die Obergrenze, dann der Sollwert: andersherum bliebe der Sollwert
+    # an der alten Grenze hängen.
+    _client().setzen(teile["maximum"]["nr"], f"{ziel:.1f}")
+    _client().setzen(teile["sollwert"]["nr"], f"{ziel:.1f}")
+    _LOGGER.info("Legionellenaufheizung gestartet: Ziel %.1f °C, zurück auf %s",
+                 ziel, zurueck)
+    return legionellen_lage()
+
+
+def legionellen_beenden(grund: str) -> dict:
+    """Zurück auf die gemerkten Werte – in jedem Fall."""
+    state = store.load_state()
+    lauf = dict(state.get("legionellen_lauf") or {})
+    if not lauf.get("phase"):
+        return legionellen_lage()
+    teile = _trinkwasser()
+    zurueck = lauf.get("zurueck") or {}
+    fehler = ""
+    try:
+        # Erst der Sollwert, dann die Grenze – sonst hinge er wieder oben.
+        if zurueck.get("sollwert") and "sollwert" in teile:
+            _client().setzen(teile["sollwert"]["nr"], zurueck["sollwert"])
+        if zurueck.get("maximum") and "maximum" in teile:
+            _client().setzen(teile["maximum"]["nr"], zurueck["maximum"])
+    except bsb_modul.BsbFehler as err:
+        fehler = str(err)
+        _LOGGER.error("Rückweg der Legionellenaufheizung gescheitert: %s", err)
+
+    letzter = {
+        "start": datetime.fromtimestamp(lauf.get("seit") or time.time())
+                 .isoformat(timespec="seconds"),
+        "ende": datetime.now().isoformat(timespec="seconds"),
+        "hoechster": lauf.get("hoechster"),
+        "ergebnis": fehler or grund,
+        "zurueck": zurueck,
+    }
+    store.merke_state(legionellen_lauf={}, legionellen_letzter=letzter)
+    _LOGGER.info("Legionellenaufheizung beendet: %s (höchstens %s °C)",
+                 letzter["ergebnis"], letzter["hoechster"])
+    if fehler:
+        for dienst in (store.load_config()["einstellungen"].get("melden_an") or []):
+            ha_notify(dienst, "Heizung: Aufheizung nicht zurückgestellt",
+                      "Der Manager konnte den Warmwassersollwert nach der "
+                      f"Legionellenaufheizung nicht zurückstellen: {fehler} "
+                      "Bitte in der Regelung nachsehen.")
+    return legionellen_lage()
+
+
+def _legionellen_takt() -> None:
+    """Alle paar Sekunden: läuft etwas, ist etwas fällig, ist etwas fertig?"""
+    config = store.load_config()
+    e = config["einstellungen"]["legionellen"]
+    state = store.load_state()
+    lauf = dict(state.get("legionellen_lauf") or {})
+
+    if lauf.get("phase") == "laeuft":
+        teile = _trinkwasser()
+        dauer = time.time() - float(lauf.get("seit") or 0)
+        ist = None
+        if "istwert" in teile:
+            try:
+                roh = _client().werte([teile["istwert"]["nr"]])
+                ist = _zahl((roh.get(teile["istwert"]["nr"]) or {}).get("value"))
+            except bsb_modul.BsbFehler as err:
+                _LOGGER.warning("Istwert während der Aufheizung: %s", err)
+        if ist is not None:
+            hoechster = max(ist, _zahl(lauf.get("hoechster")) or ist)
+            felder = {"hoechster": hoechster}
+            # Eine Grad Toleranz: Der Fühler sitzt nicht dort, wo geheizt wird.
+            if ist >= float(e["ziel"]) - 1 and not lauf.get("erreicht_seit"):
+                felder["erreicht_seit"] = time.time()
+                _LOGGER.info("Zieltemperatur erreicht: %.1f °C", ist)
+            lauf.update(felder)
+            store.merke_state(legionellen_lauf=lauf)
+
+        erreicht = float(lauf.get("erreicht_seit") or 0)
+        if erreicht and time.time() - erreicht >= NACHLAUF_MIN * 60:
+            legionellen_beenden("erreicht")
+        elif dauer >= int(e["hoechstens_min"]) * 60:
+            legionellen_beenden("Zeit abgelaufen")
+        return
+
+    if lauf:                       # abgebrochener Lauf, etwa nach Neustart
+        legionellen_beenden("nach Neustart zurückgestellt")
+        return
+    if not e["an"]:
+        return
+
+    jetzt = datetime.now()
+    if jetzt.weekday() != int(e["wochentag"]) or jetzt.hour != int(e["stunde"]):
+        return
+    letzter = (state.get("legionellen_letzter") or {}).get("start")
+    if letzter:
+        try:
+            abstand = (jetzt - datetime.fromisoformat(letzter)).total_seconds()
+        except ValueError:
+            abstand = float("inf")
+        # Eine halbe Stunde Luft, damit ein Lauf nicht knapp am Rhythmus
+        # scheitert und dann eine ganze Woche später kommt.
+        if abstand < int(e["tage"]) * 86400 - 1800:
+            return
+    try:
+        legionellen_starten()
+    except bsb_modul.BsbFehler as err:
+        _LOGGER.warning("Legionellenaufheizung nicht gestartet: %s", err)
+        store.merke_state(legionellen_letzter={
+            "start": jetzt.isoformat(timespec="seconds"),
+            "ende": jetzt.isoformat(timespec="seconds"),
+            "hoechster": None, "ergebnis": f"nicht gestartet: {err}"})
+
+
 def bsblan_meldet() -> bool | None:
     """Sagt BSB-LAN dem Broker, dass es da ist?
 
@@ -713,6 +891,27 @@ def api_namen():
     except Exception as err:                      # noqa: BLE001
         _LOGGER.warning("Namen nicht durchgesetzt: %s", err)
     return jsonify({"namen": namen})
+
+
+@app.route("/api/legionellen")
+def api_legionellen():
+    return jsonify(legionellen_lage())
+
+
+@app.route("/api/legionellen/start", methods=["POST"])
+def api_legionellen_start():
+    try:
+        return jsonify(legionellen_starten(von_hand=True))
+    except bsb_modul.BsbFehler as err:
+        return jsonify({"fehler": str(err)}), 400
+
+
+@app.route("/api/legionellen/stop", methods=["POST"])
+def api_legionellen_stop():
+    try:
+        return jsonify(legionellen_beenden("von Hand beendet"))
+    except bsb_modul.BsbFehler as err:
+        return jsonify({"fehler": str(err)}), 502
 
 
 @app.route("/api/notify-dienste")
@@ -965,6 +1164,7 @@ def api_status():
         "fehler": _letzter_fehler,
         "mqtt": _publisher is not None and _publisher.connected.is_set(),
         "pflicht": sorted(pflicht_nummern()),
+        "legionellen": legionellen_lage(),
         "mindesttakt_s": MINDESTTAKT_S,
         "schreiben_erlaubt": config["einstellungen"]["schreiben_erlaubt"],
     }

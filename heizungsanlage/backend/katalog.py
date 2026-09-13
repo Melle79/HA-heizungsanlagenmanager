@@ -174,6 +174,47 @@ KACHEL_MUSTER = [
 ]
 
 
+# Für die Legionellenaufheizung braucht der Manager drei Parameter: den
+# Sollwert, seine Obergrenze und den Istwert. Ihre Nummern stehen nirgends
+# fest – gesucht wird über die Namen, wie überall in diesem Katalog.
+TRINKWASSER_MUSTER = {
+    "sollwert": {"worte": ["trinkwassertemperatur-nennsollwert",
+                           "warmwassertemperatur-nennsollwert"],
+                 "weg": ["maximum", "minimum", "reduziert", "frostschutz"]},
+    "maximum": {"worte": ["nennsollwertmaximum"], "weg": []},
+    "istwert": {"worte": ["warmwassertemperatur-istwert",
+                          "trinkwassertemperatur-istwert",
+                          "warmwassertemperatur istwert"],
+                "weg": ["2", "soll"]},
+}
+
+
+def trinkwasser_regelung(katalog: dict) -> dict:
+    """Sollwert, Obergrenze und Istwert des Trinkwassers – falls vorhanden.
+
+    Fehlt eines davon, fehlt es: Eine Aufheizung, die den Istwert nicht sieht,
+    wüsste nicht, wann sie fertig ist, und eine ohne Obergrenze käme nicht
+    über sie hinaus.
+    """
+    parameter = list((katalog.get("parameter") or {}).values())
+    parameter.sort(key=lambda e: _nummer(e.get("nr")))
+    raus = {}
+    for rolle, muster in TRINKWASSER_MUSTER.items():
+        for eintrag in parameter:
+            name = _klein(eintrag.get("name"))
+            if not any(wort in name for wort in muster["worte"]):
+                continue
+            if any(wort in name for wort in muster["weg"]):
+                continue
+            if eintrag.get("possibleValues"):
+                continue
+            raus[rolle] = {"nr": str(eintrag.get("nr")),
+                           "name": eintrag.get("name"),
+                           "schreibbar": bool(eintrag.get("schreibbar"))}
+            break
+    return raus
+
+
 def _klein(text) -> str:
     return str(text or "").lower()
 

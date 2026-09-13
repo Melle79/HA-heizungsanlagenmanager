@@ -188,6 +188,37 @@ window.SPRACHEN.en = {
   "Probemeldung schicken": "Send a test alert",
   "Gemeldet wird zweierlei: dass der Adapter nicht antwortet – und dass er antwortet, aber nichts mehr meldet.":
     "Two things are reported: that the adapter does not answer – and that it answers but no longer publishes.",
+  "Legionellenaufheizung": "Legionella heat-up",
+  "Die Regelung kann das auch – aber nur als „alle n Tage“, ohne Wochentag und ohne Uhrzeit. Der Manager fährt den Speicher deshalb selbst hoch, zu einer Zeit, die du bestimmst, und stellt danach zurück auf den vorherigen Wert.":
+    "The controller can do this too – but only as “every n days”, with no weekday and no time of day. The manager therefore heats the tank itself, at a time you choose, and puts the previous value back afterwards.",
+  "Ohne thermostatische Mischeinrichtung steht diese Temperatur währenddessen auch am Wasserhahn.":
+    "Without a thermostatic mixing valve, that temperature is what comes out of the tap while it runs.",
+  "Aufheizung durch den Manager": "Heat-up by the manager",
+  "Alle wie viel Tage": "Every how many days",
+  "7 ist wöchentlich, 14 alle zwei Wochen. Ein Speicher, der täglich geleert wird, braucht seltener.":
+    "7 is weekly, 14 every fortnight. A tank that is emptied daily needs it less often.",
+  "Wochentag": "Weekday",
+  "Montag": "Monday", "Dienstag": "Tuesday", "Mittwoch": "Wednesday",
+  "Donnerstag": "Thursday", "Freitag": "Friday", "Samstag": "Saturday",
+  "Sonntag": "Sunday",
+  "Um wie viel Uhr": "At what time",
+  "Nachts, wenn niemand duscht.": "At night, when nobody showers.",
+  "Zieltemperatur (°C)": "Target temperature (°C)",
+  "Unter 55 sterben Legionellen nicht. 60 ist die übliche Vorgabe.":
+    "Below 55 legionella do not die. 60 is the usual figure.",
+  "Höchstens (Minuten)": "At most (minutes)",
+  "Wird das Ziel nicht erreicht, stellt der Manager danach trotzdem zurück.":
+    "If the target is not reached, the manager puts everything back anyway.",
+  "Jetzt aufheizen": "Heat up now",
+  "Abbrechen": "Cancel",
+  "Den Speicher jetzt aufheizen?": "Heat the tank now?",
+  "Das Wasser wird für die nächste Stunde deutlich heißer – ohne Mischeinrichtung auch am Wasserhahn.":
+    "The water will be considerably hotter for the next hour – at the tap too, without a mixing valve.",
+  "Aufheizung gestartet": "Heat-up started",
+  "Abgebrochen – die alten Werte stehen wieder": "Cancelled – the old values are back",
+  "Noch nicht gelaufen.": "Has not run yet.",
+  "Diese Anlage führt nicht alle drei Werte, die dafür nötig sind: Sollwert, Obergrenze und Istwert des Trinkwassers.":
+    "This system does not provide all three values needed: setpoint, upper limit and actual temperature of the hot water.",
   "Schreibzugriff": "Write access",
   "Stellen von Parametern erlauben": "Allow setting parameters",
   "Zwei Schalter müssen dafür stehen: dieser und der in BSB-LAN selbst. Beide sind ab Werk aus, und das mit Absicht – ein falscher Sollwert lässt im Winter eine Wohnung auskühlen.":

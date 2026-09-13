@@ -1,5 +1,22 @@
 # Änderungen
 
+## 1.30.0
+
+- **Legionellenaufheizung durch den Manager.** Unter *Einstellungen* stellst du
+  Rhythmus, Wochentag, Uhrzeit, Zieltemperatur und Höchstdauer ein; der Manager
+  hebt Sollwert und Obergrenze des Trinkwassers an und stellt beide danach
+  zurück. Die Regelung selbst kann das auf älteren Reglern nur als „alle n
+  Tage“ – ohne Wochentag und ohne Uhrzeit, und heißes Wasser zur Unzeit ist
+  ohne Mischeinrichtung keine Kleinigkeit.
+- **Der Rückweg steht fest, bevor der Hinweg beginnt.** Die alten Werte werden
+  frisch gelesen und im Zustand hinterlegt; ein Add-on, das mitten im Lauf
+  stirbt, stellt beim nächsten Start zurück.
+- Ab Werk aus, und ohne die Freigabe zum Stellen passiert nichts. Nach der
+  eingestellten Höchstdauer wird auch dann zurückgestellt, wenn die
+  Zieltemperatur nie erreicht wurde.
+- Die beteiligten Parameter leitet der Manager aus dem Katalog ab. Führt eine
+  Anlage nicht alle drei, bietet er die Funktion nicht an.
+
 ## 1.29.0
 
 - **Handbuch und README auf dem Stand von heute.** Dazugekommen sind die

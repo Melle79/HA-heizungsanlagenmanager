@@ -284,6 +284,40 @@ In dieser Betriebsart übernimmt der Manager die Einrichtung:
 * Was BSB-LAN sonst tut – etwa auf SD-Karte protokollieren –, bleibt
   unangetastet: Geschrieben wird nur, was sich unterscheidet.
 
+### Legionellenaufheizung
+
+Die Regelung kann eine Legionellenschaltung selbst – aber auf älteren Reglern
+nur als *alle n Tage*, ohne Wochentag und ohne Uhrzeit. Bei einem Speicher
+**ohne thermostatische Mischeinrichtung** ist der Zeitpunkt aber die halbe
+Sache: 60 °C im Speicher heißen 60 °C am Wasserhahn.
+
+Deshalb kann der Manager die Aufheizung selbst fahren, unter *Einstellungen →
+Legionellenaufheizung*: Rhythmus in Tagen, Wochentag, Uhrzeit, Zieltemperatur
+und eine Höchstdauer. Er hebt dann Sollwert **und** Obergrenze des
+Trinkwassers an und stellt beide danach auf die vorherigen Werte zurück.
+
+Drei Dinge sind dabei bewusst so gebaut:
+
+* **Der Rückweg steht fest, bevor der Hinweg beginnt.** Die aktuellen Werte
+  werden frisch gelesen und im Zustand hinterlegt. Stirbt das Add-on mitten
+  im Lauf, stellt es beim nächsten Start zurück – nicht der Speicher bleibt
+  heiß, sondern das Programm merkt sich, was es schuldet.
+* **Ohne Freigabe zum Stellen passiert nichts.** Diese Funktion schreibt von
+  sich aus; sie ist ab Werk aus und braucht denselben Schalter wie jedes
+  andere Schreiben.
+* **Es gibt eine Zeitgrenze.** Wird die Zieltemperatur nicht erreicht – etwa
+  weil der Kessel nicht mitspielt –, stellt der Manager nach der eingestellten
+  Höchstdauer trotzdem zurück und schreibt „Zeit abgelaufen“ ins Protokoll.
+
+Nach dem Erreichen hält er die Temperatur noch eine Viertelstunde, damit auch
+der Teil des Speichers warm wird, an dem der Fühler nicht sitzt. Mit *Jetzt
+aufheizen* lässt sich ein Lauf von Hand auslösen, mit *Abbrechen* jederzeit
+beenden.
+
+Welche Parameter dafür verwendet werden, leitet der Manager aus dem Katalog
+ab – Sollwert, Obergrenze und Istwert des Trinkwassers. Führt eine Anlage
+nicht alle drei, sagt er das und bietet die Funktion nicht an.
+
 ### Melden, wenn etwas ausfällt
 
 Unter *Einstellungen → Melden* steht, wohin eine Störung geht: ein
