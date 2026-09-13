@@ -661,9 +661,16 @@ function uebersichtZeichnen() {
     const grund = wertErklaerung(w, def);
     const erklaert = leer && grund && grund !== 'noch nicht gelesen';
     if (erklaert) el.className = 'kachel ohnewert';
+    // Eine Zahl in Tagen ist kein Messwert: „7 Tage“ liest sich wie eine
+    // Dauer, gemeint ist ein Rhythmus – und „0 Tage“ heißt schlicht aus.
+    const tage = (def.dataType_name === 'DAYS') && !leer;
+    const zahl = tage ? (parseFloat(w.value) ? 'alle ' + parseFloat(w.value) : 'aus')
+                      : (leer ? '–' : w.value);
+    const einheit = tage ? (parseFloat(w.value) ? 'Tage' : '')
+                         : (leer ? '' : ((w && w.unit) || def.einheit || ''));
     el.innerHTML = `<div class="titel">${def.titel}</div>
-      <div class="wert">${leer ? '–' : w.value}
-        <small>${leer ? '' : ((w && w.unit) || def.einheit || '')}</small></div>
+      <div class="wert">${zahl}
+        <small>${einheit}</small></div>
       <div class="zusatz" title="${def.name || ''}">${
         leer && grund ? grund
         : (auswahlNr.has(def.nr) ? 'Parameter ' + def.nr

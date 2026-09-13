@@ -194,6 +194,9 @@ window.SPRACHEN.en = {
     "Two switches have to be on: this one and the one in BSB-LAN itself. Both are off by default, and deliberately so – a wrong setpoint lets a flat go cold in winter.",
   "Einstellungen speichern": "Save settings",
   "Gespeichert": "Saved",
+  "Legionellen": "Legionella",
+  "aus": "off",
+  "Tage": "days",
   "für die Übersicht": "for the overview",
   "BSB-LAN antwortet, meldet aber nichts.": "BSB-LAN answers, but publishes nothing.",
   "Der Adapter ist erreichbar, hat sich beim Broker aber nicht angemeldet. Das kommt nach einem WLAN-Abriss vor: BSB-LAN macht dann einen eigenen Zugangspunkt auf und lässt MQTT bis zum Neustart aus.":
@@ -307,6 +310,7 @@ window.SPRACHEN.en = {
   [/^(\d+) Parameter gespeichert$/, "$1 parameters saved"],
   [/^(\d+) Parameter übernommen$/, "$1 parameters taken over"],
   [/^(\d+) ausgewählt$/, "$1 selected"],
+  [/^alle (\d+)$/, "every $1"],
   [/^Probemeldung an (.+)$/, "Test alert sent to $1"],
   [/^([\d.]+) Abfragen je Minute · rund (\d+) % Buszeit$/,
    "$1 queries per minute · roughly $2 % bus time"],

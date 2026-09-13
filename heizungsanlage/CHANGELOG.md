@@ -1,5 +1,15 @@
 # Änderungen
 
+## 1.26.0
+
+- **Neue Kachel „Legionellen“** auf der Übersicht. Eine Legionellenschaltung,
+  die stillschweigend auf „aus“ steht, merkt man sonst erst, wenn jemand
+  danach sucht. Angezeigt wird der Rhythmus – „alle 7 Tage“ oder „aus“ –,
+  nicht eine nackte Zahl in Tagen.
+- Kacheln, die eine **Einstellung** zeigen statt eines Messwerts, werden nur
+  stündlich erfragt statt alle fünf Minuten. Sie ändern sich nur, wenn jemand
+  sie ändert.
+
 ## 1.25.2
 
 - **Aufräumen nach 1.25.0:** Werte, die einmal mitgehört wurden und inzwischen

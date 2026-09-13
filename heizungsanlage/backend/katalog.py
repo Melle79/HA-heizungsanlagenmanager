@@ -166,6 +166,11 @@ KACHEL_MUSTER = [
     {"titel": "Brennerstarts", "worte": ["starts", "startzähler",
                                          "startzaehler"],
      "weg": ["wartung", "seit", "stufe 2"]},
+    # Kein Messwert, sondern eine Einstellung – und trotzdem eine Kachel wert:
+    # Eine Legionellenschaltung, die stillschweigend auf „aus“ steht, merkt
+    # man erst, wenn sie jemand sucht. Sie wird darum auch seltener abgefragt
+    # als die Messwerte, siehe MINDESTTAKT im Dienst.
+    {"titel": "Legionellen", "worte": ["legionellen"], "weg": []},
 ]
 
 

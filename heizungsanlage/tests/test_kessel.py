@@ -956,6 +956,11 @@ store.merke_state(werte={kachel_nummern[0]: {"value": "---", "error": 7}})
 pflicht = anwendung.pflicht_nummern()
 pruefe(kachel_nummern[0] not in pflicht,
        "ein Parameter ohne Antwort wird nicht erzwungen")
+# Eine Einstellung aendert sich nur, wenn jemand sie aendert - sie im
+# Fuenfminutentakt zu erfragen waere Buszeit fuer nichts.
+takte_pflicht = set(pflicht.values())
+pruefe(takte_pflicht <= {anwendung.MINDESTTAKT_S, anwendung.MINDESTTAKT_STELLBAR_S},
+       f"jede Pflichtkachel hat einen Mindesttakt: {pflicht}")
 gespeichert = kunde.put("/api/auswahl", json=[{"nr": "999", "name": "Fremd"}]).get_json()
 nummern = [e["nr"] for e in gespeichert]
 pruefe(all(nr in nummern for nr in pflicht),

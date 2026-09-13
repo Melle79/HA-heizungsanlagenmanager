@@ -221,7 +221,7 @@ def _poll_schleife() -> None:
             jetzt = time.time()
             dran = []
             eigene = set()
-            pflicht = set(pflicht_nummern())
+            pflicht = pflicht_nummern()
             grund = int(e.get("bsblan_intervall_s") or 60)
             for eintrag in config["auswahl"]:
                 nr = str(eintrag["nr"])
@@ -229,7 +229,7 @@ def _poll_schleife() -> None:
                 # Was die Übersicht braucht, bekommt mindestens den Mindesttakt
                 # – auch wenn der Grundtakt viel langsamer steht.
                 if nr in pflicht:
-                    takt = min(takt or grund, MINDESTTAKT_S)
+                    takt = min(takt or grund, pflicht[nr])
                 if not takt:
                     continue
                 eigene.add(nr)
@@ -270,10 +270,13 @@ FRISCH_FAKTOR = 3
 # der die Anzeige nicht altern lässt: Ein Grundtakt von einer Stunde macht aus
 # der Übersicht sonst eine Erinnerung.
 MINDESTTAKT_S = 300
+# Eine Einstellung ändert sich nur, wenn jemand sie ändert – sie im
+# Fünfminutentakt zu erfragen wäre Buszeit für nichts.
+MINDESTTAKT_STELLBAR_S = 3600
 
 
-def pflicht_nummern() -> list:
-    """Was der Manager für seine Übersicht braucht – und was die Anlage kennt.
+def pflicht_nummern() -> dict:
+    """Was der Manager für seine Übersicht braucht: Nummer → Mindesttakt.
 
     Ein Parameter, den die Regelung nicht beantwortet, wird nicht erzwungen:
     Er würde in Home Assistant als ewig leere Entität stehen. Bei dieser
@@ -281,7 +284,7 @@ def pflicht_nummern() -> list:
     """
     katalog = store.load_katalog()
     werte = store.load_state().get("werte") or {}
-    raus = []
+    raus = {}
     # Abgeleitet, nicht gespeichert – wie überall beim Katalog.
     for kachel in katalog_modul.kacheln(katalog):
         nr = str(kachel.get("nr") or "")
@@ -292,7 +295,8 @@ def pflicht_nummern() -> list:
             wert = str(bekannt.get("value") or "").strip()
             if bekannt.get("error") == 7 or wert in ("", "---"):
                 continue
-        raus.append(nr)
+        raus[nr] = (MINDESTTAKT_STELLBAR_S if kachel.get("schreibbar")
+                    else MINDESTTAKT_S)
     return raus
 
 
@@ -775,7 +779,7 @@ def api_status():
         "katalog_lauf": dict(_katalog_lauf),
         "fehler": _letzter_fehler,
         "mqtt": _publisher is not None and _publisher.connected.is_set(),
-        "pflicht": pflicht_nummern(),
+        "pflicht": sorted(pflicht_nummern()),
         "mindesttakt_s": MINDESTTAKT_S,
         "schreiben_erlaubt": config["einstellungen"]["schreiben_erlaubt"],
     }

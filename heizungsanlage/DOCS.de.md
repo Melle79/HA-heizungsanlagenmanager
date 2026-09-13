@@ -323,8 +323,12 @@ das Dreifache des Abfragetakts nicht mehr aufgefrischt wurde.
 Betriebsstunden und die übrigen Kachelwerte trägt der Manager selbst in die
 Auswahl ein; abwählen lässt sich das nicht, denn ohne sie bliebe seine eigene
 Startseite leer. In der Liste stehen sie mit dem Vermerk *für die Übersicht*.
-Für sie gilt zusätzlich ein **Mindesttakt von fünf Minuten** – ein Grundtakt
+Für Messwerte gilt zusätzlich ein **Mindesttakt von fünf Minuten** – ein Grundtakt
 von einer Stunde würde die Übersicht sonst zu einer Erinnerung machen.
+
+Eine Kachel, die eine **Einstellung** zeigt statt eines Messwerts – die
+Legionellenschaltung etwa –, wird nur stündlich erfragt: Sie ändert sich nur,
+wenn jemand sie ändert.
 
 Was die Anlage nicht beantwortet, wird dabei **nicht** erzwungen: Für eine
 Vorlauftemperatur ohne Fühler entstünde nur eine ewig leere Entität.
