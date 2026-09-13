@@ -192,6 +192,30 @@ def standard_einstellungen() -> dict:
 ALTE_KENNUNG = "kesselmanager"
 
 
+def validate_namen(roh) -> dict:
+    """Eigene Namen für Parameter – Nummer auf Bezeichnung.
+
+    Die Namen der Regelung sind nicht immer die der Anlage: Parameter 70 heißt
+    in der Liste „Brauchwassertemperatur-Reduziertsollwert“ und ist in
+    Wahrheit die Betriebsart. Wer das einmal herausgefunden hat, soll es
+    aufschreiben können, statt es jedes Mal neu zu wissen.
+    """
+    if not isinstance(roh, dict):
+        raise ValidationError("Die Namen müssen als Zuordnung kommen")
+    raus = {}
+    for nr, name in roh.items():
+        nr = str(nr).strip()
+        name = str(name or "").strip()
+        if not nr:
+            continue
+        if len(name) > 60:
+            raise ValidationError(f"Der Name für Parameter {nr} ist zu lang "
+                                  "(höchstens 60 Zeichen)")
+        if name:
+            raus[nr] = name
+    return raus
+
+
 def load_config() -> dict:
     with _lock:
         roh = _read(CONFIG_FILE, {})
@@ -202,6 +226,7 @@ def load_config() -> dict:
     return {
         "einstellungen": einstellungen,
         "auswahl": list((roh or {}).get("auswahl") or []),
+        "namen": dict((roh or {}).get("namen") or {}),
     }
 
 

@@ -188,6 +188,22 @@ zeigt, wie viele Parameter sie führt und wie viele davon angehakt sind; ein
 Klick auf die Zeile öffnet sie. Wer sucht oder filtert, bekommt die Treffer
 offen hingelegt und muss nicht erst klicken.
 
+### Wenn die Beschriftung nicht stimmt
+
+Die Namen kommen aus der Parameterliste der Firmware, und die trifft es nicht
+immer: Parameter 70 heißt dort *Brauchwassertemperatur-Reduziertsollwert* und
+ist an dieser Anlage die **Betriebsart**. Solche Fehlgriffe stammen aus den
+Siemens-Unterlagen und lassen sich nicht von außen richtigstellen.
+
+Deshalb kann jeder Parameter einen **eigenen Namen** bekommen: in der Auswahl
+über den Stift ✎ neben dem Namen. Er gilt überall in dieser Oberfläche, und
+der ursprüngliche Name bleibt als Fußnote *laut Liste: …* darunter stehen –
+damit nachvollziehbar bleibt, worüber man eigentlich spricht.
+
+Meldet der Manager selbst, heißt auch die Entität in Home Assistant so.
+Meldet BSB-LAN, vergibt dessen Firmware die Namen; dort hilft nur das
+Umbenennen in Home Assistant selbst.
+
 ## Auswahl: was nach Home Assistant geht
 
 Jeder angehakte Parameter wird ein Sensor. Einheit und Geräteklasse schlägt

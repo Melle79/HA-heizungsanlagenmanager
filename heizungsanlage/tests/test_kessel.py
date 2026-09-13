@@ -1011,6 +1011,21 @@ pruefe(bool(dazu), f"fehlende Pflichtparameter werden im Betrieb nachgetragen: {
 pruefe(anwendung.pflicht_nachtragen() == [],
        "und beim zweiten Mal ist nichts mehr zu tun")
 
+# Eigene Namen fuer Parameter, deren Beschriftung nicht zur Anlage passt.
+antwort = kunde.put("/api/namen", json={"70": "Betriebsart", "71": "  "}).get_json()
+pruefe(antwort["namen"] == {"70": "Betriebsart"},
+       f"leere Namen fallen weg: {antwort['namen']}")
+pruefe(store.load_config()["namen"] == {"70": "Betriebsart"},
+       "und der Name steht in der Konfiguration")
+kunde.put("/api/auswahl", json=[{"nr": "70", "name": "Brauchwasser..."}])
+kunde.put("/api/namen", json={"70": "Betriebsart"})
+eintrag = [e for e in store.load_config()["auswahl"] if e["nr"] == "70"][0]
+pruefe(eintrag["anzeige"] == "Betriebsart",
+       "die Entitaet heisst dann auch so")
+zu_lang = kunde.put("/api/namen", json={"70": "x" * 61})
+pruefe(zu_lang.status_code == 400, "ein zu langer Name wird abgelehnt")
+kunde.put("/api/namen", json={})
+
 # Neustart geht ueber /N. /NE waere ein Buchstabe mehr und das EEPROM leer.
 GERAET["befehle"].clear()
 kunde.post("/api/bsblan/neustart")

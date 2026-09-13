@@ -315,7 +315,8 @@ def _um_pflicht_ergaenzt(auswahl: list) -> list:
         eintrag = katalog_p.get(nr) or {}
         auswahl.append({"nr": nr,
                         "name": eintrag.get("name") or f"Parameter {nr}",
-                        "anzeige": "", "einheit": eintrag.get("unit") or "",
+                        "anzeige": (store.load_config().get("namen")
+                                    or {}).get(nr, ""), "einheit": eintrag.get("unit") or "",
                         "device_class": eintrag.get("device_class") or "",
                         "state_class": eintrag.get("state_class") or "",
                         "takt_s": 0})
@@ -622,6 +623,32 @@ def statisch(datei: str):
     if datei.startswith("api/"):
         return jsonify({"fehler": "unbekannter Aufruf"}), 404
     return send_from_directory(FRONTEND, datei)
+
+
+@app.route("/api/namen", methods=["GET", "PUT"])
+def api_namen():
+    """Eigene Namen für Parameter, deren Beschriftung nicht passt.
+
+    Sie gelten überall in dieser Oberfläche – und als Name der Entität, wenn
+    der Manager selbst meldet. Meldet BSB-LAN, vergibt dessen Firmware die
+    Namen; dort hilft nur das Umbenennen in Home Assistant.
+    """
+    config = store.load_config()
+    if request.method == "GET":
+        return jsonify({"namen": config.get("namen") or {}})
+    try:
+        namen = store.validate_namen(request.get_json(force=True) or {})
+    except store.ValidationError as err:
+        return jsonify({"fehler": str(err)}), 400
+    config["namen"] = namen
+    # Der eigene Name ist zugleich der Name der Entität – sonst hieße sie
+    # weiter, wie die Liste sie nennt.
+    for eintrag in config["auswahl"]:
+        eintrag["anzeige"] = namen.get(str(eintrag["nr"]), "")
+    config["auswahl"] = store.validate_auswahl(config["auswahl"])
+    store.save_config(config)
+    _discovery_auffrischen()
+    return jsonify({"namen": namen})
 
 
 @app.route("/api/notify-dienste")

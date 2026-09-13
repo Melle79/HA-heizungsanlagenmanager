@@ -1,5 +1,15 @@
 # Änderungen
 
+## 1.27.0
+
+- **Eigene Namen für Parameter.** In der Auswahl steht neben jedem Namen ein
+  Stift ✎: Was die Parameterliste falsch benennt – Parameter 70 heißt dort
+  *Brauchwassertemperatur-Reduziertsollwert* und ist die Betriebsart –, lässt
+  sich damit richtigstellen.
+- Der Name gilt in der ganzen Oberfläche, und der ursprüngliche bleibt als
+  Fußnote *laut Liste: …* darunter stehen. Verschwiegen wird nichts.
+- Meldet der Manager selbst, heißt auch die Entität in Home Assistant so.
+
 ## 1.26.4
 
 - Prüfung nachgezogen, die zur Regel aus 1.26.3 nicht mehr passte. Die

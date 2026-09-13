@@ -119,6 +119,17 @@ Both are off by default. The *Regelung* tab always shows which of the two is
 still missing. On top of that the manager only accepts parameters the
 controller itself reports as writable, and asks before every change.
 
+### When the label is wrong
+
+Names come from the firmware's parameter list, and it does not always get them
+right: parameter 70 is called *Brauchwassertemperatur-Reduziertsollwert* there
+and is the operating mode on this system. Any parameter can therefore be given
+a **name of your own** – the ✎ next to the name in the selection. It applies
+everywhere in this interface, with the original kept as a footnote below it.
+When the manager publishes, the entity in Home Assistant carries that name too;
+when BSB-LAN publishes, its firmware names the entities and renaming happens in
+Home Assistant.
+
 ## Selection: what reaches Home Assistant
 
 The list is grouped by the controller's own categories, in the controller's own

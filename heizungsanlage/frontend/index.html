@@ -30,6 +30,9 @@
      Hinweis auf eine neuere erscheint nur, wenn es eine gibt. */
   .notiz.warn{color:var(--warm)}
   select.takt{padding:2px 4px; font-size:.78rem; min-width:96px}
+  button.stift{background:none; border:0; color:var(--sehr-leise); cursor:pointer;
+    padding:0 4px; font-size:.8rem}
+  button.stift:hover{color:var(--warm)}
   .marke-neu{font-size:.68rem; color:var(--warm); border:1px solid var(--warm);
     border-radius:4px; padding:0 5px; margin-left:var(--l2);
     text-decoration:none; white-space:nowrap}
@@ -671,7 +674,7 @@ function uebersichtZeichnen() {
     el.innerHTML = `<div class="titel">${def.titel}</div>
       <div class="wert">${zahl}
         <small>${einheit}</small></div>
-      <div class="zusatz" title="${def.name || ''}">${
+      <div class="zusatz" title="${nameVon(def.nr, def.name) || ''}">${
         leer && grund ? grund
         : (auswahlNr.has(def.nr) ? 'Parameter ' + def.nr
                                  : 'Parameter ' + def.nr + ' – nicht ausgewählt')}</div>`;
@@ -940,6 +943,14 @@ let taktNach = {};
 // Mindesttakt. Ohne diese Werte bliebe seine Startseite leer, weil BSB-LAN
 // nur meldet, was in seiner Liste steht.
 let pflicht = new Set();
+// Eigene Namen für Parameter, deren Beschriftung nicht zur Anlage passt.
+// Parameter 70 heißt in der Liste „Brauchwassertemperatur-Reduziertsollwert“
+// und ist die Betriebsart – wer das einmal herausgefunden hat, soll es
+// aufschreiben können.
+let namen = {};
+const nameVon = (nr, wie) => namen[nr] || wie || ('Parameter ' + nr);
+const nachfrage = (frage, vorgabe) => prompt(
+  window.uebersetzeText ? window.uebersetzeText(frage) : frage, vorgabe || '');
 let mindesttakt = 300;
 const durchBsblan = () => (einst || {}).melder === 'bsblan';
 
@@ -978,6 +989,24 @@ function buslast() {
   }
   return {jeMinute: Math.round(jeMinute * 10) / 10,
           anteil: Math.round(jeMinute * 1.5 / 60 * 100)};
+}
+
+async function namenSetzen(p) {
+  const jetzt = namen[p.nr] || '';
+  const eingabe = nachfrage(
+    `Eigener Name für Parameter ${p.nr}. Leer lassen heißt: den Namen aus der `
+    + `Liste verwenden („${p.name}“).`, jetzt);
+  if (eingabe === null) return;                   // abgebrochen
+  const neu = {...namen};
+  if (eingabe.trim()) neu[p.nr] = eingabe.trim(); else delete neu[p.nr];
+  try {
+    const d = await sendeJSON('namen', 'PUT', neu);
+    namen = d.namen || {};
+    meldung('m-auswahl', eingabe.trim() ? 'Name gespeichert'
+                                        : 'Name aus der Liste gilt wieder', true);
+    katalogZeichnen(false);
+    uebersichtZeichnen();
+  } catch (err) { meldung('m-auswahl', err.message); }
 }
 
 function buslastZeigen() {
@@ -1064,12 +1093,16 @@ async function katalogZeichnen(neuLaden = true) {
       <td><input type="checkbox" data-nr="${p.nr}"
           ${auswahlNr.has(p.nr) ? 'checked' : ''}${pflicht.has(p.nr) ? ' disabled' : ''}></td>
       <td class="nr">${p.nr}</td>
-      <td>${p.name}${p.schreibbar ? '<span class="marke-rw">stellbar</span>' : ''}${
+      <td>${nameVon(p.nr, p.name)}${p.schreibbar ? '<span class="marke-rw">stellbar</span>' : ''}${
         pflicht.has(p.nr) ? '<span class="marke-rw">für die Übersicht</span>' : ''}
-        <div class="notiz">${[p.device_class, p.state_class].filter(Boolean).join(' · ') || ''}</div></td>
+        <button class="stift" data-name="${p.nr}" title="Eigenen Namen vergeben">✎</button>
+        <div class="notiz">${namen[p.nr] ? 'laut Liste: ' + p.name + ' · ' : ''}${
+          [p.device_class, p.state_class].filter(Boolean).join(' · ') || ''}</div></td>
       <td class="kat">${p.unit || ''}</td>
       <td class="kat nur-bsblan" ${durchBsblan() ? '' : 'hidden'}>${taktFeld(p.nr)}</td>
       <td class="wert">${wertZelle(p)}</td>`;
+    const stift = zeile.querySelector('button[data-name]');
+    if (stift) stift.onclick = () => namenSetzen(p);
     const wahl = zeile.querySelector('select.takt');
     if (wahl) wahl.onchange = (ev) => {
       const wert = parseInt(ev.target.value, 10) || 0;
@@ -1487,8 +1520,9 @@ async function reglerZeichnen() {
     }
     if (fremd) zeile.className = 'gefuehrt';
     zeile.innerHTML = `<td class="nr">${p.nr}</td>
-      <td>${p.name}${p.unit ? ` <span class="notiz">(${p.unit})</span>` : ''}${
-        fremd ? `<span class="marke-fremd">${fremd.name}</span>` : ''}</td>
+      <td>${nameVon(p.nr, p.name)}${p.unit ? ` <span class="notiz">(${p.unit})</span>` : ''}${
+        fremd ? `<span class="marke-fremd">${fremd.name}</span>` : ''}${
+        namen[p.nr] ? `<div class="notiz">laut Liste: ${p.name}</div>` : ''}</td>
       <td class="wert">${leerwert
         ? `–<div class="notiz">${wertErklaerung(w, p)}</div>`
         : `${w.desc || roh} ${w.desc ? '' : (p.unit || '')}`}</td>
@@ -2015,6 +2049,7 @@ async function anlauf() {
   auswahl = await hole('auswahl');
   auswahlNr = new Set(auswahl.map(a => a.nr));
   taktAusAuswahl();
+  try { namen = (await hole('namen')).namen || {}; } catch (err) { namen = {}; }
   await werteLaden();
   await katalogLaden();
   await statusLaden();
