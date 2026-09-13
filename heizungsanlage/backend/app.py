@@ -339,6 +339,14 @@ def _werte_aus_mqtt() -> int:
                 timespec="seconds"),
         }
         uebernommen += 1
+
+    # Und was früher einmal mitgehört wurde, inzwischen aber nicht mehr
+    # gemeldet wird, fliegt raus: Sonst stünde ein Wert von vorgestern mit dem
+    # Zeitstempel des Tages da, an dem er zufällig hereinkam.
+    for nr in [n for n, w in werte.items()
+               if w.get("quelle") == "mqtt" and n not in gemeldet]:
+        werte.pop(nr, None)
+
     store.merke_state(werte=werte)
     return uebernommen
 

@@ -1,5 +1,12 @@
 # Änderungen
 
+## 1.25.2
+
+- **Aufräumen nach 1.25.0:** Werte, die einmal mitgehört wurden und inzwischen
+  nicht mehr gemeldet werden, verschwinden aus dem Zwischenspeicher. Sonst
+  bliebe ein Wert von vorgestern mit dem Zeitstempel des Tages stehen, an dem
+  er zufällig hereinkam.
+
 ## 1.25.1
 
 - **Karteileichen unter demselben Präfix werden nicht mehr übernommen.** Beim
