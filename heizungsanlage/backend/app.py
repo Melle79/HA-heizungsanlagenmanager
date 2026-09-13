@@ -290,11 +290,16 @@ def pflicht_nummern() -> dict:
         nr = str(kachel.get("nr") or "")
         if not nr:
             continue
+        # Erst lesen, dann erzwingen. Was noch nie geantwortet hat, wird nicht
+        # in die Auswahl gezogen – sonst stünde die Vorlauftemperatur einer
+        # Anlage ohne Vorlauffühler als leere Entität in Home Assistant, weil
+        # der Manager sie erzwang, bevor er sie kannte.
         bekannt = werte.get(nr)
-        if bekannt:
-            wert = str(bekannt.get("value") or "").strip()
-            if bekannt.get("error") == 7 or wert in ("", "---"):
-                continue
+        if not bekannt:
+            continue
+        wert = str(bekannt.get("value") or "").strip()
+        if bekannt.get("error") == 7 or wert in ("", "---"):
+            continue
         raus[nr] = (MINDESTTAKT_STELLBAR_S if kachel.get("schreibbar")
                     else MINDESTTAKT_S)
     return raus

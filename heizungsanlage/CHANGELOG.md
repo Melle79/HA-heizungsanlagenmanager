@@ -1,5 +1,13 @@
 # Änderungen
 
+## 1.26.3
+
+- **Erst lesen, dann erzwingen.** Ein Kachelwert, von dem der Manager noch
+  nichts weiß, wird nicht mehr in die Auswahl gezogen. Sonst landete er dort,
+  bevor sich zeigte, dass die Anlage ihn gar nicht beantwortet – und stünde in
+  Home Assistant als leere Entität. Genau das ist der Vorlauftemperatur
+  passiert, für die es hier keinen Fühler gibt.
+
 ## 1.26.2
 
 - **Pflichtparameter werden im Betrieb nachgetragen.** Bisher geschah das nur

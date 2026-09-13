@@ -1,5 +1,5 @@
 name: "Heizungsanlagenmanager via BSB-LAN"
-version: "1.26.2"
+version: "1.26.3"
 # Der slug steckt in der Ingress-Adresse und – über DEVICE_ID – in den
 # Entitäts-IDs (sensor.heizungsanlage_p72). Wer ihn ändert, bekommt vom
 # Supervisor ein neues Add-on: Neuinstallation, und die Daten des alten
