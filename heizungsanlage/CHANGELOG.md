@@ -1,5 +1,13 @@
 # Änderungen
 
+## 1.25.1
+
+- **Karteileichen unter demselben Präfix werden nicht mehr übernommen.** Beim
+  Abonnieren liefert der Broker alle „retained“-Nachrichten auf einmal – auch
+  die aus früheren Parameterlisten. Sie kamen in diesem Moment an und sahen
+  damit taufrisch aus, obwohl BSB-LAN sie nie wieder auffrischt. Übernommen
+  wird jetzt nur, was auch wirklich gemeldet wird.
+
 ## 1.25.0
 
 - **Der Manager fragt nicht mehr doppelt.** Meldet BSB-LAN, hört er dessen

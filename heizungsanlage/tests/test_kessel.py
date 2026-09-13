@@ -23,6 +23,7 @@ durchaus eine Null.
 import json
 import os
 import threading
+import time
 import sys
 import tempfile
 
@@ -960,6 +961,24 @@ nummern = [e["nr"] for e in gespeichert]
 pruefe(all(nr in nummern for nr in pflicht),
        f"die Pflichtparameter stehen danach in der Auswahl: {nummern}")
 store.merke_state(werte={})
+
+# Unter dem Praefix liegen auch Nachrichten frueherer Listen. Sie kommen beim
+# Abonnieren alle auf einmal an und saehen dann taufrisch aus - uebernommen
+# wird deshalb nur, was auch wirklich gemeldet wird.
+class _Melder:
+    fremde_werte = {"115": {"wert": "54.0", "zeit": time.time()},
+                    "9999": {"wert": "alt", "zeit": time.time()}}
+
+anwendung._publisher = _Melder()
+kunde.put("/api/auswahl", json=[{"nr": "115", "name": "Kessel"}])
+store.merke_state(werte={})
+anwendung._werte_aus_mqtt()
+gehoert = store.load_state()["werte"]
+pruefe("115" in gehoert and gehoert["115"]["quelle"] == "mqtt",
+       "ein gemeldeter Wert wird uebernommen")
+pruefe("9999" not in gehoert,
+       "eine Karteileiche unter demselben Praefix nicht")
+anwendung._publisher = None
 
 # Neustart geht ueber /N. /NE waere ein Buchstabe mehr und das EEPROM leer.
 GERAET["befehle"].clear()

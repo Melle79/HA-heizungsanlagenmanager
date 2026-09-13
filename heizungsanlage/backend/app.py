@@ -307,10 +307,18 @@ def _werte_aus_mqtt() -> int:
         return 0
     katalog = store.load_katalog()
     parameter = katalog.get("parameter") or {}
+    config = store.load_config()
+    # Nur, was auch wirklich gemeldet wird. Unter dem Präfix liegen noch
+    # „retained“-Nachrichten früherer Listen – Werte von vorgestern, die beim
+    # Abonnieren alle auf einmal hereinkommen und sich als frisch ausgäben,
+    # weil sie in diesem Moment ankommen. BSB-LAN frischt sie nie wieder auf.
+    gemeldet = {str(e["nr"]) for e in config["auswahl"]}
     state = store.load_state()
     werte = dict(state.get("werte") or {})
     uebernommen = 0
     for nr, gehoert in list(_publisher.fremde_werte.items()):
+        if str(nr) not in gemeldet:
+            continue
         eintrag = parameter.get(str(nr)) or {}
         alt = werte.get(str(nr)) or {}
         if alt.get("value") == gehoert["wert"] and alt.get("quelle") == "mqtt":
