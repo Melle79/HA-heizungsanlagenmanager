@@ -1,5 +1,19 @@
 # Änderungen
 
+## 1.19.1
+
+- **Antwortet das Add-on nicht, steht das jetzt da.** Wer eine Antwort bekommt,
+  die kein JSON ist – „502: Bad Gateway“ vom Vermittler etwa, während das
+  Add-on neu startet –, las bisher „Unexpected non-whitespace character after
+  JSON at position 3“. Jetzt steht dort, was los ist.
+- **Der Bericht über das Speichern bleibt stehen.** Schlug danach das Nachlesen
+  fehl, überschrieb dessen Meldung die wichtigere: welche Tage angekommen sind
+  und welcher nicht. Beides steht jetzt nebeneinander – und dazu der Satz, dass
+  die Tabelle in diesem Fall Eingaben zeigt und nicht den Stand der Anlage.
+- Das Nachlesen versucht es nach zweieinhalb Sekunden ein zweites Mal: Direkt
+  nach dem Schreiben ist der Bus belegt, und ein neu startendes Add-on ist
+  Sekunden später wieder da.
+
 ## 1.19.0
 
 - **Die Parameterliste ist nach Kategorien gegliedert und klappt auf.** In der

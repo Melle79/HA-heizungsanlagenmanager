@@ -183,6 +183,13 @@ window.SPRACHEN.en = {
     "Two switches have to be on: this one and the one in BSB-LAN itself. Both are off by default, and deliberately so – a wrong setpoint lets a flat go cold in winter.",
   "Einstellungen speichern": "Save settings",
   "Gespeichert": "Saved",
+  "Nachlesen fehlgeschlagen.": "Reading back failed.",
+  "Das Add-on hat nicht geantwortet – vermutlich startet es gerade neu. In einem Moment noch einmal versuchen.":
+    "The add-on did not answer – it is probably restarting. Try again in a moment.",
+  "Die Anmeldung ist abgelaufen – die Seite einmal neu laden.":
+    "The session has expired – reload the page.",
+  "Die Tabelle zeigt deine Eingaben, nicht den Stand der Anlage.":
+    "The table shows your entries, not the state of the system.",
   "Gespeichert – BSB-LAN stand schon richtig":
     "Saved – BSB-LAN was already right",
   "Anzeige": "Display",
@@ -294,6 +301,7 @@ window.SPRACHEN.en = {
   [/^Auf „(.+)“ gestellt$/, "Set to “$1”"],
   [/^geführt vom (.+)$/, "controlled by $1"],
   [/^Auffrischen fehlgeschlagen: (.+)$/, "Refresh failed: $1"],
+  [/^Unverständliche Antwort \((\d+)\)\.$/, "Unintelligible answer ($1)."],
 
   // ── Alter der gemerkten Werte ──
   [/^gerade eben gelesen$/, "read just now"],

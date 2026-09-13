@@ -510,9 +510,28 @@ let status = {};
 async function hole(pfad, optionen) {
   const antwort = await fetch(API + pfad, {cache:'no-store', ...(optionen||{})});
   const text = await antwort.text();
-  const daten = text ? JSON.parse(text) : null;
+  let daten = null;
+  if (text) {
+    // Kein JSON heißt: Die Antwort kam nicht vom Add-on, sondern vom
+    // Vermittler davor – „502: Bad Gateway“ etwa, während das Add-on neu
+    // startet. Den Rohtext einem JSON.parse vorzuwerfen ergibt eine Meldung
+    // über Zeichen an Position 3; die hilft niemandem.
+    try { daten = JSON.parse(text); }
+    catch { throw new Error(stoerung(antwort.status)); }
+  }
   if (!antwort.ok) throw new Error((daten && daten.fehler) || 'Fehler ' + antwort.status);
   return daten;
+}
+
+function stoerung(status) {
+  if (status === 502 || status === 503 || status === 504) {
+    return 'Das Add-on hat nicht geantwortet – vermutlich startet es gerade neu. '
+         + 'In einem Moment noch einmal versuchen.';
+  }
+  if (status === 401 || status === 403) {
+    return 'Die Anmeldung ist abgelaufen – die Seite einmal neu laden.';
+  }
+  return `Unverständliche Antwort (${status}).`;
 }
 const sendeJSON = (pfad, methode, koerper) => hole(pfad, {
   method: methode, headers:{'Content-Type':'application/json'},
@@ -522,13 +541,24 @@ const sendeJSON = (pfad, methode, koerper) => hole(pfad, {
 // sie nach sechs Sekunden von selbst – und wer gerade auf die Heizung
 // geschaut hat statt auf den Bildschirm, las die wichtigste Auskunft des
 // Tages nicht. Eine Fehlermeldung, die man verpasst, ist keine.
+// Mehrere Sätze kommen als eigene Knoten in die Meldung – ein Satz, der mit
+// einem anderen in einem Textknoten steckt, ist für die Übersetzung kein Satz
+// mehr, sondern eine Zeichenkette, die zu nichts passt.
 function meldung(id, text, gut) {
   const feld = $(id); if (!feld) return;
   feld.innerHTML = '';
   feld.className = 'meldung' + (gut ? ' gut' : '');
-  if (!text) return;
+  const teile = [].concat(text).filter(Boolean);
+  if (!teile.length) return;
   const satz = document.createElement('span');
-  satz.textContent = text;
+  satz.textContent = teile[0];
+  teile.slice(1).forEach(t => {
+    const trenner = document.createElement('span');
+    trenner.textContent = ' · '; trenner.dataset.roh = '1';
+    const weiter = document.createElement('span');
+    weiter.textContent = t;
+    satz.append(trenner, weiter);
+  });
   const zu = document.createElement('button');
   zu.className = 'zu'; zu.textContent = '✕'; zu.title = 'Meldung schließen';
   zu.onclick = () => { feld.innerHTML = ''; feld.className = 'meldung'; };
@@ -1515,11 +1545,29 @@ async function zpOeffnen(id) {
 
 async function zpAuffrischen(nummern, tage, fuer) {
   try {
-    const d = await sendeJSON('lesen', 'POST', {nr: nummern});
+    let d;
+    try {
+      d = await sendeJSON('lesen', 'POST', {nr: nummern});
+    } catch (erst) {
+      // Ein zweiter Versuch: Direkt nach dem Schreiben ist der Bus belegt,
+      // und ein Add-on, das gerade neu startet, ist Sekunden später wieder da.
+      await new Promise(r => setTimeout(r, 2500));
+      d = await sendeJSON('lesen', 'POST', {nr: nummern});
+    }
     if (zpKat !== fuer) return;          // inzwischen woanders
     werte = d.werte || werte;
   } catch (err) {
-    if (zpKat === fuer) meldung('m-zp', 'Auffrischen fehlgeschlagen: ' + err.message);
+    if (zpKat !== fuer) return;
+    // Was beim Speichern herauskam, ist die wichtigere Nachricht – sie bleibt
+    // stehen. Und die Tabelle zeigt jetzt Eingaben, nicht das Gerät: Das muss
+    // dabeistehen, sonst hält man sie für bestätigt.
+    const steht = ($('m-zp').querySelector('span') || {}).textContent || '';
+    // Der Grund steht als eigener Teil da, nicht in den Satz hineingeklebt:
+    // sonst ist er kein übersetzbarer Satz mehr, sondern Füllung in einem
+    // fremden Muster.
+    meldung('m-zp', [steht.replace(/ ?✕$/, ''), 'Nachlesen fehlgeschlagen.',
+                     err.message,
+                     'Die Tabelle zeigt deine Eingaben, nicht den Stand der Anlage.']);
     return;
   }
   // Nur unangetastete Tage übernehmen. Wer schon Zeiten geändert hat, soll
