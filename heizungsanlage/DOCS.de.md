@@ -23,18 +23,19 @@ Er tut fünf Dinge:
 1. [Sprache](#sprache)
 2. [Voraussetzungen](#voraussetzungen)
 3. [Der Parameterkatalog](#der-parameterkatalog)
-4. [Der Reiter „Regelung“](#der-reiter-regelung)
-5. [Zeitschaltprogramme](#zeitschaltprogramme)
-6. [Stellen: die zwei Schalter](#stellen-die-zwei-schalter)
-7. [Der Reiter „Home Assistant“](#der-reiter-home-assistant)
-8. [Auswahl: was nach Home Assistant geht](#auswahl-was-nach-home-assistant-geht)
-9. [Die Fassung von BSB-LAN](#die-fassung-von-bsb-lan)
-10. [Wer meldet nach Home Assistant?](#wer-meldet-nach-home-assistant)
-11. [Gemerkte Werte](#gemerkte-werte)
-12. [Gelesen wird auf Zuruf](#gelesen-wird-auf-zuruf)
-13. [Der Bus ist langsam](#der-bus-ist-langsam)
-14. [Übernahme durch andere Add-ons](#übernahme-durch-andere-add-ons)
-15. [Zusammenspiel mit dem Heizungsplaner](#zusammenspiel-mit-dem-heizungsplaner)
+4. [Die Übersicht](#die-übersicht)
+5. [Der Reiter „Regelung“](#der-reiter-regelung)
+6. [Zeitschaltprogramme](#zeitschaltprogramme)
+7. [Stellen: die zwei Schalter](#stellen-die-zwei-schalter)
+8. [Der Reiter „Home Assistant“](#der-reiter-home-assistant)
+9. [Auswahl: was nach Home Assistant geht](#auswahl-was-nach-home-assistant-geht)
+10. [Die Fassung von BSB-LAN](#die-fassung-von-bsb-lan)
+11. [Wer meldet nach Home Assistant?](#wer-meldet-nach-home-assistant)
+12. [Gemerkte Werte](#gemerkte-werte)
+13. [Gelesen wird auf Zuruf](#gelesen-wird-auf-zuruf)
+14. [Der Bus ist langsam](#der-bus-ist-langsam)
+15. [Übernahme durch andere Add-ons](#übernahme-durch-andere-add-ons)
+16. [Zusammenspiel mit dem Heizungsplaner](#zusammenspiel-mit-dem-heizungsplaner)
 
 ## Sprache
 
@@ -91,6 +92,25 @@ auch tatsächlich geflasht ist. Aus „Parameter 72“ wird so
 Einlesen musst du den Katalog einmal – und danach nur noch, wenn du die
 Firmware mit einer neuen Liste geflasht hast. Es dauert ein bis zwei Minuten,
 weil jede Kategorie einzeln über den Bus geht.
+
+## Die Übersicht
+
+Die Startseite zeigt die üblichen Messwerte als Kacheln. Welche das sind,
+**schlägt der Manager vor** – gesucht über die Namen im Katalog deiner Anlage:
+Kesseltemperatur, Vorlauf, Außentemperatur, Betriebsstunden, Brennerstarts,
+Legionellenschaltung. Findet sich für eine Kachel nichts, fällt sie weg; eine
+leere Übersicht ist ehrlicher als eine mit Zahlen einer fremden Anlage.
+
+**Der Vorschlag ist kein Gesetz.** Unter *Übersicht anpassen* stellst du sie
+selbst zusammen: Reihenfolge über ↑ und ↓, eigene Beschriftung je Kachel,
+Entfernen über ✕, und über die Auswahlliste kommt jeder Parameter deiner
+Anlage dazu. *Vorschlag laden* holt den abgeleiteten Satz zurück, ohne ihn
+gleich zu speichern – so lässt sich vergleichen. Speicherst du eine leere
+Liste, gilt wieder der Vorschlag.
+
+Was auf der Übersicht steht, **wird auch gemeldet**: Der Manager trägt diese
+Parameter in die Auswahl ein und hält sie dort fest (Vermerk *für die
+Übersicht*), denn sonst bekäme er die Werte gar nicht.
 
 ## Der Reiter „Regelung“
 

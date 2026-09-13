@@ -234,6 +234,28 @@
     <h2>Die Anlage</h2>
     <div class="kacheln" id="kacheln"></div>
     <div class="notiz" id="uebersicht-fuss" style="margin-top:var(--l3)"></div>
+
+    <!-- Die Übersicht ist ein Vorschlag, kein Gesetz: Was auf der Startseite
+         steht, weiß niemand besser als der, der auf sie schaut. -->
+    <div id="kachel-bau" hidden>
+      <div class="rollbar"><table><tbody id="kachel-liste"></tbody></table></div>
+      <div class="felder zwei" style="margin-top:var(--l3)">
+        <div class="feld"><label>Parameter hinzufügen</label>
+          <select id="kachel-neu"></select></div>
+        <div class="feld"><label>Beschriftung</label>
+          <input type="text" id="kachel-titel" maxlength="40"
+                 placeholder="wie der Parameter"></div>
+      </div>
+      <div class="zeile-aktionen">
+        <button class="leise" id="btn-kachel-add">Hinzufügen</button>
+        <button id="btn-kachel-speichern">Übersicht speichern</button>
+        <button class="leise" id="btn-kachel-vorschlag">Vorschlag laden</button>
+        <span class="meldung" id="m-kachel"></span>
+      </div>
+    </div>
+    <div class="zeile-aktionen">
+      <button class="leise" id="btn-kachel-bau">Übersicht anpassen</button>
+    </div>
   </div>
   <div class="tafel">
     <h2>Am Bus</h2>
@@ -693,6 +715,125 @@ document.querySelectorAll('nav button[data-blatt]').forEach(knopf => {
 // „115“ hieß, heißt auf einer Standard-BSB-Anlage 8310. Das Backend sucht die
 // Kacheln über die Namen; bis der Katalog da ist, bleibt die Liste leer.
 let KACHELN = [];
+
+// ── Die Übersicht selbst bauen ────────────────────────────────────
+// KACHELN ist, was gilt; kachelEntwurf ist, was gerade gebaut wird. Erst beim
+// Speichern wird aus dem einen das andere.
+let kachelEntwurf = null;
+
+function kachelBauZeichnen() {
+  const koerper = $('kachel-liste'); if (!koerper) return;
+  koerper.innerHTML = '';
+  (kachelEntwurf || []).forEach((k, i) => {
+    const zeile = document.createElement('tr');
+    zeile.innerHTML = `
+      <td style="width:34px" class="nr">${i + 1}</td>
+      <td><input type="text" data-titel="${i}" value="${k.titel || ''}"
+            maxlength="40" placeholder="${k.name || ''}"></td>
+      <td class="kat">${k.name || ''} <span class="notiz">(${k.nr})</span></td>
+      <td style="width:150px; white-space:nowrap">
+        <button class="leise" data-hoch="${i}" ${i ? '' : 'disabled'}>↑</button>
+        <button class="leise" data-runter="${i}"
+          ${i === kachelEntwurf.length - 1 ? 'disabled' : ''}>↓</button>
+        <button class="leise" data-weg="${i}" title="entfernen">✕</button>
+      </td>`;
+    zeile.querySelector('[data-titel]').oninput = (ev) => {
+      kachelEntwurf[i].titel = ev.target.value;
+    };
+    const tausch = (a, b) => {
+      [kachelEntwurf[a], kachelEntwurf[b]] = [kachelEntwurf[b], kachelEntwurf[a]];
+      kachelBauZeichnen();
+    };
+    zeile.querySelector('[data-hoch]').onclick = () => tausch(i, i - 1);
+    zeile.querySelector('[data-runter]').onclick = () => tausch(i, i + 1);
+    zeile.querySelector('[data-weg]').onclick = () => {
+      kachelEntwurf.splice(i, 1); kachelBauZeichnen();
+    };
+    koerper.appendChild(zeile);
+  });
+  if (!kachelEntwurf.length) {
+    koerper.innerHTML = `<tr><td class="kat">Keine Kachel übrig. Gespeichert
+      heißt das: zurück zum Vorschlag.</td></tr>`;
+  }
+}
+
+// Die Namen holt die Suche, nicht der Katalog: Der liefert die Gliederung,
+// die Namen stehen in den Parametern selbst.
+let kachelAuswahlbar = [];
+
+async function kachelAuswahlFuellen() {
+  const feld = $('kachel-neu'); if (!feld) return;
+  if (!kachelAuswahlbar.length) {
+    try {
+      const d = await hole('katalog/suche?' + new URLSearchParams({q: '', kat: '', rw: ''}));
+      kachelAuswahlbar = d.parameter || [];
+    } catch (err) { kachelAuswahlbar = []; }
+  }
+  feld.innerHTML = '';
+  const gruppen = new Map();
+  kachelAuswahlbar.forEach(p => {
+    const kat = p.kategorie_name || 'Weitere';
+    if (!gruppen.has(kat)) gruppen.set(kat, []);
+    gruppen.get(kat).push(p);
+  });
+  gruppen.forEach((teil, kat) => {
+    const gruppe = document.createElement('optgroup');
+    gruppe.label = kat;
+    teil.forEach(p => {
+      const o = document.createElement('option');
+      o.value = p.nr;
+      o.textContent = `${p.nr} – ${nameVon(p.nr, p.name)}`;
+      gruppe.appendChild(o);
+    });
+    feld.appendChild(gruppe);
+  });
+}
+
+$('btn-kachel-bau').onclick = () => {
+  const bau = $('kachel-bau');
+  if (bau.hidden) {
+    kachelEntwurf = KACHELN.map(k => ({nr: k.nr, titel: k.titel, name: k.name}));
+    kachelBauZeichnen();
+    kachelAuswahlFuellen();          // holt die Namen beim ersten Mal nach
+    bau.hidden = false;
+    $('btn-kachel-bau').textContent = 'Anpassen beenden';
+  } else {
+    bau.hidden = true;
+    $('btn-kachel-bau').textContent = 'Übersicht anpassen';
+  }
+};
+
+$('btn-kachel-add').onclick = () => {
+  const nr = $('kachel-neu').value;
+  if (!nr || (kachelEntwurf || []).some(k => k.nr === nr)) return;
+  const p = kachelAuswahlbar.find(x => x.nr === nr) || {};
+  kachelEntwurf.push({nr, titel: $('kachel-titel').value.trim(),
+                      name: nameVon(nr, p.name)});
+  $('kachel-titel').value = '';
+  kachelBauZeichnen();
+};
+
+$('btn-kachel-vorschlag').onclick = async () => {
+  try {
+    const d = await hole('kacheln');
+    kachelEntwurf = (d.vorschlag || []).map(k => ({nr: k.nr, titel: k.titel,
+                                                   name: k.name}));
+    kachelBauZeichnen();
+    meldung('m-kachel', 'Vorschlag geladen – noch nicht gespeichert', true);
+  } catch (err) { meldung('m-kachel', err.message); }
+};
+
+$('btn-kachel-speichern').onclick = async () => {
+  try {
+    const d = await sendeJSON('kacheln', 'PUT',
+      (kachelEntwurf || []).map(k => ({nr: k.nr, titel: k.titel})));
+    KACHELN = d.kacheln || [];
+    meldung('m-kachel', d.eigene ? 'Übersicht gespeichert'
+                                 : 'Zurück auf den Vorschlag', true);
+    uebersichtZeichnen();
+    await statusLaden();
+  } catch (err) { meldung('m-kachel', err.message); }
+};
 
 function uebersichtZeichnen() {
   const lage = $('lage');

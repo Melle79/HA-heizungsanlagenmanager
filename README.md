@@ -24,6 +24,10 @@ maintenance. Writable parameters get the matching control. Time programmes
 appear as a **weekly table** instead of a string, and above it you see whether
 that programme is the one currently running.
 
+**An overview you assemble yourself.** Which readings appear on the start page
+is proposed from the catalogue — order, label and choice are a few clicks away,
+and the proposal stays one button away.
+
 **No parameter numbers baked in.** What appears on the overview, which
 categories hold switching times, which parameter selects the active
 programme — all of it is derived from *your* system's catalogue, from names

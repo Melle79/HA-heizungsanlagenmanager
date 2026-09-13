@@ -228,6 +228,31 @@ def validate_namen(roh) -> dict:
     return raus
 
 
+def validate_kacheln(roh) -> list:
+    """Die Kacheln der Übersicht – Reihenfolge und Beschriftung wie gewünscht.
+
+    Eine leere Liste heißt nicht „keine Kacheln“, sondern „nimm den
+    Vorschlag“: Wer alles entfernt, will die Übersicht zurücksetzen, nicht
+    eine leere Seite.
+    """
+    if not isinstance(roh, list):
+        raise ValidationError("Die Kacheln müssen als Liste kommen")
+    raus, gesehen = [], set()
+    for eintrag in roh:
+        if not isinstance(eintrag, dict):
+            raise ValidationError("Ungültiger Eintrag in der Übersicht")
+        nr = str(eintrag.get("nr", "")).strip()
+        if not nr or nr in gesehen:
+            continue
+        gesehen.add(nr)
+        titel = str(eintrag.get("titel") or "").strip()
+        if len(titel) > 40:
+            raise ValidationError(f"Die Beschriftung für Parameter {nr} ist zu "
+                                  "lang (höchstens 40 Zeichen)")
+        raus.append({"nr": nr, "titel": titel})
+    return raus
+
+
 def load_config() -> dict:
     with _lock:
         roh = _read(CONFIG_FILE, {})
@@ -239,6 +264,7 @@ def load_config() -> dict:
         "einstellungen": einstellungen,
         "auswahl": list((roh or {}).get("auswahl") or []),
         "namen": dict((roh or {}).get("namen") or {}),
+        "kacheln": list((roh or {}).get("kacheln") or []),
     }
 
 

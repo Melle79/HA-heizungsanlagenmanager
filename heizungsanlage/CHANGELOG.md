@@ -1,5 +1,16 @@
 # Änderungen
 
+## 1.31.0
+
+- **Die Übersicht lässt sich selbst zusammenstellen.** Unter *Übersicht
+  anpassen* auf der Startseite: Reihenfolge über ↑ und ↓, eigene Beschriftung
+  je Kachel, Entfernen über ✕, Hinzufügen aus allen Parametern deiner Anlage.
+- **Der Vorschlag bleibt.** Er wird weiter aus dem Katalog abgeleitet, steht
+  über *Vorschlag laden* jederzeit bereit – und gilt wieder, sobald man eine
+  leere Liste speichert.
+- Was auf der Übersicht steht, wandert weiterhin in die Auswahl: Ohne
+  Meldung keine Werte.
+
 ## 1.30.1
 
 - **Jede Tafel unter „Einstellungen“ hat jetzt ihren eigenen Speichern-Knopf.**

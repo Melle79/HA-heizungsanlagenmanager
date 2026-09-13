@@ -289,7 +289,7 @@ def pflicht_nummern() -> dict:
     werte = store.load_state().get("werte") or {}
     raus = {}
     # Abgeleitet, nicht gespeichert – wie überall beim Katalog.
-    for kachel in katalog_modul.kacheln(katalog):
+    for kachel in kacheln_wirksam():
         nr = str(kachel.get("nr") or "")
         if not nr:
             continue
@@ -506,6 +506,52 @@ def namen_durchsetzen() -> list:
 NACHLAUF_MIN = 15
 
 
+def kacheln_wirksam() -> list:
+    """Die Kacheln, die gelten: die eigenen – oder der Vorschlag.
+
+    Der Vorschlag kommt aus dem Katalog und trifft für die meisten Anlagen zu.
+    Wer ihn ändert, bekommt seine Liste; wer sie leert, bekommt ihn zurück.
+    """
+    katalog = store.load_katalog()
+    vorschlag = katalog_modul.kacheln(katalog)
+    eigene = store.load_config().get("kacheln") or []
+    if not eigene:
+        return vorschlag
+    parameter = katalog.get("parameter") or {}
+    nach_nr = {str(k.get("nr")): k for k in vorschlag}
+    raus = []
+    for eintrag in eigene:
+        nr = str(eintrag.get("nr"))
+        aus_katalog = parameter.get(nr) or {}
+        vorlage = nach_nr.get(nr) or {}
+        raus.append({
+            "nr": nr,
+            "titel": eintrag.get("titel") or vorlage.get("titel")
+                     or aus_katalog.get("name") or f"Parameter {nr}",
+            "name": aus_katalog.get("name") or vorlage.get("name") or "",
+            "einheit": aus_katalog.get("unit") or vorlage.get("einheit") or "",
+            "dataType_name": aus_katalog.get("dataType_name")
+                             or vorlage.get("dataType_name") or "",
+            "schreibbar": bool(aus_katalog.get("schreibbar")),
+        })
+    return raus
+
+
+@app.route("/api/kacheln", methods=["GET", "PUT"])
+def api_kacheln():
+    config = store.load_config()
+    if request.method == "PUT":
+        try:
+            config["kacheln"] = store.validate_kacheln(
+                request.get_json(force=True) or [])
+        except store.ValidationError as err:
+            return jsonify({"fehler": str(err)}), 400
+        store.save_config(config)
+    return jsonify({"kacheln": kacheln_wirksam(),
+                    "vorschlag": katalog_modul.kacheln(store.load_katalog()),
+                    "eigene": bool(config.get("kacheln"))})
+
+
 def _trinkwasser() -> dict:
     return katalog_modul.trinkwasser_regelung(store.load_katalog())
 
@@ -714,7 +760,7 @@ def _takt_ausfuehren() -> dict:
     # ehrliche Auskunft „kein Fühler angeschlossen“.
     zu_pruefen = [(str(a["nr"]), grenze) for a in config["auswahl"]]
     dabei = {nr for nr, _ in zu_pruefen}
-    for kachel in katalog_modul.kacheln(store.load_katalog()):
+    for kachel in kacheln_wirksam():
         nr = str(kachel.get("nr") or "")
         if nr and nr not in dabei:
             zu_pruefen.append((nr, 86400))
@@ -1576,7 +1622,8 @@ def api_katalog():
         "gruppen": katalog_modul.gruppen(katalog),
         "programmwahl": katalog_modul.programmwahl(katalog),
         "trinkwasserwahl": katalog_modul.trinkwasserwahl(katalog),
-        "kacheln": katalog_modul.kacheln(katalog),
+        "kacheln": kacheln_wirksam(),
+        "kacheln_vorschlag": katalog_modul.kacheln(katalog),
         "anzahl": len(katalog.get("parameter") or {}),
     })
 

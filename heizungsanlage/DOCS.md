@@ -66,6 +66,19 @@ You read the catalogue once, and after that only when you flash the firmware
 with a new list. It takes a minute or two, because every category goes over the
 bus separately.
 
+## The overview
+
+The start page shows the usual readings as tiles. Which ones the manager
+**proposes**, found by name in your system's catalogue. Under *Customise the
+overview* you arrange them yourself: order with ↑ and ↓, your own label per
+tile, remove with ✕, and any parameter of your system can be added from the
+list. *Load the proposal* brings back the derived set without saving it, and
+saving an empty list restores the proposal.
+
+Whatever stands on the overview is also published: the manager puts those
+parameters into the selection and keeps them there, because otherwise it would
+never receive their values.
+
 ## The “Regelung” tab
 
 ![Time programme as a weekly table](https://raw.githubusercontent.com/Melle79/HA-heizungsanlagenmanager/main/heizungsanlage/doku/bilder/regelung.png)

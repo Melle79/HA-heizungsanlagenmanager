@@ -23,6 +23,11 @@ Wartung. Stellbare Parameter bekommen gleich das passende Bedienelement.
 Zeitschaltprogramme erscheinen als **Wochentabelle** statt als Zeichenkette,
 und darüber steht, ob dieses Programm gerade läuft.
 
+**Eine Übersicht, die du selbst zusammenstellst.** Welche Werte auf der
+Startseite stehen, schlägt der Manager aus dem Katalog vor – Reihenfolge,
+Beschriftung und Auswahl änderst du mit ein paar Klicks. Der Vorschlag bleibt
+einen Knopfdruck weit entfernt.
+
 **Keine fest eingebauten Parameternummern.** Was auf der Übersicht steht,
 welche Kategorien Schaltzeiten führen, welcher Parameter das aktive Programm
 wählt – alles leitet das Add-on aus dem Katalog *deiner* Anlage ab, aus Namen
