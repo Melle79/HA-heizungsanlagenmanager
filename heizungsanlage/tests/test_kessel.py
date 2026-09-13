@@ -818,6 +818,26 @@ kunde.put("/api/auswahl", json=[{"nr": "115", "name": "Kessel"}])
 pruefe(GERAET["konfig"]["34"]["value"] == "115",
        "auch das Speichern der Auswahl wandert dorthin")
 
+# Dasselbe gilt fuer die Einstellungen: Wer speichert, erwartet, dass es dort
+# ankommt, wo es wirkt. Vorher stand das neue Praefix im Add-on und BSB-LAN
+# meldete weiter unter dem alten - dafuer gab es einen eigenen Knopf.
+gespeichert = kunde.put("/api/einstellungen", json=dict(
+    store.load_config()["einstellungen"], bsblan_praefix="NEUESTHEMA")).get_json()
+pruefe(GERAET["konfig"]["41"]["value"] == "NEUESTHEMA",
+       "Speichern traegt das Praefix gleich in BSB-LAN ein")
+pruefe("mqtt_praefix" in (gespeichert.get("bsblan") or {}).get("geschrieben", []),
+       "und die Antwort sagt, was dort geaendert wurde")
+pruefe("bsblan" not in store.load_config()["einstellungen"],
+       "die Rueckmeldung wird nicht mitgespeichert")
+
+# Meldet der Manager selbst, hat BSB-LAN damit nichts zu tun.
+GERAET["konfig"]["41"]["value"] = "UNBERUEHRT"
+ohne = kunde.put("/api/einstellungen", json=dict(
+    store.load_config()["einstellungen"], melder="addon",
+    bsblan_praefix="EGAL")).get_json()
+pruefe(GERAET["konfig"]["41"]["value"] == "UNBERUEHRT" and "bsblan" not in ohne,
+       "als eigener Melder schreibt das Speichern nichts ins Geraet")
+
 bsb.requests.get, bsb.requests.post = _alt_get, _alt_post
 store.save_config({"einstellungen": dict(store.standard_einstellungen(),
                                          bsb_url="http://kessel.test"),

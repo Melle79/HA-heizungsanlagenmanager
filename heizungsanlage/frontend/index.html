@@ -339,13 +339,6 @@
       <button id="btn-speichern-melder-oben">Speichern</button>
       <span class="meldung" id="m-melder"></span>
     </div>
-
-    <div class="zeile-aktionen" id="bsblan-aktionen" hidden>
-      <button id="btn-bsblan-einrichten">BSB-LAN einrichten</button>
-      <button class="leise" id="btn-bsblan-parameter">Auswahl an BSB-LAN geben</button>
-      <button class="leise" id="btn-bsblan-uebernehmen">Liste aus BSB-LAN übernehmen</button>
-      <span class="meldung" id="m-bsblan"></span>
-    </div>
   </div>
   <div class="hinweis" id="katalog-hinweis"></div>
   <div class="hinweis warn" id="auswahl-fremdlinge" hidden></div>
@@ -371,9 +364,13 @@
           <option value="o">ausgewählt, aber ohne Wert</option>
         </select></div>
     </div>
+    <!-- Die beiden Wege zur Liste in BSB-LAN standen früher oben bei der
+         Melderwahl – gehandelt wird aber hier, an der Auswahl selbst. -->
     <div class="zeile-aktionen">
       <button id="btn-speichern-auswahl">Auswahl speichern</button>
       <button class="leise" id="btn-vorschlag">Sinnvolle Auswahl vorschlagen</button>
+      <button class="leise" id="btn-bsblan-parameter" hidden>Auswahl an BSB-LAN geben</button>
+      <button class="leise" id="btn-bsblan-uebernehmen" hidden>Liste aus BSB-LAN übernehmen</button>
       <span class="notiz" id="auswahl-zahl"></span>
       <span class="meldung" id="m-auswahl"></span>
     </div>
@@ -665,7 +662,7 @@ async function bsblanLage() {
     feld.innerHTML = durchBsblan
       ? `<b>BSB-LAN meldet nichts – obwohl es soll.</b>
          <div>In Home Assistant kommt gerade nichts an, denn der Manager hält
-         sich zurück. Mit „BSB-LAN einrichten“ schaltest du das Senden dort
+         sich zurück. Ein Klick auf „Speichern“ schaltet das Senden dort
          ein.</div>`
       : `<b>BSB-LAN meldet nichts von sich aus.</b>
          <div>${satzEigene(meine)}</div>`;
@@ -1580,6 +1577,19 @@ function einstellungenZeichnen(e) {
   einst = e;
 }
 
+// Speichern heißt speichern, wo es wirkt: Meldet BSB-LAN, gehen die Werte
+// gleich mit ins Gerät. Der Satz danach sagt, was dort wirklich ankam.
+function bericht(b) {
+  if (!b) return ['Gespeichert', true];
+  if (b.fehler) return [`Gespeichert, aber BSB-LAN nicht erreicht: ${b.fehler}`];
+  const zahl = (b.geschrieben || []).length;
+  if (!zahl) return ['Gespeichert – BSB-LAN stand schon richtig', true];
+  return [(b.offen || []).length
+    ? `Gespeichert – ${zahl} Einstellung(en) in BSB-LAN geändert, nicht `
+      + `übernommen: ${b.offen.join(', ')}`
+    : `Gespeichert – ${zahl} Einstellung(en) in BSB-LAN geändert`, true];
+}
+
 async function einstellungenSpeichern(feld) {
   try {
     const e = await sendeJSON('einstellungen', 'PUT', {
@@ -1595,8 +1605,11 @@ async function einstellungenSpeichern(feld) {
       bsblan_intervall_s: parseInt($('e-bsblan-intervall').value, 10),
       bsblan_einheiten: $('e-bsblan-einheiten').value,
       bsblan_art: $('e-bsblan-art').value});
+    // Was BSB-LAN dabei abbekommen hat, hängt das Backend an die Antwort –
+    // gespeichert wird es nicht, also fliegt es hier wieder raus.
+    const durchgereicht = e.bsblan; delete e.bsblan;
     einstellungenZeichnen(e);
-    meldung(feld, 'Gespeichert', true);
+    meldung(feld, ...bericht(durchgereicht));
     await statusLaden();
     bsblanLage();
   } catch (err) { meldung(feld, err.message); }
@@ -1610,7 +1623,8 @@ $('btn-speichern-melder-oben').onclick = () => einstellungenSpeichern('m-melder'
 function melderFelder(durchBsblan) {
   $('addon-felder').hidden = durchBsblan;
   $('bsblan-felder').hidden = !durchBsblan;
-  $('bsblan-aktionen').hidden = !durchBsblan;
+  $('btn-bsblan-parameter').hidden = !durchBsblan;
+  $('btn-bsblan-uebernehmen').hidden = !durchBsblan;
 }
 
 document.querySelectorAll('input[name="melder"]').forEach(knopf => {
@@ -1622,23 +1636,11 @@ async function bsblanRuf(pfad, methode, knopf, satz) {
   knopf.disabled = true; knopf.textContent = 'läuft …';
   try {
     const d = await sendeJSON(pfad, methode, {});
-    meldung('m-bsblan', satz(d), true);
+    meldung('m-auswahl', satz(d), true);
     await statusLaden(); bsblanLage();
-  } catch (err) { meldung('m-bsblan', err.message); }
+  } catch (err) { meldung('m-auswahl', err.message); }
   finally { knopf.disabled = false; knopf.textContent = alt; }
 }
-
-$('btn-bsblan-einrichten').onclick = () => {
-  if (!frage('Die MQTT-Einstellungen von BSB-LAN überschreiben?',
-             'Broker, Benutzer und Passwort kommen von Home Assistant. Was '
-             + 'BSB-LAN sonst tut – Logging auf SD-Karte etwa – bleibt '
-             + 'unangetastet.')) return;
-  bsblanRuf('bsblan/einrichten', 'POST', $('btn-bsblan-einrichten'), d =>
-    (d.geschrieben || []).length
-      ? `${d.geschrieben.length} Einstellung(en) geschrieben`
-        + ((d.offen || []).length ? ` – nicht übernommen: ${d.offen.join(', ')}` : '')
-      : 'BSB-LAN war schon richtig eingestellt');
-};
 
 $('btn-bsblan-parameter').onclick = () =>
   bsblanRuf('bsblan/parameter', 'PUT', $('btn-bsblan-parameter'), d =>
@@ -1652,9 +1654,9 @@ $('btn-bsblan-uebernehmen').onclick = async () => {
   try {
     auswahl = await sendeJSON('bsblan/uebernehmen', 'POST', {});
     auswahlNr = new Set(auswahl.map(a => a.nr));
-    meldung('m-bsblan', `${auswahl.length} Parameter übernommen`, true);
+    meldung('m-auswahl', `${auswahl.length} Parameter übernommen`, true);
     katalogZeichnen(); await statusLaden();
-  } catch (err) { meldung('m-bsblan', err.message); }
+  } catch (err) { meldung('m-auswahl', err.message); }
   finally { knopf.disabled = false; }
 };
 

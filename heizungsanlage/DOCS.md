@@ -154,11 +154,15 @@ In the second mode the manager configures the adapter: broker, user and
 password come from Home Assistant itself (passed through, never shown or
 stored here), prefix, device id, interval, units and MQTT flavour come from
 the fields below the choice, and auto-discovery is switched on. Whichever way
-you pick, only the prefix that is actually in effect is on screen. Anything else BSB-LAN does –
+you pick, only the prefix that is actually in effect is on screen – and saving
+writes the values straight into the device, because a separate button for that
+would leave the new prefix in the add-on while BSB-LAN kept publishing under
+the old one. Anything else BSB-LAN does –
 logging to SD card, say – is left alone; only differences are written.
 
 The selection is pushed into BSB-LAN's log parameter list on save, and *take
-over the list from BSB-LAN* does the reverse. Every write is read back: BSB-LAN
+over the list from BSB-LAN* does the reverse. Both buttons sit with the
+selection itself, and only while BSB-LAN publishes. Every write is read back: BSB-LAN
 silently truncates long lists.
 
 ## Remembered values

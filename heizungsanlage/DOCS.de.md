@@ -230,6 +230,10 @@ In dieser Betriebsart übernimmt der Manager die Einrichtung:
 * **Präfix, Geräte-ID, Intervall, Einheiten und MQTT-Art** stellst du hier ein.
   Meldet dagegen der Manager, steht an derselben Stelle nur *sein* Präfix – es
   ist immer das eine Feld sichtbar, das gerade gilt.
+* **Speichern trägt die Werte gleich ins Gerät ein.** Ein eigener Knopf dafür
+  wäre eine Falle: Man hätte das neue Präfix im Add-on stehen, während BSB-LAN
+  weiter unter dem alten meldet. Was dabei im Gerät geändert wurde, sagt die
+  Meldung danach – und geschrieben wird nur, was sich unterscheidet.
 * **Auto-Discovery** wird eingeschaltet, damit die Entitäten von selbst in Home
   Assistant erscheinen.
 * Was BSB-LAN sonst tut – etwa auf SD-Karte protokollieren –, bleibt
@@ -237,7 +241,10 @@ In dieser Betriebsart übernimmt der Manager die Einrichtung:
 
 Die **Auswahl** wandert beim Speichern gleich mit in BSB-LANs Log-Parameter-
 liste. Umgekehrt geht es auch: *Liste aus BSB-LAN übernehmen* holt, was dort
-über die Jahre zusammengekommen ist, in die Auswahl.
+über die Jahre zusammengekommen ist, in die Auswahl. Beide Knöpfe stehen bei
+der Auswahl selbst, nicht oben bei der Melderwahl – und nur dann, wenn BSB-LAN
+auch meldet. *Auswahl an BSB-LAN geben* ist der Nachschlag für den Fall, dass
+das Gerät zwischendurch zurückgesetzt wurde.
 
 Nach jedem Schreiben liest der Manager zurück und zeigt, was wirklich
 angekommen ist. Das ist keine Vorsicht, sondern Erfahrung:

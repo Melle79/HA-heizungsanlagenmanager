@@ -128,10 +128,8 @@ window.SPRACHEN.en = {
   "Rich JSON": "Rich JSON",
   "Broker, Benutzer und Passwort kommen von Home Assistant selbst – dieselben, mit denen dieses Add-on am Broker hängt. Sie werden beim Einrichten durchgereicht und hier weder angezeigt noch gespeichert; abtippen musst du nichts.":
     "Broker, user and password come from Home Assistant itself – the same ones this add-on uses. They are passed through when configuring and neither shown nor stored here; you type nothing.",
-  "BSB-LAN einrichten": "Configure BSB-LAN",
   "Auswahl an BSB-LAN geben": "Hand the selection to BSB-LAN",
   "Liste aus BSB-LAN übernehmen": "Take over the list from BSB-LAN",
-  "BSB-LAN war schon richtig eingestellt": "BSB-LAN was already set correctly",
   "Der Manager hält sich zurück und meldet nichts Eigenes.":
     "The manager holds back and publishes nothing of its own.",
 
@@ -182,6 +180,8 @@ window.SPRACHEN.en = {
     "Two switches have to be on: this one and the one in BSB-LAN itself. Both are off by default, and deliberately so – a wrong setpoint lets a flat go cold in winter.",
   "Einstellungen speichern": "Save settings",
   "Gespeichert": "Saved",
+  "Gespeichert – BSB-LAN stand schon richtig":
+    "Saved – BSB-LAN was already right",
   "Anzeige": "Display",
   "Zuletzt gelesene Werte beim Öffnen sofort zeigen":
     "Show the values read last as soon as a category opens",
@@ -228,8 +228,8 @@ window.SPRACHEN.en = {
   "Auffrischen fehlgeschlagen": "Refresh failed",
   "Mit automatischer Anmeldung in Home Assistant.":
     "With automatic registration in Home Assistant.",
-  "In Home Assistant kommt gerade nichts an, denn der Manager hält sich zurück. Mit „BSB-LAN einrichten“ schaltest du das Senden dort ein.":
-    "Nothing is arriving in Home Assistant right now, because the manager is holding back. Use “Configure BSB-LAN” to switch publishing on there.",
+  "In Home Assistant kommt gerade nichts an, denn der Manager hält sich zurück. Ein Klick auf „Speichern“ schaltet das Senden dort ein.":
+    "Nothing is arriving in Home Assistant right now, because the manager is holding back. A click on “Save” switches publishing on over there.",
   "BSB-LAN meldet nichts – obwohl es soll.":
     "BSB-LAN publishes nothing – although it should.",
   "BSB-LAN meldet nichts von sich aus.": "BSB-LAN publishes nothing on its own.",
@@ -273,6 +273,12 @@ window.SPRACHEN.en = {
   [/^(\d+) Tag\(e\) gespeichert$/, "$1 day(s) saved"],
   [/^(\d+) Tag\(e\) gespeichert, dann: (.+)$/, "$1 day(s) saved, then: $2"],
   [/^(\d+) Einstellung\(en\) geschrieben$/, "$1 setting(s) written"],
+  [/^Gespeichert – (\d+) Einstellung\(en\) in BSB-LAN geändert$/,
+   "Saved – $1 setting(s) changed in BSB-LAN"],
+  [/^Gespeichert – (\d+) Einstellung\(en\) in BSB-LAN geändert, nicht übernommen: (.+)$/,
+   "Saved – $1 setting(s) changed in BSB-LAN, not accepted: $2"],
+  [/^Gespeichert, aber BSB-LAN nicht erreicht: (.+)$/,
+   "Saved, but BSB-LAN could not be reached: $1"],
   [/^(\d+) Einstellung\(en\) geschrieben – nicht übernommen: (.+)$/,
    "$1 setting(s) written – not accepted: $2"],
   [/^(\d+) geänderten? Tage?n? speichern$/, "Save $1 changed day(s)"],
@@ -355,10 +361,6 @@ window.SPRACHEN.en = {
    "You will then set these parameters here yourself again – $1 will no longer track them."],
   [/^Die Auswahl durch BSB-LANs Liste ersetzen\?$/,
    "Replace the selection with BSB-LAN's list?"],
-  [/^Die MQTT-Einstellungen von BSB-LAN überschreiben\?$/,
-   "Overwrite BSB-LAN's MQTT settings?"],
-  [/^Broker, Benutzer und Passwort kommen von Home Assistant\. Was BSB-LAN sonst tut – Logging auf SD-Karte etwa – bleibt unangetastet\.$/,
-   "Broker, user and password come from Home Assistant. Whatever else BSB-LAN does – logging to SD card, say – is left alone."],
   [/^Das geht unmittelbar an die Heizung\.$/, "This goes straight to the heating system."],
   [/^Die Kategorie „(.+)“ ausblenden\?$/, "Hide the category “$1”?"],
 

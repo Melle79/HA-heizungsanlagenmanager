@@ -1,5 +1,19 @@
 # Änderungen
 
+## 1.18.0
+
+- **Speichern speichert dort, wo es wirkt.** Meldet BSB-LAN, gehen Präfix,
+  Geräte-ID, Intervall, Einheiten und MQTT-Art beim Speichern gleich ins Gerät.
+  Vorher stand das neue Präfix im Add-on, während BSB-LAN weiter unter dem
+  alten meldete – dafür gab es einen zweiten Knopf, den man kennen musste. Die
+  Meldung sagt hinterher, was im Gerät geändert wurde.
+- Der Knopf *BSB-LAN einrichten* entfällt damit. Wer das Gerät zurückgesetzt
+  hat, drückt einfach wieder Speichern: Geschrieben wird ohnehin nur, was sich
+  unterscheidet.
+- **Die Listenknöpfe stehen jetzt bei der Liste.** *Auswahl an BSB-LAN geben*
+  und *Liste aus BSB-LAN übernehmen* gehören zu den Parametern, nicht zur
+  Melderwahl – und erscheinen nur, wenn BSB-LAN auch meldet.
+
 ## 1.17.1
 
 - **Beide MQTT-Präfixe stehen jetzt an einer Stelle.** Das des Managers lag

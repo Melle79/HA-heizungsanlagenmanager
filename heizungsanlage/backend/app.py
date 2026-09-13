@@ -336,8 +336,21 @@ def api_einstellungen():
     # wieder angemeldet. Ohne das bliebe der alte Zustand bis zum nächsten
     # Verbindungsaufbau stehen – und in Home Assistant stünde beides.
     _discovery_auffrischen()
+
+    # Speichern heißt speichern, wo es wirkt. Meldet BSB-LAN, gehen Präfix,
+    # Geräte-ID, Intervall, Einheiten und MQTT-Art gleich ins Gerät – sonst
+    # stünde hier das neue Präfix und BSB-LAN meldete weiter unter dem alten.
+    # Genauso hält es die Auswahl weiter unten.
+    antwort = dict(neu)
+    if neu.get("melder") == "bsblan":
+        try:
+            antwort["bsblan"] = _bsblan_einrichten()
+        except bsb_modul.BsbFehler as err:
+            _LOGGER.warning("BSB-LAN nicht eingerichtet: %s", err)
+            antwort["bsblan"] = {"fehler": str(err)}
+
     _sofort_lesen()
-    return jsonify(neu)
+    return jsonify(antwort)
 
 
 # ------------------------------------------------------------- Übernahme ----
@@ -490,8 +503,7 @@ def api_bsblan():
     })
 
 
-@app.route("/api/bsblan/einrichten", methods=["POST"])
-def api_bsblan_einrichten():
+def _bsblan_einrichten() -> dict:
     """BSB-LAN so einstellen, dass es selbst nach Home Assistant meldet.
 
     Broker, Benutzer und Passwort kommen vom Supervisor – dieselben, mit denen
@@ -506,14 +518,11 @@ def api_bsblan_einrichten():
     e = store.load_config()["einstellungen"]
     host = os.environ.get("MQTT_HOST")
     if not host:
-        return jsonify({"fehler": "Home Assistant hat keinen MQTT-Broker – "
-                                  "ohne den kann BSB-LAN nirgendwohin melden"}), 400
+        raise bsb_modul.BsbFehler("Home Assistant hat keinen MQTT-Broker – "
+                                  "ohne den kann BSB-LAN nirgendwohin melden")
     broker = f"{host}:{os.environ.get('MQTT_PORT', 1883)}"
 
-    try:
-        roh, nach_name = _bsblan_lesen()
-    except bsb_modul.BsbFehler as err:
-        return jsonify({"fehler": str(err)}), 502
+    roh, nach_name = _bsblan_lesen()
 
     try:
         modus = int(nach_name.get("logmodus", {}).get("wert") or 0)
@@ -546,15 +555,9 @@ def api_bsblan_einrichten():
         geschrieben.append(name)
 
     if aenderungen:
-        try:
-            _client().konfiguration_schreiben(aenderungen)
-        except bsb_modul.BsbFehler as err:
-            return jsonify({"fehler": str(err)}), 502
+        _client().konfiguration_schreiben(aenderungen)
 
-    try:
-        _, danach = _bsblan_lesen()
-    except bsb_modul.BsbFehler as err:
-        return jsonify({"fehler": str(err)}), 502
+    _, danach = _bsblan_lesen()
     # Passwörter tauchen in der Rückmeldung nicht auf.
     offen = [name for name in soll
              if name not in BSBLAN_GEHEIM
@@ -564,7 +567,16 @@ def api_bsblan_einrichten():
                    else [])
     _LOGGER.info("BSB-LAN eingerichtet: %s geschrieben, %s offen",
                  len(geschrieben), offen)
-    return jsonify({"geschrieben": geschrieben, "offen": offen})
+    return {"geschrieben": geschrieben, "offen": offen}
+
+
+@app.route("/api/bsblan/einrichten", methods=["POST"])
+def api_bsblan_einrichten():
+    """Der Weg von außen – die Oberfläche geht ihn beim Speichern mit."""
+    try:
+        return jsonify(_bsblan_einrichten())
+    except bsb_modul.BsbFehler as err:
+        return jsonify({"fehler": str(err)}), 502
 
 
 def _bsblan_parameter_schreiben() -> dict:
