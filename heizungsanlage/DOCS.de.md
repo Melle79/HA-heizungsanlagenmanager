@@ -275,7 +275,7 @@ erscheint ein Hinweis mit dem Knopf **Adapter neu starten**. Der Neustart geht
 
 ### Jeder Parameter im eigenen Takt
 
-Der feste Sendeintervall von BSB-LAN gilt für alle Parameter gleich, und das
+Der **Grundtakt** von BSB-LAN gilt für alle Parameter gleich, und das
 ist der Grund für die Grenze von 40: Eine Busabfrage dauert ein bis zwei
 Sekunden, vierzig Parameter jede Minute belegen den Bus vollständig. Frederik
 Holst, der BSB-LAN gebaut hat, rät deshalb dazu, jeden Parameter so oft zu
@@ -283,7 +283,7 @@ holen, wie er es verdient – die Kesseltemperatur oft, die Betriebsstunden
 einmal in der Stunde.
 
 Dafür steht in der Auswahl je Parameter eine Spalte **Takt**. Bleibt sie auf
-*Grundtakt*, gilt das Sendeintervall von BSB-LAN. Steht dort ein Wert, fordert
+*Grundtakt*, gilt der Grundtakt von BSB-LAN. Steht dort ein Wert, fordert
 der Manager diesen Parameter über MQTT (`<Präfix>/poll`) selbst an – dieselbe
 Schnittstelle, die man sonst mit Automationen in Home Assistant bedient, nur
 dass sich hier niemand welche bauen muss.

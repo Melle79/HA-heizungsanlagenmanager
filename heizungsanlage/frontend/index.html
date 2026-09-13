@@ -332,10 +332,11 @@
           <input type="text" id="e-bsblan-praefix"></div>
         <div class="feld"><label>Geräte-ID (optional)</label>
           <input type="text" id="e-bsblan-id"></div>
-        <div class="feld"><label>Sendeintervall (Sekunden)</label>
+        <div class="feld"><label>Grundtakt (Sekunden)</label>
           <input type="number" id="e-bsblan-intervall" min="10" max="3600" step="10">
-          <div class="notiz">BSB-LAN fragt in diesem Takt ab. 60 Sekunden sind
-            für eine Heizung reichlich.</div></div>
+          <div class="notiz">So oft holt BSB-LAN alles, was in seiner Liste
+            steht. Einzelne Parameter dürfen in der Auswahl einen eigenen Takt
+            bekommen – dort heißt dieser Wert „Grundtakt“.</div></div>
         <div class="feld"><label>Einheiten</label>
           <select id="e-bsblan-einheiten">
             <option value="ha">für Home Assistant</option>

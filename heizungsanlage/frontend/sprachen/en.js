@@ -115,9 +115,9 @@ window.SPRACHEN.en = {
     "The manager files its MQTT topics under this prefix.",
   "Topic-Präfix in BSB-LAN": "Topic prefix in BSB-LAN",
   "Geräte-ID (optional)": "Device ID (optional)",
-  "Sendeintervall (Sekunden)": "Publish interval (seconds)",
-  "BSB-LAN fragt in diesem Takt ab. 60 Sekunden sind für eine Heizung reichlich.":
-    "BSB-LAN polls at this rate. 60 seconds is plenty for a heating system.",
+  "Grundtakt (Sekunden)": "Base rate (seconds)",
+  "So oft holt BSB-LAN alles, was in seiner Liste steht. Einzelne Parameter dürfen in der Auswahl einen eigenen Takt bekommen – dort heißt dieser Wert „Grundtakt“.":
+    "This is how often BSB-LAN fetches everything on its list. Individual parameters may be given a rate of their own in the selection – there this value is called “base rate”.",
   "Einheiten": "Units",
   "für Home Assistant": "for Home Assistant",
   "landesspezifisch": "country-specific",

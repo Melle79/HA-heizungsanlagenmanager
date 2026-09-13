@@ -1,5 +1,13 @@
 # Änderungen
 
+## 1.22.1
+
+- **Das Feld heißt jetzt „Grundtakt“.** In der Auswahl steht bei jedem
+  Parameter *Grundtakt*, gemeint war immer dieses Feld – es hieß aber
+  „Sendeintervall“, und damit war der Zusammenhang nur zu erraten.
+- Der Hinweis darunter sagt jetzt, was der Wert tut, statt eine Zahl zu
+  empfehlen, die mit eigenen Takten ohnehin nicht mehr stimmt.
+
 ## 1.22.0
 
 - **Erkennt den Zustand, der wie „läuft“ aussieht.** BSB-LAN kann auf jede
