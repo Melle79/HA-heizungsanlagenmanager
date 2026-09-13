@@ -998,6 +998,10 @@ pruefe(anwendung.bsblan_schreibt() is False, "und die Antwort wird gemerkt")
 
 # Eine Kachel, die erst mit einer neuen Fassung dazukommt, stuende sonst als
 # "nicht ausgewaehlt" auf der Uebersicht, bis jemand zufaellig speichert.
+# Pflicht wird nur, was die Anlage auch beantwortet - also erst einen Stand
+# hinterlegen, sonst gilt der Wert als unbekannt und wird nicht erzwungen.
+store.merke_state(werte={nr: {"value": "1", "error": 0, "zeit": "2026-09-13T12:00:00"}
+                         for nr in kachel_nummern})
 config = store.load_config()
 config["auswahl"] = [e for e in config["auswahl"]
                      if str(e["nr"]) not in anwendung.pflicht_nummern()]

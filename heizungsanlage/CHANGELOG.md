@@ -1,5 +1,11 @@
 # Änderungen
 
+## 1.26.4
+
+- Prüfung nachgezogen, die zur Regel aus 1.26.3 nicht mehr passte. Die
+  Fassung 1.26.3 ging mit einer roten Prüfung hinaus – meine Befehlskette hat
+  den Fehlschlag verschluckt.
+
 ## 1.26.3
 
 - **Erst lesen, dann erzwingen.** Ein Kachelwert, von dem der Manager noch
