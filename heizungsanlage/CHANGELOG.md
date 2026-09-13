@@ -1,5 +1,15 @@
 # Änderungen
 
+## 1.24.1
+
+- **Das Feld „Abfrageintervall“ heißt jetzt „Abfragetakt des Managers“** – und
+  sagt dazu, wessen Abfrage gemeint ist: die des Add-ons für seine eigene
+  Anzeige. Sie läuft auch dann, wenn BSB-LAN meldet.
+- **Die Buslast-Schätzung zählt diesen Takt jetzt mit.** Sie war zu niedrig:
+  Der Manager liest weiter, während BSB-LAN meldet – beide auf demselben Bus.
+- Der Bereich *Melden* ist aufgeräumt: Erklärung nach oben, zwei Spalten statt
+  drei mit Leerstelle, und der Meldeweg endlich breit genug für seinen Namen.
+
 ## 1.24.0
 
 - **Der Meldeweg steht jetzt in den Einstellungen**, wie in den übrigen

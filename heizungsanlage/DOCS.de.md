@@ -396,8 +396,12 @@ antwortet in ihrem eigenen Takt. Der Manager fragt deshalb in Bündeln zu zwölf
 Parametern mit kurzen Pausen dazwischen. Ein Aussetzer in einem Bündel kostet
 nur dieses Bündel, nicht die ganze Runde.
 
-Fünf Minuten Abfrageintervall sind für eine Heizung reichlich – ihre Trägheit
-misst sich in Stunden.
+Fünf Minuten **Abfragetakt des Managers** sind für eine Heizung reichlich –
+ihre Trägheit misst sich in Stunden. Dieser Takt ist der des Add-ons selbst:
+Es liest die ausgewählten Parameter für seine eigene Anzeige, und wenn es
+meldet, auch für Home Assistant. Er läuft **auch dann, wenn BSB-LAN meldet** –
+beide Takte belegen denselben Bus, und die Schätzung neben der Auswahl zählt
+deshalb beide.
 
 ## Übernahme durch andere Add-ons
 

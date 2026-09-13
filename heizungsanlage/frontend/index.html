@@ -76,6 +76,10 @@
   /* Fünf Felder in einer Reihe, die vier fasst, lassen eines allein stehen.
      Drei Spalten teilen sie sauber auf: 3 + 2. */
   @media (min-width:760px){ .felder.drei{grid-template-columns:repeat(3,1fr)} }
+  /* Ein Dienstname ist lang, eine Zahl kurz – gleich breite Spalten schneiden
+     das eine ab und lassen das andere leer stehen. */
+  @media (min-width:620px){
+    .felder.zwei{grid-template-columns:minmax(260px,2fr) minmax(130px,1fr)} }
   .feld label{display:block; font-size:.78rem; color:var(--leise); margin-bottom:var(--l1)}
   input,select,button{font-family:inherit; font-size:.88rem}
   input[type=text],input[type=number],input[type=password],select{
@@ -433,10 +437,12 @@
           <code>http://bsb-lan.local</code>.</div></div>
       <div class="feld"><label>Passkey (falls gesetzt)</label>
         <input type="text" id="e-passkey"></div>
-      <div class="feld"><label>Abfrageintervall (Sekunden)</label>
+      <div class="feld"><label>Abfragetakt des Managers (Sekunden)</label>
         <input type="number" id="e-intervall" min="30" max="3600" step="10">
-        <div class="notiz">Eine Heizung ist träge – fünf Minuten reichen.
-          Jede Abfrage belegt den Bus.</div></div>
+        <div class="notiz">So oft liest dieses Add-on die ausgewählten
+          Parameter selbst – für seine eigene Anzeige, und wenn es meldet, auch
+          für Home Assistant. Das läuft auch dann, wenn BSB-LAN meldet: Beide
+          Takte belegen denselben Bus.</div></div>
     </div>
   </div>
 
@@ -444,7 +450,9 @@
        nicht in eine Automation, die man später niemandem mehr erklären kann. -->
   <div class="tafel">
     <h2>Melden</h2>
-    <div class="felder">
+    <div class="notiz">Gemeldet wird zweierlei: dass der Adapter nicht
+      antwortet – und dass er antwortet, aber nichts mehr meldet.</div>
+    <div class="felder zwei" style="margin-top:var(--l3)">
       <div class="feld"><label>Meldeweg</label>
         <select id="e-melden-an"><option value="">keiner</option></select>
         <div class="notiz">Ein notify-Dienst von Home Assistant – etwa dein
@@ -459,8 +467,6 @@
       <button class="leise" id="btn-probemeldung">Probemeldung schicken</button>
       <span class="meldung" id="m-melden"></span>
     </div>
-    <div class="notiz">Gemeldet wird zweierlei: dass der Adapter nicht
-      antwortet – und dass er antwortet, aber nichts mehr meldet.</div>
   </div>
 
   <div class="tafel">
@@ -943,6 +949,11 @@ function buslast() {
   auswahlNr.forEach(nr => {
     if (taktNach[nr]) jeMinute += 60 / taktNach[nr];
   });
+  // Und der Manager liest zusätzlich in seinem eigenen Takt – auch dann, wenn
+  // BSB-LAN meldet. Wer das wegrechnet, sieht die halbe Buslast.
+  const eigen = parseInt($('e-intervall').value, 10)
+                || (einst || {}).intervall_s || 300;
+  jeMinute += auswahlNr.size * 60 / Math.max(eigen, 1);
   return {jeMinute: Math.round(jeMinute * 10) / 10,
           anteil: Math.round(jeMinute * 1.5 / 60 * 100)};
 }

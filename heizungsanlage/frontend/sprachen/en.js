@@ -174,9 +174,9 @@ window.SPRACHEN.en = {
   "Die Adresse, unter der die Weboberfläche von BSB-LAN erreichbar ist – meist die IP, oft auch":
     "The address where the BSB-LAN web interface answers – usually the IP, often also",
   "Passkey (falls gesetzt)": "Passkey (if set)",
-  "Abfrageintervall (Sekunden)": "Polling interval (seconds)",
-  "Eine Heizung ist träge – fünf Minuten reichen. Jede Abfrage belegt den Bus.":
-    "A heating system is slow – five minutes is enough. Every query occupies the bus.",
+  "Abfragetakt des Managers (Sekunden)": "The manager's polling rate (seconds)",
+  "So oft liest dieses Add-on die ausgewählten Parameter selbst – für seine eigene Anzeige, und wenn es meldet, auch für Home Assistant. Das läuft auch dann, wenn BSB-LAN meldet: Beide Takte belegen denselben Bus.":
+    "This is how often the add-on reads the selected parameters itself – for its own display, and, when it publishes, for Home Assistant too. It keeps running while BSB-LAN publishes: both rates occupy the same bus.",
   "Melden": "Alerts",
   "Meldeweg": "Alert channel",
   "keiner": "none",
