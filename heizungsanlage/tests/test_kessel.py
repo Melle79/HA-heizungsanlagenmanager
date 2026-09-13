@@ -745,7 +745,10 @@ def _post2(url, json=None, timeout=None):
     return _post(url, json=json, timeout=timeout)
 bsb.requests.get, bsb.requests.post = _get2, _post2
 
-os.environ["MQTT_HOST"] = "kern-mosquitto"
+# Eine IP, wie der Supervisor sie auf einem Rechner mit eigenem Broker nennt.
+# Der Docker-Name „core-mosquitto“ kommt weiter unten dran – er ist der Fall,
+# der BSB-LAN einmal stumm gemacht hat.
+os.environ["MQTT_HOST"] = "192.168.1.222"
 os.environ["MQTT_PORT"] = "1883"
 os.environ["MQTT_USER"] = "ha"
 os.environ["MQTT_PASSWORD"] = "geheim"
@@ -764,7 +767,7 @@ pruefe(not fehlend, f"jede Einstellung hat eine Optionsnummer (fehlt: {fehlend})
 
 antwort = kunde.post("/api/bsblan/einrichten").get_json()
 pruefe(antwort.get("offen") == [], f"alles kam an: {antwort}")
-pruefe(GERAET["konfig"]["37"]["value"] == "kern-mosquitto:1883",
+pruefe(GERAET["konfig"]["37"]["value"] == "192.168.1.222:1883",
        "der Broker kommt von Home Assistant, nicht aus einem Formular")
 pruefe(GERAET["konfig"]["41"]["value"] == "HEIZUNG", "das Praefix aus den Einstellungen")
 pruefe(GERAET["konfig"]["42"]["value"] == "1", "Auto-Discovery wird eingeschaltet")
@@ -812,6 +815,25 @@ pruefe([e["nr"] for e in uebernommen] == ["50", "55", "72"],
        "BSB-LANs eigene Liste laesst sich uebernehmen")
 pruefe(uebernommen[0]["name"] == "Raumtemperatur Komfortsollwert",
        "mit den Namen aus dem Katalog")
+
+# Der Fehler, der eine Anlage 50 Minuten lang stumm gemacht hat: Der Supervisor
+# nennt dem Add-on „core-mosquitto“ – ein Name aus dem Docker-Netz. Für einen
+# ESP32 im Hausnetz ist er nicht auflösbar. Lieber nichts schreiben als eine
+# unerreichbare Adresse: Was im Gerät steht, funktioniert wenigstens.
+os.environ["MQTT_HOST"] = "core-mosquitto"
+GERAET["konfig"]["37"]["value"] = "192.168.1.222:1883"
+GERAET["konfig"]["38"]["value"] = "ha"
+antwort = kunde.post("/api/bsblan/einrichten").get_json()
+pruefe(GERAET["konfig"]["37"]["value"] == "192.168.1.222:1883",
+       "ein Docker-Name ersetzt keine erreichbare Broker-Adresse")
+pruefe(GERAET["konfig"]["38"]["value"] == "ha",
+       "und die Zugangsdaten bleiben dann auch stehen")
+pruefe("hinweis" in antwort, f"das sagt die Rueckmeldung auch: {antwort.get('hinweis')}")
+pruefe(anwendung.broker_fuer_bsblan() == "",
+       "ohne Supervisor und ohne IP gibt es keine Adresse")
+os.environ["MQTT_HOST"] = "192.168.1.222"
+pruefe(anwendung.broker_fuer_bsblan() == "192.168.1.222:1883",
+       "eine IP wird unveraendert durchgereicht")
 
 # Und im Betrieb: Wer die Auswahl speichert, findet sie in BSB-LAN wieder.
 kunde.put("/api/auswahl", json=[{"nr": "115", "name": "Kessel"}])

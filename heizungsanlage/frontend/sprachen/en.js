@@ -183,6 +183,7 @@ window.SPRACHEN.en = {
     "Two switches have to be on: this one and the one in BSB-LAN itself. Both are off by default, and deliberately so – a wrong setpoint lets a flat go cold in winter.",
   "Einstellungen speichern": "Save settings",
   "Gespeichert": "Saved",
+  "Für BSB-LAN gibt es eine neuere Fassung": "A newer version of BSB-LAN is available",
   "Nachlesen fehlgeschlagen.": "Reading back failed.",
   "Das Add-on hat nicht geantwortet – vermutlich startet es gerade neu. In einem Moment noch einmal versuchen.":
     "The add-on did not answer – it is probably restarting. Try again in a moment.",
@@ -279,6 +280,8 @@ window.SPRACHEN.en = {
   [/^(\d+) Parameter gespeichert$/, "$1 parameters saved"],
   [/^(\d+) Parameter übernommen$/, "$1 parameters taken over"],
   [/^(\d+) ausgewählt$/, "$1 selected"],
+  [/^BSB-LAN ([\d.]+)$/, "BSB-LAN $1"],
+  [/^([\d.]+) verfügbar$/, "$1 available"],
   [/^(\d+) Parameter$/, "$1 parameters"],
   [/^(\d+) Parameter · (\d+) ausgewählt$/, "$1 parameters · $2 selected"],
   [/^(\d+) Eintrag\(e\) entfernt$/, "$1 entr(ies) removed"],

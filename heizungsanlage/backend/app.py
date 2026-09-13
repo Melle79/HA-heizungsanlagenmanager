@@ -6,9 +6,11 @@ Zustand, den auch Home Assistant bekommt; es gibt keine zweite Wahrheit.
 """
 from __future__ import annotations
 
+import ipaddress
 import json
 import logging
 import os
+import re
 import threading
 import time
 import urllib.request
@@ -265,6 +267,103 @@ def api_sprache():
     return jsonify({"sprache": _ha_sprache()})
 
 
+def _supervisor(pfad: str):
+    """Etwas beim Supervisor nachfragen. Gibt None, wenn es nicht geht."""
+    token = os.environ.get("SUPERVISOR_TOKEN")
+    if not token:
+        return None
+    try:
+        req = urllib.request.Request(
+            f"http://supervisor/{pfad.lstrip('/')}",
+            headers={"Authorization": f"Bearer {token}"})
+        with urllib.request.urlopen(req, timeout=8) as antwort:
+            return json.load(antwort)
+    except Exception as err:                      # noqa: BLE001
+        _LOGGER.info("Supervisor (%s) antwortet nicht: %s", pfad, err)
+        return None
+
+
+def _ist_adresse(text: str) -> bool:
+    """Eine IP-Adresse, die auch ein Gerät im Hausnetz anwählen kann."""
+    try:
+        ipaddress.ip_address(str(text).strip())
+        return True
+    except ValueError:
+        return False
+
+
+def broker_fuer_bsblan() -> str:
+    """Die Broker-Adresse, unter der **BSB-LAN** ihn erreicht.
+
+    Der Supervisor nennt dem Add-on ``core-mosquitto`` – das ist ein Name aus
+    dem Docker-Netz von Home Assistant. Für das Add-on stimmt er, für einen
+    ESP32 im Hausnetz ist er nicht auflösbar: Der Adapter versucht dann alle
+    zehn Sekunden eine Verbindung, die es nicht geben kann, und meldet nichts
+    mehr. Also fragen wir den Supervisor nach der Adresse des Rechners, auf
+    dem Home Assistant läuft.
+
+    Kommt dabei nichts Brauchbares heraus, ist die richtige Antwort **kein
+    Wert**: Dann bleibt stehen, was in BSB-LAN steht. Eine unerreichbare
+    Adresse hineinzuschreiben ist schlimmer, als nichts zu tun.
+    """
+    host = str(os.environ.get("MQTT_HOST") or "").strip()
+    port = os.environ.get("MQTT_PORT", 1883)
+    if _ist_adresse(host):
+        return f"{host}:{port}"
+
+    netz = _supervisor("network/info") or {}
+    for schnittstelle in (netz.get("data") or netz).get("interfaces") or []:
+        if not schnittstelle.get("enabled"):
+            continue
+        adresse = ((schnittstelle.get("ipv4") or {}).get("address") or [None])[0]
+        adresse = str(adresse or "").split("/")[0]
+        if _ist_adresse(adresse):
+            if schnittstelle.get("primary"):
+                return f"{adresse}:{port}"
+    # Keine als primär markiert? Dann die erste brauchbare.
+    for schnittstelle in (netz.get("data") or netz).get("interfaces") or []:
+        adresse = ((schnittstelle.get("ipv4") or {}).get("address") or [None])[0]
+        adresse = str(adresse or "").split("/")[0]
+        if _ist_adresse(adresse):
+            return f"{adresse}:{port}"
+    return ""
+
+
+# BSB-LAN prüft selbst gegen bsb-lan.de/bsb-version.h, wenn man es einschaltet.
+# Dieselbe Quelle, damit hier nichts anderes herauskommt als dort.
+VERSIONSQUELLE = "http://bsb-lan.de/bsb-version.h"
+_neueste = {"stand": 0.0, "version": ""}
+
+
+def bsblan_neueste() -> str:
+    """Die neueste veröffentlichte BSB-LAN-Fassung, höchstens täglich geholt."""
+    if _neueste["version"] and time.time() - _neueste["stand"] < 86400:
+        return _neueste["version"]
+    try:
+        with urllib.request.urlopen(VERSIONSQUELLE, timeout=8) as antwort:
+            text = antwort.read().decode("utf-8", "replace")
+    except Exception as err:                      # noqa: BLE001
+        _LOGGER.info("Fassung von bsb-lan.de nicht abrufbar: %s", err)
+        _neueste["stand"] = time.time()           # nicht im Minutentakt nerven
+        return _neueste["version"]
+    teile = []
+    for name in ("MAJOR", "MINOR", "PATCH"):
+        treffer = re.search(rf'#define\s+{name}\s+"([^"]+)"', text)
+        if not treffer:
+            return _neueste["version"]
+        teile.append(treffer.group(1))
+    _neueste.update({"stand": time.time(), "version": ".".join(teile)})
+    return _neueste["version"]
+
+
+def _aelter(hier: str, dort: str) -> bool:
+    """Ist die geflashte Fassung älter als die veröffentlichte?"""
+    def zahlen(text):
+        return [int(t) for t in re.findall(r"\d+", str(text).split("-")[0])][:3]
+    a, b = zahlen(hier), zahlen(dort)
+    return bool(a and b and a < b)
+
+
 def _ha_sprache() -> str:
     """Die Spracheinstellung von Home Assistant, oder Deutsch."""
     token = os.environ.get("SUPERVISOR_TOKEN")
@@ -308,8 +407,11 @@ def api_status():
     try:
         info = _client().info()
         antwort["verbunden"] = True
+        neueste = bsblan_neueste()
         antwort["bsb"] = {
             "version": info.get("version"), "bus": info.get("bus"),
+            "neueste": neueste,
+            "veraltet": _aelter(info.get("version") or "", neueste),
             "busaddr": info.get("busaddr"), "busdest": info.get("busdest"),
             "buswritable": bool(info.get("buswritable")),
             "geraete": info.get("busdevices") or [],
@@ -516,11 +618,10 @@ def _bsblan_einrichten() -> dict:
     wir ihm geschickt haben.
     """
     e = store.load_config()["einstellungen"]
-    host = os.environ.get("MQTT_HOST")
-    if not host:
+    if not os.environ.get("MQTT_HOST"):
         raise bsb_modul.BsbFehler("Home Assistant hat keinen MQTT-Broker – "
                                   "ohne den kann BSB-LAN nirgendwohin melden")
-    broker = f"{host}:{os.environ.get('MQTT_PORT', 1883)}"
+    broker = broker_fuer_bsblan()
 
     roh, nach_name = _bsblan_lesen()
 
@@ -543,6 +644,14 @@ def _bsblan_einrichten() -> dict:
         # wie es war. Wer auf SD-Karte schreibt, soll das weiter tun.
         "logmodus": str(modus | LOGMODUS_MQTT | LOGMODUS_NUR_LOG),
     }
+
+    # Ohne erreichbare Adresse gehören Broker und Zugangsdaten nicht ins Gerät:
+    # Sie würden eine laufende Verbindung gegen eine unmögliche eintauschen.
+    if not broker:
+        for name in ("mqtt_broker", "mqtt_user", "mqtt_passwort"):
+            soll.pop(name, None)
+        _LOGGER.warning("Keine von außen erreichbare Broker-Adresse gefunden – "
+                        "Broker und Zugangsdaten in BSB-LAN bleiben, wie sie sind")
 
     aenderungen, geschrieben = {}, []
     for name, wert in soll.items():
@@ -567,7 +676,12 @@ def _bsblan_einrichten() -> dict:
                    else [])
     _LOGGER.info("BSB-LAN eingerichtet: %s geschrieben, %s offen",
                  len(geschrieben), offen)
-    return {"geschrieben": geschrieben, "offen": offen}
+    antwort = {"geschrieben": geschrieben, "offen": offen}
+    if not broker:
+        antwort["hinweis"] = ("Die Adresse des Brokers ließ sich nicht "
+                              "ermitteln – Broker und Zugangsdaten in BSB-LAN "
+                              "blieben unangetastet.")
+    return antwort
 
 
 @app.route("/api/bsblan/einrichten", methods=["POST"])

@@ -1,5 +1,5 @@
 name: "Heizungsanlagenmanager via BSB-LAN"
-version: "1.19.1"
+version: "1.20.0"
 # Der slug steckt in der Ingress-Adresse und – über DEVICE_ID – in den
 # Entitäts-IDs (sensor.heizungsanlage_p72). Wer ihn ändert, bekommt vom
 # Supervisor ein neues Add-on: Neuinstallation, und die Daten des alten
@@ -17,6 +17,8 @@ ingress_port: 8099
 panel_icon: "mdi:water-boiler"
 panel_title: "Heizkessel"
 homeassistant_api: true
+# Für network/info: Die Broker-Adresse, die BSB-LAN erreicht, steht nur dort.
+hassio_api: true
 services:
   - "mqtt:need"
 options: {}

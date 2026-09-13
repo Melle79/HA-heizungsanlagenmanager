@@ -26,6 +26,12 @@
   .kopf h1{font-size:1.05rem; font-weight:600}
   .kopf .fassung{font-size:.72rem; color:var(--sehr-leise)}
   .kopf-rechts{display:flex; align-items:center; gap:var(--l4); flex-wrap:wrap}
+  /* Die Fassung steht dort, wo man ohnehin nach dem Zustand schaut. Der
+     Hinweis auf eine neuere erscheint nur, wenn es eine gibt. */
+  .marke-neu{font-size:.68rem; color:var(--warm); border:1px solid var(--warm);
+    border-radius:4px; padding:0 5px; margin-left:var(--l2);
+    text-decoration:none; white-space:nowrap}
+  .marke-neu:hover{background:var(--warm); color:var(--grund)}
   .punkt{width:8px; height:8px; border-radius:50%; background:var(--achtung); flex:none}
   .punkt.ok{background:var(--ok)}
   .zustand{display:flex; align-items:center; gap:var(--l1); font-size:.8rem; color:var(--leise)}
@@ -195,7 +201,9 @@
   </div>
   <div class="kopf-rechts">
     <span class="zustand"><span class="punkt" id="punkt-bsb"></span>
-      <span id="zustand-bsb">BSB-LAN</span></span>
+      <span id="zustand-bsb">BSB-LAN</span>
+      <a class="marke-neu" id="bsb-neu" hidden target="_blank" rel="noreferrer"
+         href="https://github.com/fredlcore/BSB-LAN/releases"></a></span>
     <span class="zustand"><span class="punkt" id="punkt-mqtt"></span>
       <span id="zustand-mqtt">MQTT</span></span>
   </div>
@@ -1796,8 +1804,19 @@ async function katalogLauf() {
 async function statusLaden() {
   status = await hole('status');
   $('fassung').textContent = 'v' + (status.version || '');
+  const bsb = status.bsb || {};
   $('punkt-bsb').className = 'punkt' + (status.verbunden ? ' ok' : '');
-  $('zustand-bsb').textContent = status.verbunden ? 'BSB-LAN verbunden' : 'BSB-LAN fehlt';
+  // Die Fassung ohne Bau-Zeitstempel: „5.1.18-20260908204932“ sagt oben rechts
+  // niemandem etwas, „5.1.18“ schon.
+  const fassungBsb = String(bsb.version || '').split('-')[0];
+  $('zustand-bsb').textContent = !status.verbunden ? 'BSB-LAN fehlt'
+    : (fassungBsb ? 'BSB-LAN ' + fassungBsb : 'BSB-LAN verbunden');
+  const neuer = $('bsb-neu');
+  neuer.hidden = !(status.verbunden && bsb.veraltet && bsb.neueste);
+  if (!neuer.hidden) {
+    neuer.textContent = bsb.neueste + ' verfügbar';
+    neuer.title = 'Für BSB-LAN gibt es eine neuere Fassung';
+  }
   $('punkt-mqtt').className = 'punkt' + (status.mqtt ? ' ok' : '');
   $('zustand-mqtt').textContent = status.mqtt ? 'MQTT verbunden' : 'kein MQTT';
   uebersichtZeichnen();

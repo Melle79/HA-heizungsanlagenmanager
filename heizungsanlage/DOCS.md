@@ -146,6 +146,13 @@ lands there with no further effort.
 The entity is tied to the **parameter number**, not the name. Rename the label
 and you keep your history.
 
+## The BSB-LAN version
+
+Top right, next to the BSB-LAN and MQTT indicators, stands the flashed version
+of the adapter. If a newer one exists, a hint appears beside it linking to the
+releases. The comparison uses `bsb-lan.de/bsb-version.h`, the same source
+BSB-LAN itself queries, fetched at most once a day.
+
 ## Who publishes to Home Assistant?
 
 Two programs can publish the same system, and both do it well – just not at the
@@ -157,7 +164,10 @@ bus anyway, publishes more often and also creates controls.
 
 In the second mode the manager configures the adapter: broker, user and
 password come from Home Assistant itself (passed through, never shown or
-stored here), prefix, device id, interval, units and MQTT flavour come from
+stored here – and the broker address is translated from the Docker name
+`core-mosquitto` into the IP of the machine Home Assistant runs on, because an
+ESP32 on the house network cannot resolve the former; if no address can be
+found, neither address nor credentials are written), prefix, device id, interval, units and MQTT flavour come from
 the fields below the choice, and auto-discovery is switched on. Whichever way
 you pick, only the prefix that is actually in effect is on screen – and saving
 writes the values straight into the device, because a separate button for that

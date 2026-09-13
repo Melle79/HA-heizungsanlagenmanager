@@ -1,5 +1,21 @@
 # Änderungen
 
+## 1.20.0
+
+- **Die Broker-Adresse trägt jetzt auch bis zum Adapter.** Der Supervisor nennt
+  dem Add-on `core-mosquitto` – ein Name aus dem Docker-Netz. Er wurde bisher
+  unverändert an BSB-LAN weitergereicht, und ein ESP32 im Hausnetz kann ihn
+  nicht auflösen: Der Adapter verbindet sich dann alle zehn Sekunden ins Leere
+  und meldet nichts mehr. Jetzt ermittelt der Manager die IP-Adresse des
+  Rechners, auf dem Home Assistant läuft, und gibt diese weiter.
+- **Und wenn er keine findet, schreibt er nichts.** Weder Adresse noch
+  Zugangsdaten. Eine laufende Verbindung gegen eine unmögliche zu tauschen ist
+  schlimmer, als die Finger stillzuhalten – die Rückmeldung sagt es dann.
+- **Die Fassung von BSB-LAN steht oben rechts**, neben den Anzeigen für
+  Verbindung und MQTT. Gibt es eine neuere, erscheint daneben ein Hinweis mit
+  Verweis auf die Veröffentlichungen. Verglichen wird mit derselben Quelle, die
+  BSB-LAN selbst befragt, höchstens einmal am Tag.
+
 ## 1.19.1
 
 - **Antwortet das Add-on nicht, steht das jetzt da.** Wer eine Antwort bekommt,

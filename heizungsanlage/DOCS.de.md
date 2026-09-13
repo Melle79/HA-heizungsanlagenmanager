@@ -210,6 +210,14 @@ Assistant hängt, bekommt den Verlauf dort ohne weiteres Zutun.
 Die Entität hängt an der **Parameternummer**, nicht am Namen. Wer die Anzeige
 umbenennt, behält also seine Historie.
 
+## Die Fassung von BSB-LAN
+
+Oben rechts, neben den Anzeigen für BSB-LAN und MQTT, steht die geflashte
+Fassung des Adapters – etwa **BSB-LAN 5.1.18**. Gibt es eine neuere,
+erscheint daneben ein Hinweis, der auf die Veröffentlichungen verlinkt.
+Verglichen wird mit `bsb-lan.de/bsb-version.h`, derselben Quelle, die auch
+BSB-LAN selbst befragt; abgefragt wird das höchstens einmal am Tag.
+
 ## Wer meldet nach Home Assistant?
 
 Zwei Programme können dieselbe Anlage melden, und beide können es gut – nur
@@ -233,6 +241,12 @@ In dieser Betriebsart übernimmt der Manager die Einrichtung:
   Supervisor reicht sie dem Add-on durch; sie werden an BSB-LAN
   weitergegeben, aber weder angezeigt noch hier gespeichert. Abtippen musst du
   nichts.
+* **Die Broker-Adresse wird übersetzt.** Der Supervisor nennt dem Add-on
+  `core-mosquitto` – einen Namen aus dem Docker-Netz von Home Assistant. Für
+  das Add-on stimmt er, für einen ESP32 im Hausnetz ist er nicht auflösbar.
+  Deshalb fragt der Manager nach der IP-Adresse des Rechners, auf dem Home
+  Assistant läuft, und gibt diese weiter. Findet er keine, schreibt er weder
+  Adresse noch Zugangsdaten: Was in BSB-LAN steht, funktioniert wenigstens.
 * **Präfix, Geräte-ID, Intervall, Einheiten und MQTT-Art** stellst du hier ein.
   Meldet dagegen der Manager, steht an derselben Stelle nur *sein* Präfix – es
   ist immer das eine Feld sichtbar, das gerade gilt.
