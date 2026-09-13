@@ -879,6 +879,8 @@ lauscher._client.unsubscribe = lambda t: None
 lauscher.connected = threading.Event(); lauscher.connected.set()
 lauscher._horcht = ""
 lauscher._horcht_werte = ""
+lauscher._horcht_discovery = ""
+lauscher.fremde_discovery = {}
 lauscher.fremde_werte = {}
 lauscher.auf_wert = None
 lauscher.fremd_stand = {"topic": "", "wert": "", "zeit": 0.0}
@@ -1025,6 +1027,38 @@ pruefe(eintrag["anzeige"] == "Betriebsart",
 zu_lang = kunde.put("/api/namen", json={"70": "x" * 61})
 pruefe(zu_lang.status_code == 400, "ein zu langer Name wird abgelehnt")
 kunde.put("/api/namen", json={})
+
+# Meldet BSB-LAN, vergibt dessen Firmware die Namen der Entitaeten. Der
+# Manager schreibt die Anmeldung mit derselben unique_id zurueck - nur der
+# Name aendert sich, und der urspruengliche wird gemerkt.
+melder3 = mqtt_publisher.Publisher.__new__(mqtt_publisher.Publisher)
+melder3._client = _Klient()
+melder3.connected = threading.Event(); melder3.connected.set()
+melder3.basis = "heizungsanlage"
+melder3.fremde_discovery = {
+    "homeassistant/select/BSB-LAN/70-50-252-2120/config":
+        json.dumps({"unique_id": "70-50-252-2120", "name": "00-07 Brauchwasser...",
+                    "state_topic": "~/status"})}
+anwendung._publisher = melder3
+store.save_config(dict(store.load_config(), namen={"70": "Betriebsart"}))
+geaendert = anwendung.namen_durchsetzen()
+pruefe(geaendert == ["70"], f"die Anmeldung wird erneuert: {geaendert}")
+neu_anmeldung = json.loads(melder3._client.gesendet[-1][1])
+pruefe(neu_anmeldung["name"] == "Betriebsart"
+       and neu_anmeldung["unique_id"] == "70-50-252-2120"
+       and neu_anmeldung["state_topic"] == "~/status",
+       "mit neuem Namen, aber sonst unveraendert")
+pruefe(anwendung.namen_durchsetzen() == [],
+       "und beim zweiten Mal ist nichts mehr zu tun")
+pruefe(store.load_state()["namen_original"]["70"].startswith("00-07"),
+       "der Name der Firmware wird gemerkt")
+
+# Wer den eigenen Namen loescht, bekommt den alten zurueck.
+store.save_config(dict(store.load_config(), namen={}))
+anwendung.namen_durchsetzen()
+zurueck = json.loads(melder3._client.gesendet[-1][1])
+pruefe(zurueck["name"].startswith("00-07"), "geloescht heisst: wieder wie vorher")
+anwendung._publisher = None
 
 # Neustart geht ueber /N. /NE waere ein Buchstabe mehr und das EEPROM leer.
 GERAET["befehle"].clear()

@@ -213,6 +213,7 @@ def _poll_schleife() -> None:
             if time.time() >= naechste_pruefung:
                 naechste_pruefung = time.time() + 60
                 _erreichbarkeit_pruefen()
+            namen_durchsetzen()
             config = store.load_config()
             e = config["einstellungen"]
             if e.get("melder") != "bsblan" or _publisher is None:
@@ -256,6 +257,7 @@ def _horchen_stellen() -> None:
     durch_bsblan = e.get("melder") == "bsblan" and praefix
     _publisher.horchen(f"{praefix}/status" if durch_bsblan else "")
     _publisher.werte_horchen(praefix if durch_bsblan else "")
+    _publisher.discovery_horchen(bool(durch_bsblan))
 
 
 # Wie lange ein über MQTT gehörter Wert als frisch gilt, bevor der Manager
@@ -430,6 +432,62 @@ def bsblan_schreibt() -> bool | None:
         frei = None
     _schreib_stand.update({"zeit": time.time(), "frei": frei})
     return frei
+
+
+def namen_durchsetzen() -> list:
+    """Eigene Namen auch in Home Assistant durchsetzen.
+
+    Meldet BSB-LAN selbst, vergibt dessen Firmware die Namen der Entitäten.
+    Ändern lässt sich das nur dort, wo der Name herkommt: in der
+    Anmeldung. Der Manager schreibt sie mit derselben ``unique_id`` und
+    denselben Themen zurück, nur mit korrigiertem Namen – Home Assistant
+    erkennt die Entität wieder und übernimmt den neuen Namen.
+
+    Kündigt BSB-LAN seine Entitäten erneut an – nach einem Neustart etwa –,
+    steht dort wieder der alte Name. Deshalb läuft das hier im Takt mit und
+    nicht nur einmal.
+    """
+    if _publisher is None or not _publisher.connected.is_set():
+        return []
+    config = store.load_config()
+    namen = config.get("namen") or {}
+    if config["einstellungen"].get("melder") != "bsblan":
+        return []
+    state = store.load_state()
+    urspruenglich = dict(state.get("namen_original") or {})
+    geaendert = []
+
+    for topic, roh in list(_publisher.fremde_discovery.items()):
+        try:
+            anmeldung = json.loads(roh)
+        except (TypeError, ValueError):
+            continue
+        kennung = str(anmeldung.get("unique_id") or "")
+        nr = kennung.split("-")[0]
+        if not nr:
+            continue
+        jetzt = str(anmeldung.get("name") or "")
+        gewuenscht = namen.get(nr)
+        if gewuenscht:
+            # Den Namen der Firmware merken, bevor er überschrieben wird –
+            # sonst gäbe es kein Zurück, wenn jemand den eigenen Namen löscht.
+            if nr not in urspruenglich and jetzt != gewuenscht:
+                urspruenglich[nr] = jetzt
+            if jetzt == gewuenscht:
+                continue
+            anmeldung["name"] = gewuenscht
+        else:
+            if nr not in urspruenglich or jetzt == urspruenglich[nr]:
+                continue
+            anmeldung["name"] = urspruenglich.pop(nr)
+        _publisher.discovery_erneuern(topic, anmeldung)
+        geaendert.append(nr)
+
+    if geaendert or urspruenglich != (state.get("namen_original") or {}):
+        store.merke_state(namen_original=urspruenglich)
+    if geaendert:
+        _LOGGER.info("Namen in Home Assistant angepasst: %s", ", ".join(geaendert))
+    return geaendert
 
 
 def bsblan_meldet() -> bool | None:
@@ -648,6 +706,12 @@ def api_namen():
     config["auswahl"] = store.validate_auswahl(config["auswahl"])
     store.save_config(config)
     _discovery_auffrischen()
+    # Sofort, nicht erst beim nächsten Takt: Wer einen Namen vergibt, will ihn
+    # sehen.
+    try:
+        namen_durchsetzen()
+    except Exception as err:                      # noqa: BLE001
+        _LOGGER.warning("Namen nicht durchgesetzt: %s", err)
     return jsonify({"namen": namen})
 
 

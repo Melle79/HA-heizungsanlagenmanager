@@ -113,6 +113,11 @@ class Publisher:
         self._horcht_werte = ""
         self.fremde_werte = {}
         self.auf_wert = None
+        # Die Anmeldungen, die BSB-LAN selbst in Home Assistant vornimmt.
+        # Darin steht der Name der Entität – und den darf der Manager
+        # richtigstellen, ohne die Anmeldung sonst anzurühren.
+        self._horcht_discovery = ""
+        self.fremde_discovery = {}
 
     # ----------------------------------------------------------- Technik ----
 
@@ -131,6 +136,8 @@ class Publisher:
             client.subscribe(self._horcht)
         if self._horcht_werte:
             client.subscribe(self._horcht_werte)
+        if self._horcht_discovery:
+            client.subscribe(self._horcht_discovery)
         _LOGGER.info("Mit MQTT-Broker verbunden")
         if self.on_ready:
             self.on_ready()
@@ -165,7 +172,34 @@ class Publisher:
         if muster and self.connected.is_set():
             self._client.subscribe(muster)
 
+    def discovery_horchen(self, an: bool) -> None:
+        """Mithören, wie BSB-LAN seine Entitäten in Home Assistant anmeldet."""
+        muster = f"{DISCOVERY_PREFIX}/+/BSB-LAN/+/config" if an else ""
+        if muster == self._horcht_discovery:
+            return
+        if self._horcht_discovery and self.connected.is_set():
+            self._client.unsubscribe(self._horcht_discovery)
+        self._horcht_discovery = muster
+        self.fremde_discovery = {}
+        if muster and self.connected.is_set():
+            self._client.subscribe(muster)
+
+    def discovery_erneuern(self, topic: str, anmeldung: dict) -> None:
+        """Eine fremde Anmeldung mit geändertem Namen zurückschreiben.
+
+        Dieselbe ``unique_id``, dieselben Themen – Home Assistant erkennt die
+        Entität wieder und übernimmt nur den neuen Namen. Retained, wie das
+        Original: Sonst wäre der Name nach dem nächsten Neustart von Home
+        Assistant wieder der alte.
+        """
+        self._publish(topic, json.dumps(anmeldung, ensure_ascii=False))
+        self.fremde_discovery[topic] = json.dumps(anmeldung, ensure_ascii=False)
+
     def _nachricht(self, client, userdata, nachricht):
+        if self._horcht_discovery and nachricht.topic.endswith("/config"):
+            self.fremde_discovery[nachricht.topic] = nachricht.payload.decode(
+                "utf-8", "replace")
+            return
         if nachricht.topic == self._horcht:
             self.fremd_stand = {"topic": nachricht.topic,
                                 "wert": nachricht.payload.decode("utf-8", "replace").strip(),

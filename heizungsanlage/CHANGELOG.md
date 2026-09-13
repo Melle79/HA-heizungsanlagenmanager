@@ -1,5 +1,15 @@
 # Änderungen
 
+## 1.28.0
+
+- **Der eigene Name gilt jetzt auch in Home Assistant.** Meldet BSB-LAN, kam
+  der Name bisher aus dessen Firmware und ließ sich nur in Home Assistant von
+  Hand ändern. Der Manager schreibt die Anmeldung nun mit derselben
+  `unique_id` und denselben Themen zurück – nur der Name ist korrigiert.
+- Kündigt BSB-LAN neu an, setzt der Manager den Namen im nächsten Takt wieder
+  durch. Den ursprünglichen merkt er sich: Wer den eigenen Namen löscht,
+  bekommt den alten zurück und keine Leerstelle.
+
 ## 1.27.0
 
 - **Eigene Namen für Parameter.** In der Auswahl steht neben jedem Namen ein

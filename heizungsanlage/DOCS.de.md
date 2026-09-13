@@ -200,9 +200,15 @@ Deshalb kann jeder Parameter einen **eigenen Namen** bekommen: in der Auswahl
 der ursprüngliche Name bleibt als Fußnote *laut Liste: …* darunter stehen –
 damit nachvollziehbar bleibt, worüber man eigentlich spricht.
 
-Meldet der Manager selbst, heißt auch die Entität in Home Assistant so.
-Meldet BSB-LAN, vergibt dessen Firmware die Namen; dort hilft nur das
-Umbenennen in Home Assistant selbst.
+**Home Assistant übernimmt den Namen ebenfalls.** Meldet der Manager selbst,
+steht er einfach in der Anmeldung. Meldet BSB-LAN, schreibt der Manager dessen
+Anmeldung zurück – dieselbe `unique_id`, dieselben Themen, nur der Name
+korrigiert. Home Assistant erkennt die Entität wieder und benennt sie um.
+
+Kündigt BSB-LAN seine Entitäten neu an, etwa nach einem Neustart, steht dort
+zunächst wieder der Name aus der Liste; der Manager setzt den eigenen im
+nächsten Takt erneut durch. Und weil er sich den ursprünglichen Namen merkt,
+führt das Löschen des eigenen Namens zurück zum alten – nicht in ein Nichts.
 
 ## Auswahl: was nach Home Assistant geht
 
