@@ -1,5 +1,20 @@
 # Änderungen
 
+## 1.22.0
+
+- **Erkennt den Zustand, der wie „läuft“ aussieht.** BSB-LAN kann auf jede
+  HTTP-Abfrage antworten und trotzdem nichts melden – nach einem WLAN-Abriss
+  macht es einen eigenen Zugangspunkt auf und überspringt MQTT, während sich
+  das WLAN im Hintergrund wieder einbucht. In Home Assistant behalten die
+  Entitäten dann stundenlang ihren letzten Wert, ohne dass etwas rot wird.
+- Der Manager hört jetzt auf `<Präfix>/status` und sagt es, wenn dort
+  „offline“ steht, obwohl das Gerät antwortet – mit dem Knopf **Adapter neu
+  starten** daneben. Der Neustart geht über `/N` und lässt die Einstellungen
+  im Gerät unangetastet.
+- **Die Buslast wurde zu niedrig geschätzt.** BSB-LAN holt im Grundtakt alles,
+  was in seiner Liste steht; ein eigener Takt kommt oben drauf, statt ihn zu
+  ersetzen. Jetzt wird beides gezählt.
+
 ## 1.21.0
 
 - **Jeder Parameter im eigenen Takt.** In der Auswahl steht je Parameter eine

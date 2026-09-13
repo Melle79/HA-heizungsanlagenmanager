@@ -730,6 +730,32 @@ async function bsblanLage() {
   const anmeldung = d.discovery
     ? '<div>Mit automatischer Anmeldung in Home Assistant.</div>' : '';
 
+  // Der Fall, der wie „läuft“ aussieht und keiner ist: BSB-LAN antwortet auf
+  // HTTP, hat den MQTT-Teil aber nicht gestartet. Das passiert nach einem
+  // WLAN-Abriss – der Adapter macht dann einen eigenen Zugangspunkt auf und
+  // überspringt MQTT, während sich das WLAN im Hintergrund wieder einbucht.
+  if (durchBsblan && status.bsblan_meldet === false) {
+    feld.className = 'hinweis warn';
+    feld.innerHTML = `<b>BSB-LAN antwortet, meldet aber nichts.</b>
+      <div>Der Adapter ist erreichbar, hat sich beim Broker aber nicht
+      angemeldet. Das kommt nach einem WLAN-Abriss vor: BSB-LAN macht dann
+      einen eigenen Zugangspunkt auf und lässt MQTT bis zum Neustart aus.</div>
+      <div class="zeile-aktionen">
+      <button class="leise" id="btn-bsblan-neustart">Adapter neu starten</button>
+      <span class="meldung" id="m-neustart"></span></div>`;
+    $('btn-bsblan-neustart').onclick = async () => {
+      if (!frage('BSB-LAN neu starten?',
+                 'Die Einstellungen im Gerät bleiben unangetastet. Für etwa '
+                 + 'eine Minute ist es nicht erreichbar.')) return;
+      const knopf = $('btn-bsblan-neustart'); knopf.disabled = true;
+      try {
+        await sendeJSON('bsblan/neustart', 'POST', {});
+        meldung('m-neustart', 'Neustart ausgelöst – das dauert eine Minute', true);
+      } catch (err) { meldung('m-neustart', err.message); knopf.disabled = false; }
+    };
+    return;
+  }
+
   if (durchBsblan) {
     // So ist es gewollt – hier gehört keine Warnung hin, sondern eine Bilanz.
     feld.className = 'hinweis';
@@ -886,10 +912,12 @@ function taktFeld(nr) {
 function buslast() {
   const grund = parseInt($('e-bsblan-intervall').value, 10)
                 || (einst || {}).bsblan_intervall_s || 60;
-  let jeMinute = 0;
+  // BSB-LAN holt im Grundtakt *alles*, was in seiner Liste steht. Ein eigener
+  // Takt kommt oben drauf, er ersetzt den Grundtakt nicht – wer das übersieht,
+  // rechnet sich die Buslast schön.
+  let jeMinute = auswahlNr.size * 60 / Math.max(grund, 1);
   auswahlNr.forEach(nr => {
-    const takt = taktNach[nr] || grund;
-    jeMinute += 60 / Math.max(takt, 1);
+    if (taktNach[nr]) jeMinute += 60 / taktNach[nr];
   });
   return {jeMinute: Math.round(jeMinute * 10) / 10,
           anteil: Math.round(jeMinute * 1.5 / 60 * 100)};

@@ -736,6 +736,9 @@ def _get2(url, timeout=None):
     if "/M" in url and "!" in url:
         GERAET["befehle"].append(url.rsplit("/", 1)[1])
         return JLAntwort()
+    if url.rsplit("/", 1)[-1] in ("N", "NE"):
+        GERAET["neustart"] = url.rsplit("/", 1)[-1]
+        return JLAntwort()
     return _get(url, timeout)
 def _post2(url, json=None, timeout=None):
     if url.endswith("/JW"):
@@ -861,6 +864,34 @@ pruefe(melder._client.gesendet == [("BSBLAN/poll", "115,72", False)],
        f"die Abfrage geht an BSBLAN/poll, ohne retain: {melder._client.gesendet}")
 melder.abfragen("BSBLAN", [])
 pruefe(len(melder._client.gesendet) == 1, "ohne faellige Parameter geht nichts raus")
+
+# Der Zustand, der wie „läuft“ aussieht: BSB-LAN antwortet auf HTTP, hat aber
+# den MQTT-Teil nie gestartet. Sein Zustandsthema verrät es.
+class _Nachricht:
+    def __init__(self, topic, nutz): self.topic, self.payload = topic, nutz
+
+lauscher = mqtt_publisher.Publisher.__new__(mqtt_publisher.Publisher)
+lauscher._client = _Klient()
+lauscher._client.subscribe = lambda t: None
+lauscher._client.unsubscribe = lambda t: None
+lauscher.connected = threading.Event(); lauscher.connected.set()
+lauscher._horcht = ""
+lauscher.fremd_stand = {"topic": "", "wert": "", "zeit": 0.0}
+lauscher.horchen("BSBLAN/status")
+anwendung._publisher = lauscher
+pruefe(anwendung.bsblan_meldet() is None, "ohne Nachricht wird nichts behauptet")
+lauscher._nachricht(None, None, _Nachricht("BSBLAN/status", b"online"))
+pruefe(anwendung.bsblan_meldet() is True, "„online“ heisst: es meldet")
+lauscher._nachricht(None, None, _Nachricht("BSBLAN/status", b"offline"))
+pruefe(anwendung.bsblan_meldet() is False, "„offline“ ist die Auskunft, auf die es ankommt")
+lauscher._nachricht(None, None, _Nachricht("BSBLAN/anderes", b"online"))
+pruefe(anwendung.bsblan_meldet() is False, "andere Themen aendern daran nichts")
+anwendung._publisher = None
+
+# Neustart geht ueber /N. /NE waere ein Buchstabe mehr und das EEPROM leer.
+GERAET["befehle"].clear()
+kunde.post("/api/bsblan/neustart")
+pruefe(GERAET.get("neustart") == "N", f"der Neustart nutzt /N, nicht /NE ({GERAET.get('neustart')})")
 
 # Und im Betrieb: Wer die Auswahl speichert, findet sie in BSB-LAN wieder.
 kunde.put("/api/auswahl", json=[{"nr": "115", "name": "Kessel"}])

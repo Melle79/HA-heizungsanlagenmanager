@@ -17,6 +17,7 @@ import os
 import logging
 import re
 import threading
+import time
 
 import paho.mqtt.client as mqtt
 
@@ -97,8 +98,13 @@ class Publisher:
             self._client.username_pw_set(user, password)
         self._client.will_set(self.verfuegbarkeit, "offline", retain=True)
         self._client.on_connect = self._verbunden
+        self._client.on_message = self._nachricht
         self._host, self._port = host, int(port or 1883)
         self.on_ready = None
+        # Was BSB-LAN selbst über seinen Zustand sagt. Es meldet „online“ auf
+        # <Präfix>/status; bleibt es weg, trägt der Broker dort „offline“ ein.
+        self._horcht = ""
+        self.fremd_stand = {"topic": "", "wert": "", "zeit": 0.0}
 
     # ----------------------------------------------------------- Technik ----
 
@@ -113,9 +119,35 @@ class Publisher:
         self.connected.set()
         client.publish(self.verfuegbarkeit, "online", retain=True)
         client.publish(self.anschrift, json.dumps(_anschrift()), retain=True)
+        if self._horcht:
+            client.subscribe(self._horcht)
         _LOGGER.info("Mit MQTT-Broker verbunden")
         if self.on_ready:
             self.on_ready()
+
+    def horchen(self, topic: str) -> None:
+        """Auf das Zustandsthema von BSB-LAN hören.
+
+        Damit lässt sich der Fall erkennen, der sonst wie „läuft“ aussieht:
+        BSB-LAN antwortet auf HTTP, hat aber – etwa nach einem WLAN-Abriss im
+        eigenen Zugangspunkt – den MQTT-Teil gar nicht erst gestartet.
+        """
+        topic = (topic or "").strip()
+        if topic == self._horcht:
+            return
+        if self._horcht and self.connected.is_set():
+            self._client.unsubscribe(self._horcht)
+        self._horcht = topic
+        self.fremd_stand = {"topic": topic, "wert": "", "zeit": 0.0}
+        if topic and self.connected.is_set():
+            self._client.subscribe(topic)
+
+    def _nachricht(self, client, userdata, nachricht):
+        if nachricht.topic != self._horcht:
+            return
+        self.fremd_stand = {"topic": nachricht.topic,
+                            "wert": nachricht.payload.decode("utf-8", "replace").strip(),
+                            "zeit": time.time()}
 
     def _publish(self, topic: str, payload: str) -> None:
         if self.connected.is_set():

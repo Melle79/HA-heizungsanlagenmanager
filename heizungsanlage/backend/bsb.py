@@ -143,6 +143,19 @@ class Bsb:
                 "JSON.") from err
         return daten if isinstance(daten, dict) else {}
 
+    def neustart(self) -> None:
+        """BSB-LAN neu starten.
+
+        ``/N`` startet, ``/NE`` löscht dabei das EEPROM – ein Buchstabe
+        Unterschied und die ganze Konfiguration. Hier steht nur ``N``, und das
+        soll auch so bleiben.
+        """
+        url = self._pfad("N")
+        try:
+            requests.get(url, timeout=8)
+        except requests.RequestException as err:
+            raise BsbFehler(f"Neustart nicht ausgelöst: {err}") from err
+
     def konfiguration_schreiben(self, eintraege: dict) -> dict:
         """Einstellungen zurückschreiben.
 

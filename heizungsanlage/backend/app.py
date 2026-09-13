@@ -183,6 +183,31 @@ def _poll_schleife() -> None:
             _LOGGER.exception("Abfragetakt fehlgeschlagen: %s", err)
 
 
+def _horchen_stellen() -> None:
+    """Auf das Zustandsthema von BSB-LAN hören – nur wenn es auch melden soll."""
+    if _publisher is None:
+        return
+    e = store.load_config()["einstellungen"]
+    praefix = str(e.get("bsblan_praefix") or "").strip("/")
+    _publisher.horchen(f"{praefix}/status"
+                       if e.get("melder") == "bsblan" and praefix else "")
+
+
+def bsblan_meldet() -> bool | None:
+    """Sagt BSB-LAN dem Broker, dass es da ist?
+
+    ``None`` heißt: Wir wissen es nicht – kein MQTT, ein anderer Melder, oder
+    noch nichts gehört. ``False`` ist die Auskunft, auf die es ankommt: Das
+    Gerät antwortet auf HTTP, hat den MQTT-Teil aber nicht laufen.
+    """
+    if _publisher is None or not _publisher.connected.is_set():
+        return None
+    stand = _publisher.fremd_stand
+    if not stand.get("topic") or not stand.get("wert"):
+        return None
+    return stand["wert"].lower() == "online"
+
+
 def _takt_schleife() -> None:
     while True:
         try:
@@ -218,6 +243,7 @@ def _mqtt_starten() -> None:
         os.environ.get("MQTT_PASSWORD"), e["praefix"])
     _publisher.on_ready = _discovery_auffrischen
     _publisher.start()
+    _horchen_stellen()
 
 
 def _discovery_auffrischen() -> None:
@@ -452,6 +478,7 @@ def api_status():
         info = _client().info()
         antwort["verbunden"] = True
         neueste = bsblan_neueste()
+        antwort["bsblan_meldet"] = bsblan_meldet()
         antwort["bsb"] = {
             "version": info.get("version"), "bus": info.get("bus"),
             "neueste": neueste,
@@ -482,6 +509,7 @@ def api_einstellungen():
     # wieder angemeldet. Ohne das bliebe der alte Zustand bis zum nächsten
     # Verbindungsaufbau stehen – und in Home Assistant stünde beides.
     _discovery_auffrischen()
+    _horchen_stellen()
 
     # Speichern heißt speichern, wo es wirkt. Meldet BSB-LAN, gehen Präfix,
     # Geräte-ID, Intervall, Einheiten und MQTT-Art gleich ins Gerät – sonst
@@ -774,6 +802,21 @@ def _bsblan_parameter_schreiben() -> dict:
                  len(steht), len(nummern))
     return {"parameter": steht, "anzahl": len(steht),
             "vollstaendig": steht == nummern}
+
+
+@app.route("/api/bsblan/neustart", methods=["POST"])
+def api_bsblan_neustart():
+    """Den Adapter neu starten – ``/N``, nicht ``/NE``.
+
+    Der Unterschied ist ein Buchstabe und die halbe Konfiguration: ``/NE``
+    löscht zusätzlich das EEPROM. Hier wird nur neu gestartet; alle
+    Einstellungen bleiben stehen.
+    """
+    try:
+        _client().neustart()
+    except bsb_modul.BsbFehler as err:
+        return jsonify({"fehler": str(err)}), 502
+    return jsonify({"neustart": True})
 
 
 @app.route("/api/bsblan/parameter", methods=["PUT"])

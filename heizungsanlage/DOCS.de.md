@@ -259,6 +259,20 @@ In dieser Betriebsart übernimmt der Manager die Einrichtung:
 * Was BSB-LAN sonst tut – etwa auf SD-Karte protokollieren –, bleibt
   unangetastet: Geschrieben wird nur, was sich unterscheidet.
 
+### Wenn BSB-LAN antwortet, aber nichts meldet
+
+Es gibt einen Zustand, der von außen wie „läuft“ aussieht und keiner ist:
+BSB-LAN beantwortet jede HTTP-Abfrage, hat den MQTT-Teil aber nicht gestartet.
+Das passiert nach einem WLAN-Abriss – der Adapter macht dann einen eigenen
+Zugangspunkt auf und überspringt MQTT, während sich das WLAN im Hintergrund
+wieder einbucht. In Home Assistant fällt das lange nicht auf: Die Entitäten
+behalten einfach ihren letzten Wert.
+
+Der Manager hört deshalb auf `<Präfix>/status`, wo BSB-LAN sein „online“
+hinterlegt. Bleibt dort „offline“ stehen, während das Gerät erreichbar ist,
+erscheint ein Hinweis mit dem Knopf **Adapter neu starten**. Der Neustart geht
+über `/N` und lässt alle Einstellungen im Gerät unangetastet.
+
 ### Jeder Parameter im eigenen Takt
 
 Der feste Sendeintervall von BSB-LAN gilt für alle Parameter gleich, und das

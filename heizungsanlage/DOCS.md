@@ -175,6 +175,16 @@ would leave the new prefix in the add-on while BSB-LAN kept publishing under
 the old one. Anything else BSB-LAN does –
 logging to SD card, say – is left alone; only differences are written.
 
+### When BSB-LAN answers but publishes nothing
+
+There is a state that looks like “running” from the outside and is not:
+BSB-LAN answers every HTTP request but never started its MQTT part. It happens
+after a Wi-Fi dropout – the adapter opens an access point of its own and skips
+MQTT while the Wi-Fi silently reconnects. The manager therefore listens on
+`<prefix>/status`, where BSB-LAN posts its “online”. If that stays “offline”
+while the device is reachable, a hint appears with a **Restart adapter**
+button. The restart uses `/N` and leaves every setting in the device alone.
+
 ### Every parameter at its own rate
 
 BSB-LAN's publish interval applies to all parameters alike, and that is where

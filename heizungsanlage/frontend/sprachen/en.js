@@ -183,6 +183,14 @@ window.SPRACHEN.en = {
     "Two switches have to be on: this one and the one in BSB-LAN itself. Both are off by default, and deliberately so – a wrong setpoint lets a flat go cold in winter.",
   "Einstellungen speichern": "Save settings",
   "Gespeichert": "Saved",
+  "BSB-LAN antwortet, meldet aber nichts.": "BSB-LAN answers, but publishes nothing.",
+  "Der Adapter ist erreichbar, hat sich beim Broker aber nicht angemeldet. Das kommt nach einem WLAN-Abriss vor: BSB-LAN macht dann einen eigenen Zugangspunkt auf und lässt MQTT bis zum Neustart aus.":
+    "The adapter is reachable but has not signed in with the broker. This happens after a Wi-Fi dropout: BSB-LAN then opens an access point of its own and leaves MQTT off until it restarts.",
+  "Adapter neu starten": "Restart adapter",
+  "BSB-LAN neu starten?": "Restart BSB-LAN?",
+  "Die Einstellungen im Gerät bleiben unangetastet. Für etwa eine Minute ist es nicht erreichbar.":
+    "The settings in the device are left untouched. It will be unreachable for about a minute.",
+  "Neustart ausgelöst – das dauert eine Minute": "Restart triggered – this takes a minute",
   "Takt": "Rate",
   "Grundtakt": "Base rate",
   "1 min": "1 min",
