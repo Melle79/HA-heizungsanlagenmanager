@@ -4,7 +4,7 @@ The Heating System Manager brings a heating controller into Home Assistant – t
 [BSB-LAN](https://github.com/fredlcore/BSB-LAN), a small ESP32 sitting on the
 controller's bus.
 
-It does three things:
+It does four things:
 
 * **Select.** Out of every parameter your controller knows, you tick the ones
   that matter to you. Only those are read and published as entities.
@@ -12,6 +12,8 @@ It does three things:
   class for Home Assistant.
 * **Set.** Change setpoints and operating modes – behind two switches, both off
   by default.
+* **Get told.** If the adapter fails or stops publishing, a message goes to a
+  notify service of your choice.
 
 ## Language
 

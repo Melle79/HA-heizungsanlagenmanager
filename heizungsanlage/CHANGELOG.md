@@ -1,5 +1,14 @@
 # Änderungen
 
+## 1.29.0
+
+- **Handbuch und README auf dem Stand von heute.** Dazugekommen sind die
+  Abschnitte über das Mithören statt Selbstlesen, die Takte je Parameter, die
+  Meldewege, die beiden Zustandsentitäten, die eigenen Namen und die Fassung
+  von BSB-LAN – dazu ein Inhaltsverzeichnis, das wieder stimmt.
+- Die Beschreibung im Add-on-Store nennt jetzt auch die Takte und die Meldung
+  bei Ausfall.
+
 ## 1.28.0
 
 - **Der eigene Name gilt jetzt auch in Home Assistant.** Meldet BSB-LAN, kam

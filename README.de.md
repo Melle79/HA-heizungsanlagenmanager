@@ -36,6 +36,24 @@ Assistant selbst; abtippen musst du nichts.
 
 ![Der Reiter „Home Assistant"](heizungsanlage/doku/bilder/mqtt.png)
 
+**Und es fragt nicht zweimal.** Meldet BSB-LAN, hört das Add-on dessen Werte
+mit, statt dieselben Parameter noch einmal über den Bus zu holen. Jeder
+Parameter darf dabei seinen **eigenen Takt** bekommen – die Kesseltemperatur
+jede Minute, die Betriebsstunden einmal in der Stunde. Daneben steht, was das
+an Buszeit kostet.
+
+**Es sagt Bescheid, wenn es hakt.** Zwei Zustände kennt kaum jemand, bis sie
+weh tun: Der Adapter antwortet nicht – oder er antwortet und meldet trotzdem
+nichts mehr, weil er nach einem Funkabriss in seinem eigenen Zugangspunkt
+hängt. Das Add-on erkennt beides, meldet es über einen notify-Dienst deiner
+Wahl und legt für Automationen zwei Entitäten an. Home Assistant selbst merkt
+davon sonst nichts: BSB-LANs Anmeldung kennt kein Verfügbarkeitsthema.
+
+**Eigene Namen.** Was die Parameterliste falsch benennt – Parameter 70 heißt
+dort *Brauchwassertemperatur-Reduziertsollwert* und ist die Betriebsart –,
+lässt sich richtigstellen. Der Name gilt in der Oberfläche **und in Home
+Assistant**; der ursprüngliche bleibt als Fußnote sichtbar.
+
 **Vorsichtig mit der Anlage.** Stellen geht erst, wenn zwei Schalter stehen –
 der in BSB-LAN und der im Add-on, beide ab Werk aus. Der Bus wird in Bündeln
 mit Pausen abgefragt, nicht im Dauerfeuer. Und nach jedem Schreiben wird

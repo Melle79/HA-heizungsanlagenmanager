@@ -36,6 +36,23 @@ Broker and credentials come from Home Assistant; you type nothing.
 
 ![The “Home Assistant” tab](heizungsanlage/doku/bilder/mqtt.png)
 
+**And it never asks twice.** While BSB-LAN publishes, the add-on listens in
+instead of fetching the same parameters over the bus again. Each parameter may
+run at **its own rate** — boiler temperature every minute, operating hours once
+an hour — with the estimated bus load shown next to the selection.
+
+**It tells you when something is stuck.** Two states go unnoticed until they
+hurt: the adapter does not answer — or it answers and still publishes nothing,
+because a Wi-Fi dropout left it in its own access point. The add-on spots both,
+reports them through a notify service of your choice and provides two entities
+for automations. Home Assistant would not notice otherwise: BSB-LAN's discovery
+carries no availability topic.
+
+**Names of your own.** Where the parameter list gets a label wrong — parameter
+70 is called *Brauchwassertemperatur-Reduziertsollwert* there and is the
+operating mode — you can put it right. The name applies in the interface **and
+in Home Assistant**; the original stays visible as a footnote.
+
 **Careful with the system.** Writing needs two switches — one in BSB-LAN, one
 in the add-on, both off by default. The bus is polled in bundles with pauses,
 not continuously. And every write is read back: what the device holds

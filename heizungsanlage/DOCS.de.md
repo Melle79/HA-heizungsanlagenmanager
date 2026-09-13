@@ -4,7 +4,7 @@ Der Heizungsanlagenmanager bringt die Heizungsregelung nach Home Assistant – �
 [BSB-LAN](https://github.com/fredlcore/BSB-LAN), einen kleinen ESP32 am Bus
 des Reglers.
 
-Er tut vier Dinge:
+Er tut fünf Dinge:
 
 * **Bedienen.** Die ganze Regelung, Kategorie für Kategorie, mit derselben
   Gliederung wie am Gerät auf dem Kessel – und Zeitschaltprogramme als
@@ -15,6 +15,8 @@ Er tut vier Dinge:
   BSB-LAN so ein, dass der Adapter es tut, und hält sich dann heraus.
 * **Stellen.** Sollwerte und Betriebsarten ändern – hinter zwei Schaltern, die
   beide ab Werk aus sind.
+* **Bescheid bekommen.** Wenn der Adapter ausfällt oder aufhört zu melden,
+  geht eine Nachricht an einen notify-Dienst deiner Wahl.
 
 ## Inhalt
 
@@ -26,12 +28,13 @@ Er tut vier Dinge:
 6. [Stellen: die zwei Schalter](#stellen-die-zwei-schalter)
 7. [Der Reiter „Home Assistant“](#der-reiter-home-assistant)
 8. [Auswahl: was nach Home Assistant geht](#auswahl-was-nach-home-assistant-geht)
-9. [Wer meldet nach Home Assistant?](#wer-meldet-nach-home-assistant)
-10. [Gemerkte Werte](#gemerkte-werte)
-11. [Gelesen wird auf Zuruf](#gelesen-wird-auf-zuruf)
-12. [Der Bus ist langsam](#der-bus-ist-langsam)
-13. [Übernahme durch andere Add-ons](#übernahme-durch-andere-add-ons)
-14. [Zusammenspiel mit dem Heizungsplaner](#zusammenspiel-mit-dem-heizungsplaner)
+9. [Die Fassung von BSB-LAN](#die-fassung-von-bsb-lan)
+10. [Wer meldet nach Home Assistant?](#wer-meldet-nach-home-assistant)
+11. [Gemerkte Werte](#gemerkte-werte)
+12. [Gelesen wird auf Zuruf](#gelesen-wird-auf-zuruf)
+13. [Der Bus ist langsam](#der-bus-ist-langsam)
+14. [Übernahme durch andere Add-ons](#übernahme-durch-andere-add-ons)
+15. [Zusammenspiel mit dem Heizungsplaner](#zusammenspiel-mit-dem-heizungsplaner)
 
 ## Sprache
 
