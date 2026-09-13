@@ -985,6 +985,17 @@ pruefe("9999" not in gehoert,
        "eine Karteileiche unter demselben Praefix nicht")
 anwendung._publisher = None
 
+# Ob BSB-LAN schreiben laesst, steht in seiner Konfiguration - nicht in /JI.
+# Dessen buswritable meldete auf Svens Anlage 0, waehrend Schreiben lief.
+anwendung._schreib_stand.update({"zeit": 0.0, "frei": None})
+GERAET["konfig"]["4"] = {"parameter": 33, "name": "Schreibzugriff (Ebene)",
+                         "value": "2"}
+pruefe(anwendung.bsblan_schreibt() is True, "Ebene 2 heisst: schreiben erlaubt")
+anwendung._schreib_stand.update({"zeit": 0.0, "frei": None})
+GERAET["konfig"]["4"]["value"] = "0"
+pruefe(anwendung.bsblan_schreibt() is False, "Ebene 0 heisst: gesperrt")
+pruefe(anwendung.bsblan_schreibt() is False, "und die Antwort wird gemerkt")
+
 # Neustart geht ueber /N. /NE waere ein Buchstabe mehr und das EEPROM leer.
 GERAET["befehle"].clear()
 kunde.post("/api/bsblan/neustart")

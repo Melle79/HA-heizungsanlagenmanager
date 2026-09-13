@@ -194,6 +194,7 @@ window.SPRACHEN.en = {
     "Two switches have to be on: this one and the one in BSB-LAN itself. Both are off by default, and deliberately so – a wrong setpoint lets a flat go cold in winter.",
   "Einstellungen speichern": "Save settings",
   "Gespeichert": "Saved",
+  "unbekannt": "unknown",
   "Legionellen": "Legionella",
   "aus": "off",
   "Tage": "days",

@@ -682,7 +682,10 @@ function uebersichtZeichnen() {
   $('uebersicht-fuss').textContent = status.verbunden
     ? `BSB-LAN ${b.version || ''} · Bus ${b.bus || '?'} · `
       + `Adresse ${b.busaddr} → ${b.busdest} · `
-      + `Schreibzugriff in BSB-LAN ${b.buswritable ? 'frei' : 'gesperrt'}`
+      + `Schreibzugriff in BSB-LAN ${
+          (b.schreiben === null || b.schreiben === undefined)
+            ? (b.buswritable ? 'frei' : 'unbekannt')
+            : (b.schreiben ? 'frei' : 'gesperrt')}`
     : '';
 
   const g = $('geraete'); g.innerHTML = '';

@@ -1,5 +1,14 @@
 # Änderungen
 
+## 1.26.1
+
+- **„Schreibzugriff in BSB-LAN gesperrt“ stimmte nicht.** Die Auskunft kam aus
+  dem Feld `buswritable` von `/JI`, und das hängt an einem Übersetzungsschalter
+  der Firmware: Es meldet 0, obwohl Schreiben erlaubt ist und funktioniert.
+  Gelesen wird jetzt die Einstellung selbst – „Schreibzugriff (Ebene)“ –, und
+  wenn sie sich nicht lesen lässt, steht dort *unbekannt* statt einer
+  Behauptung.
+
 ## 1.26.0
 
 - **Neue Kachel „Legionellen“** auf der Übersicht. Eine Legionellenschaltung,

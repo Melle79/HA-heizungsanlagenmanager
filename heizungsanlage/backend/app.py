@@ -355,6 +355,35 @@ def _werte_aus_mqtt() -> int:
     return uebernommen
 
 
+_schreib_stand = {"zeit": 0.0, "frei": None}
+
+
+def bsblan_schreibt() -> bool | None:
+    """Erlaubt BSB-LAN das Stellen von Parametern?
+
+    Nicht aus ``/JI``: Dessen Feld ``buswritable`` hängt an einem Übersetzungs-
+    schalter der Firmware und meldet auf dieser Anlage 0, obwohl Schreiben
+    erlaubt ist und funktioniert. Die Wahrheit steht in der Konfiguration
+    selbst – „Schreibzugriff (Ebene)“, 0 heißt aus.
+
+    Die Antwort wird fünf Minuten lang gemerkt: Sie ändert sich nur, wenn
+    jemand sie in BSB-LAN ändert, und ``/JL`` ist eine große Auskunft.
+    """
+    if time.time() - _schreib_stand["zeit"] < 300:
+        return _schreib_stand["frei"]
+    try:
+        _, nach_name = _bsblan_lesen()
+    except bsb_modul.BsbFehler:
+        return _schreib_stand["frei"]
+    roh = (nach_name.get("schreibzugriff") or {}).get("wert")
+    try:
+        frei = int(roh) > 0
+    except (TypeError, ValueError):
+        frei = None
+    _schreib_stand.update({"zeit": time.time(), "frei": frei})
+    return frei
+
+
 def bsblan_meldet() -> bool | None:
     """Sagt BSB-LAN dem Broker, dass es da ist?
 
@@ -798,7 +827,10 @@ def api_status():
             "neueste": neueste,
             "veraltet": _aelter(info.get("version") or "", neueste),
             "busaddr": info.get("busaddr"), "busdest": info.get("busdest"),
+            # buswritable aus /JI lügt auf manchen Fassungen – siehe
+            # bsblan_schreibt(). Der Wert bleibt für alle drin, die ihn kennen.
             "buswritable": bool(info.get("buswritable")),
+            "schreiben": bsblan_schreibt(),
             "geraete": info.get("busdevices") or [],
         }
     except bsb_modul.BsbFehler as err:
@@ -909,6 +941,7 @@ def api_uebernahme_loesen(quelle):
 # Die Einträge aus /JL, auf die es ankommt. Der Schlüssel ist die Option-
 # nummer, die BSB-LAN selbst vergibt – der Index davor ist nicht stabil.
 BSBLAN_OPTIONEN = {
+    33: "schreibzugriff",  # 0 aus, 1 ein, 2 ein mit OEM-Parametern
     53: "logmodus",       # nicht 11 – das sind die Bustelegramme
     13: "logintervall", 14: "logparameter",
     36: "mqtt_broker", 37: "mqtt_user", 38: "mqtt_passwort",
