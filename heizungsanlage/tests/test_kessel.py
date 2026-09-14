@@ -1174,8 +1174,11 @@ class _Client:
 dazu = katalog.nachtragen(_Client(), kat_test)
 pruefe(set(dazu) == {"6224", "0.1"}, f"nachgetragen wird, was antwortet: {dazu}")
 pruefe("6225" not in kat_test["parameter"], "was error 7 meldet, bleibt draussen")
-pruefe(kat_test["parameter"]["0.1"]["kategorie"] == "1",
-       "vorhandene Kategorien werden wiederverwendet")
+pruefe(kat_test["parameter"]["0.1"]["kategorie"] == "1"
+       and kat_test["parameter"]["0.1"]["kategorie_name"] == "Uhrzeit und Datum",
+       "ein Unterparameter landet bei seinem Hauptparameter")
+pruefe(kat_test["parameter"]["6224"]["kategorie"] != "1",
+       "und was keinen Hauptparameter hat, bekommt eine eigene Kategorie")
 pruefe(kat_test["parameter"]["6224"]["schreibbar"] is False,
        "nachgetragene Auskuenfte sind nur lesbar")
 

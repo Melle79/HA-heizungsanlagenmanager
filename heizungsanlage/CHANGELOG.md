@@ -1,5 +1,13 @@
 # Änderungen
 
+## 1.33.1
+
+- **Nachgetragene Unterparameter landen bei ihrem Hauptparameter.** 0.1 bis
+  0.3 bekamen eine eigene Kategorie „Uhrzeit und Datum“ neben der
+  bestehenden „Uhrzeit“ – zwei Einträge im Menü für dieselbe Sache. Jetzt
+  zählt, wo der Hauptparameter steht, und wie die Kategorie heißt, entscheidet
+  weiterhin die Regelung.
+
 ## 1.33.0
 
 Beides kommt aus dem Austausch mit Frederik Holst, dem Autor von BSB-LAN.

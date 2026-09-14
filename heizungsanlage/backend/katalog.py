@@ -132,7 +132,8 @@ def nachtragen(client, katalog: dict) -> list:
         if eintrag.get("error") or not wert or wert == "---":
             continue                       # kennt diese Anlage nicht
         kat_name = NACHTRAG[nr]
-        kid = _kategorie_fuer(katalog, kat_name)
+        kid = _kategorie_fuer(katalog, kat_name, nr)
+        kat_name = (katalog["kategorien"].get(kid) or {}).get("name") or kat_name
         katalog["parameter"][nr] = {
             "nr": nr,
             "name": eintrag.get("name") or f"Parameter {nr}",
@@ -157,8 +158,19 @@ def nachtragen(client, katalog: dict) -> list:
     return dazu
 
 
-def _kategorie_fuer(katalog: dict, name: str) -> str:
-    """Die vorhandene Kategorie dieses Namens – oder eine neue daneben."""
+def _kategorie_fuer(katalog: dict, name: str, nr: str = "") -> str:
+    """Wohin der Nachtrag gehört.
+
+    Zuerst dorthin, wo der Hauptparameter schon steht: 0.1 gehört zu 0, und
+    wie diese Kategorie heißt, entscheidet die Regelung – hier „Uhrzeit“, auf
+    der nächsten Anlage vielleicht anders. Eine zweite Kategorie mit einem
+    ähnlichen Namen daneben wäre nur verwirrend.
+    """
+    haupt = str(nr).split(".")[0]
+    if haupt and haupt != str(nr):
+        for kid, kopf in (katalog.get("kategorien") or {}).items():
+            if haupt in ((kopf or {}).get("parameter") or []):
+                return kid
     for kid, kopf in (katalog.get("kategorien") or {}).items():
         if (kopf or {}).get("name") == name:
             return kid
