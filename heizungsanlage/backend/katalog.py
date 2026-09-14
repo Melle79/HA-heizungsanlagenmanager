@@ -86,9 +86,85 @@ def aufbauen(client: "bsb_modul.Bsb", fortschritt=None) -> dict:
         if i + 1 < gesamt:
             time.sleep(PAUSE_S)
 
+    nachtragen(client, katalog)
+
     _LOGGER.info("Katalog gebaut: %d Kategorien, %d Parameter",
                  len(katalog["kategorien"]), len(katalog["parameter"]))
     return katalog
+
+
+# Was die Regelung beantwortet, aber in keiner Kategorie von ``/JK`` steht.
+# Die Bereichsgrenzen dort lassen Lücken: Kategorie 0 endet bei 0 – ohne die
+# Unterparameter 0.1 bis 0.3 –, und die 622x liegen zwischen der letzten
+# Kategorie (220) und dem benutzerdefinierten Bereich (ab 10000) im
+# Niemandsland. Wer seinen Katalog aus ``/JK`` baut, sieht sie deshalb nie.
+#
+# Frederik Holst, der BSB-LAN gebaut hat, schreibt dazu: die 622x seien
+# „eine der wenigen Telegramme, die auf so ziemlich allen Siemens-Reglern
+# gehen“. Deshalb stehen diese wenigen Nummern hier ausnahmsweise fest –
+# nachgetragen wird aber nur, was die Anlage auch wirklich beantwortet.
+NACHTRAG = {
+    "0.1": "Uhrzeit und Datum",
+    "0.2": "Uhrzeit und Datum",
+    "0.3": "Uhrzeit und Datum",
+    "6224": "Geräteinformation",
+    "6225": "Geräteinformation",
+    "6226": "Geräteinformation",
+    "6227": "Geräteinformation",
+}
+
+
+def nachtragen(client, katalog: dict) -> list:
+    """Die Lücken von ``/JK`` schließen – durch Nachfragen, nicht durch Raten."""
+    offen = [nr for nr in NACHTRAG if nr not in (katalog.get("parameter") or {})]
+    if not offen:
+        return []
+    try:
+        roh = client.werte(offen)
+    except bsb_modul.BsbFehler as err:
+        _LOGGER.info("Nachtrag übersprungen: %s", err)
+        return []
+
+    dazu = []
+    for nr in offen:
+        eintrag = roh.get(nr) or {}
+        wert = str(eintrag.get("value") or "").strip()
+        if eintrag.get("error") or not wert or wert == "---":
+            continue                       # kennt diese Anlage nicht
+        kat_name = NACHTRAG[nr]
+        kid = _kategorie_fuer(katalog, kat_name)
+        katalog["parameter"][nr] = {
+            "nr": nr,
+            "name": eintrag.get("name") or f"Parameter {nr}",
+            "kategorie": kid,
+            "kategorie_name": kat_name,
+            "unit": eintrag.get("unit") or "",
+            "dataType_name": eintrag.get("dataType_name") or "",
+            # Nachgetragene Auskünfte sind Auskünfte: nur lesen.
+            "readwrite": 1,
+            "schreibbar": False,
+            "precision": eintrag.get("precision"),
+            "isswitch": 0,
+            "possibleValues": [],
+        }
+        katalog["parameter"][nr].update(store.vorschlag(katalog["parameter"][nr]))
+        katalog["kategorien"].setdefault(
+            kid, {"name": kat_name, "parameter": []})["parameter"].append(nr)
+        dazu.append(nr)
+
+    if dazu:
+        _LOGGER.info("Nachgetragen, weil /JK sie nicht führt: %s", ", ".join(dazu))
+    return dazu
+
+
+def _kategorie_fuer(katalog: dict, name: str) -> str:
+    """Die vorhandene Kategorie dieses Namens – oder eine neue daneben."""
+    for kid, kopf in (katalog.get("kategorien") or {}).items():
+        if (kopf or {}).get("name") == name:
+            return kid
+    hoechste = max((_nummer(k) for k in (katalog.get("kategorien") or {})),
+                   default=0)
+    return str(int(hoechste) + 1)
 
 
 def suchen(katalog: dict, text: str = "", nur_schreibbar: bool = False,

@@ -1,5 +1,20 @@
 # Änderungen
 
+## 1.33.0
+
+Beides kommt aus dem Austausch mit Frederik Holst, dem Autor von BSB-LAN.
+
+- **Eine Bestätigung für eine fremde Nummer ist keine Bestätigung.** BSB-LANs
+  JSON-Leser unterscheidet Schlüssel am ersten Buchstaben; wer beim Schreiben
+  zu viel mitschickt, bekommt eine Antwort für einen Parameter, den er nie
+  genannt hat – gemessen: gefragt 39, geschrieben 0. Der Manager nahm bisher
+  „irgendeinen Eintrag“ aus der Antwort und machte daraus eine Erfolgsmeldung.
+  Jetzt muss die Antwort zur Frage gehören, sonst ist es ein Fehler.
+- **Was `/JK` nicht führt, wird nachgefragt.** Die Kategorien dort lassen
+  Lücken: 0.1 bis 0.3 (Uhrzeit, Datum) und 6224 bis 6227 (Geräteauskünfte)
+  tauchen in keiner auf, obwohl die Regelung sie beantwortet. Am Ende des
+  Einlesens fragt der Manager sie einzeln nach und trägt ein, was antwortet.
+
 ## 1.32.0
 
 - **Die Entitäten von BSB-LAN grauen jetzt aus, wenn der Adapter weg ist.**

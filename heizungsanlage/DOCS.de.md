@@ -112,6 +112,19 @@ Was auf der Übersicht steht, **wird auch gemeldet**: Der Manager trägt diese
 Parameter in die Auswahl ein und hält sie dort fest (Vermerk *für die
 Übersicht*), denn sonst bekäme er die Werte gar nicht.
 
+### Was `/JK` nicht führt
+
+Der Katalog kommt aus `/JK` – und dessen Kategorien lassen Lücken. Kategorie 0
+endet bei Parameter 0, also ohne die Unterparameter 0.1 bis 0.3 (Uhrzeit,
+Datum); und die Geräteauskünfte 6224 bis 6227 liegen zwischen der letzten
+Kategorie und dem benutzerdefinierten Bereich im Niemandsland. Beantwortet
+werden sie trotzdem – nur sieht sie niemand, der seinen Katalog aus `/JK`
+baut.
+
+Der Manager fragt sie deshalb am Ende des Einlesens einzeln nach und trägt
+ein, was antwortet. Was die Anlage nicht kennt, bleibt draußen; geschrieben
+wird an ihnen nichts, es sind Auskünfte.
+
 ## Der Reiter „Regelung“
 
 ![Zeitschaltprogramm als Wochentabelle](https://raw.githubusercontent.com/Melle79/HA-heizungsanlagenmanager/main/heizungsanlage/doku/bilder/regelung.png)

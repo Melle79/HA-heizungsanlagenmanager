@@ -260,7 +260,31 @@ class Bsb:
         #
         # Die Eins als Erfolg zu lesen ist ungewohnt; wer aus Gewohnheit die
         # Null dafür hält, meldet jede gelungene Änderung als Fehler.
-        eintrag = ergebnis.get(str(parameter)) or next(iter(ergebnis.values()), {})
+        # **Die Antwort muss zur Frage gehören.** BSB-LANs JSON-Leser
+        # unterscheidet Schlüssel am ersten Buchstaben: „possibleValues“ zählt
+        # dort als „Parameter“. Wer zu viel mitschickt, bekommt deshalb eine
+        # Bestätigung für eine Nummer, die er nie genannt hat – am 14.09.2026
+        # hier gemessen: gefragt 39, geschrieben 0. Früher stand an dieser
+        # Stelle ein „nimm halt den ersten Eintrag“; das machte aus einer
+        # Fehladressierung eine Erfolgsmeldung.
+        eintrag = ergebnis.get(str(parameter))
+        if eintrag is None:
+            for schluessel, teil in (ergebnis or {}).items():
+                try:
+                    if float(schluessel) == float(parameter):
+                        eintrag = teil
+                        break
+                except (TypeError, ValueError):
+                    continue
+        if eintrag is None:
+            if ergebnis:
+                raise BsbFehler(
+                    f"BSB-LAN hat für Parameter {', '.join(map(str, ergebnis))} "
+                    f"geantwortet, gefragt war {parameter}. Geschrieben wurde "
+                    "womöglich am falschen Parameter – bitte in der Regelung "
+                    "nachsehen.")
+            raise BsbFehler(f"BSB-LAN hat auf das Stellen von Parameter "
+                            f"{parameter} nicht geantwortet")
         status = eintrag.get("status") if isinstance(eintrag, dict) else None
         try:
             status = int(status)

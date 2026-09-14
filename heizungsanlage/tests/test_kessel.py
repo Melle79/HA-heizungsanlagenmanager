@@ -1134,6 +1134,51 @@ store.save_katalog(alt_katalog)
 for nr in TW:
     PARAMETER["5"].pop(nr, None)
 
+# Eine Bestaetigung fuer eine fremde Nummer ist keine Bestaetigung. BSB-LANs
+# JSON-Leser unterscheidet Schluessel am ersten Buchstaben; wer zu viel
+# mitschickt, bekommt eine Antwort fuer einen Parameter, den er nie nannte.
+_alt_post3 = bsb.requests.post
+def _post_falsch(url, json=None, timeout=None):
+    return Antwort({"0": {"status": 1}})          # geantwortet wird fuer 0
+bsb.requests.post = _post_falsch
+try:
+    client.setzen("39", "BSBLAN")
+    pruefe(False, "eine Antwort fuer die falsche Nummer wird abgelehnt")
+except bsb.BsbFehler as err:
+    pruefe("gefragt war 39" in str(err),
+           f"eine Antwort fuer die falsche Nummer wird abgelehnt: {err}")
+def _post_leer(url, json=None, timeout=None):
+    return Antwort({})
+bsb.requests.post = _post_leer
+try:
+    client.setzen("39", "BSBLAN")
+    pruefe(False, "und eine leere Antwort ebenso")
+except bsb.BsbFehler:
+    pruefe(True, "und eine leere Antwort ebenso")
+def _post_komma(url, json=None, timeout=None):
+    return Antwort({"39.0": {"status": 1}})       # dieselbe Nummer, anders geschrieben
+bsb.requests.post = _post_komma
+pruefe(client.setzen("39", "BSBLAN")["39.0"]["status"] == 1,
+       "dieselbe Nummer in anderer Schreibweise gilt")
+bsb.requests.post = _alt_post3
+
+# Der Katalog traegt nach, was /JK nicht fuehrt - aber nur, was antwortet.
+kat_test = {"kategorien": {"1": {"name": "Uhrzeit und Datum", "parameter": ["0"]}},
+            "parameter": {"0": {"nr": "0"}}}
+class _Client:
+    def werte(self, nummern):
+        return {"6224": {"name": "Geräte-Identifikation", "value": "WRS-CPU-B2/E",
+                         "unit": "", "error": 0},
+                "0.1": {"name": "Uhrzeit", "value": "09:58:03", "unit": "", "error": 0},
+                "6225": {"name": "Geräte-Familie", "value": "", "error": 7}}
+dazu = katalog.nachtragen(_Client(), kat_test)
+pruefe(set(dazu) == {"6224", "0.1"}, f"nachgetragen wird, was antwortet: {dazu}")
+pruefe("6225" not in kat_test["parameter"], "was error 7 meldet, bleibt draussen")
+pruefe(kat_test["parameter"]["0.1"]["kategorie"] == "1",
+       "vorhandene Kategorien werden wiederverwendet")
+pruefe(kat_test["parameter"]["6224"]["schreibbar"] is False,
+       "nachgetragene Auskuenfte sind nur lesbar")
+
 # Neustart geht ueber /N. /NE waere ein Buchstabe mehr und das EEPROM leer.
 GERAET["befehle"].clear()
 kunde.post("/api/bsblan/neustart")

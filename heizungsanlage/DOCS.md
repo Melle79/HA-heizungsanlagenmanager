@@ -79,6 +79,15 @@ Whatever stands on the overview is also published: the manager puts those
 parameters into the selection and keeps them there, because otherwise it would
 never receive their values.
 
+### What `/JK` does not list
+
+The catalogue comes from `/JK`, and its categories leave gaps: category 0 ends
+at parameter 0 – without the sub-parameters 0.1 to 0.3 – and the device
+information 6224 to 6227 sits between the last category and the user-defined
+range. The controller answers them all the same. The manager therefore asks
+for them individually at the end of a catalogue read and adds whatever
+answers; they are read-only.
+
 ## The “Regelung” tab
 
 ![Time programme as a weekly table](https://raw.githubusercontent.com/Melle79/HA-heizungsanlagenmanager/main/heizungsanlage/doku/bilder/regelung.png)
