@@ -1041,21 +1041,26 @@ melder3.fremde_discovery = {
                     "state_topic": "~/status"})}
 anwendung._publisher = melder3
 store.save_config(dict(store.load_config(), namen={"70": "Betriebsart"}))
-geaendert = anwendung.namen_durchsetzen()
+geaendert = anwendung.discovery_aufbessern()
 pruefe(geaendert == ["70"], f"die Anmeldung wird erneuert: {geaendert}")
 neu_anmeldung = json.loads(melder3._client.gesendet[-1][1])
 pruefe(neu_anmeldung["name"] == "Betriebsart"
        and neu_anmeldung["unique_id"] == "70-50-252-2120"
        and neu_anmeldung["state_topic"] == "~/status",
        "mit neuem Namen, aber sonst unveraendert")
-pruefe(anwendung.namen_durchsetzen() == [],
+# Und das, was BSB-LAN gar nicht mitschickt: das Verfuegbarkeitsthema. Ohne
+# es bleibt jede Entitaet "verfuegbar", auch wenn der Adapter laengst weg ist.
+praefix = store.load_config()["einstellungen"]["bsblan_praefix"]
+pruefe(neu_anmeldung.get("avty_t") == f"{praefix}/status",
+       f"und mit Verfuegbarkeitsthema: {neu_anmeldung.get('avty_t')}")
+pruefe(anwendung.discovery_aufbessern() == [],
        "und beim zweiten Mal ist nichts mehr zu tun")
 pruefe(store.load_state()["namen_original"]["70"].startswith("00-07"),
        "der Name der Firmware wird gemerkt")
 
 # Wer den eigenen Namen loescht, bekommt den alten zurueck.
 store.save_config(dict(store.load_config(), namen={}))
-anwendung.namen_durchsetzen()
+anwendung.discovery_aufbessern()
 zurueck = json.loads(melder3._client.gesendet[-1][1])
 pruefe(zurueck["name"].startswith("00-07"), "geloescht heisst: wieder wie vorher")
 anwendung._publisher = None

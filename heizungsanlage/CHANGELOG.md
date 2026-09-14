@@ -1,5 +1,14 @@
 # Änderungen
 
+## 1.32.0
+
+- **Die Entitäten von BSB-LAN grauen jetzt aus, wenn der Adapter weg ist.**
+  Dessen Anmeldungen enthalten kein `availability_topic`; der Manager trägt es
+  nach – auf demselben Weg, auf dem er schon die eigenen Namen durchsetzt, und
+  mit dem Thema, das BSB-LAN ohnehin führt (`<Präfix>/status`).
+- Damit erledigt sich der stillste aller Fehler: eine Kesseltemperatur, die
+  seit Stunden dieselbe ist, weil niemand mehr misst.
+
 ## 1.31.0
 
 - **Die Übersicht lässt sich selbst zusammenstellen.** Unter *Übersicht

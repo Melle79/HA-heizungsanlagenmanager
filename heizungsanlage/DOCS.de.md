@@ -384,7 +384,13 @@ Zugangspunkt auf und überspringt MQTT, während sich das WLAN im Hintergrund
 wieder einbucht. In Home Assistant fällt das lange nicht auf: Die Entitäten
 behalten einfach ihren letzten Wert.
 
-Der Manager hört deshalb auf `<Präfix>/status`, wo BSB-LAN sein „online“
+**Der Manager trägt das fehlende Verfügbarkeitsthema selbst nach.** BSB-LANs
+Anmeldungen enthalten kein `availability_topic`; der Manager schreibt sie
+deshalb – wie schon für die eigenen Namen – mit `"avty_t": "<Präfix>/status"`
+zurück. Damit grauen die Entitäten in Home Assistant aus, sobald der Adapter
+weg ist, statt ihren letzten Wert weiterzuzeigen.
+
+Zusätzlich hört er auf dasselbe Thema, wo BSB-LAN sein „online“
 hinterlegt. Bleibt dort „offline“ stehen, während das Gerät erreichbar ist,
 erscheint ein Hinweis mit dem Knopf **Adapter neu starten**. Der Neustart geht
 über `/N` und lässt alle Einstellungen im Gerät unangetastet.

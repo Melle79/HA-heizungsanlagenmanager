@@ -213,7 +213,7 @@ def _poll_schleife() -> None:
             if time.time() >= naechste_pruefung:
                 naechste_pruefung = time.time() + 60
                 _erreichbarkeit_pruefen()
-            namen_durchsetzen()
+            discovery_aufbessern()
             _legionellen_takt()
             config = store.load_config()
             e = config["einstellungen"]
@@ -435,8 +435,15 @@ def bsblan_schreibt() -> bool | None:
     return frei
 
 
-def namen_durchsetzen() -> list:
-    """Eigene Namen auch in Home Assistant durchsetzen.
+def discovery_aufbessern() -> list:
+    """Die Anmeldungen von BSB-LAN um das ergänzen, was ihnen fehlt.
+
+    Zweierlei: der eigene Name – und das **Verfügbarkeitsthema**. BSB-LAN
+    schickt seine Entitäten ohne ``availability_topic`` los; fällt der Adapter
+    aus, bleiben sie „verfügbar“ und zeigen stundenlang ihren letzten Wert.
+    Dabei gibt es das passende Thema längst: Auf ``<Präfix>/status`` steht
+    „online“, und der Broker trägt dort „offline“ ein, wenn die Verbindung
+    abreißt. Eingetragen wird es hier, bis die Firmware es selbst mitschickt.
 
     Meldet BSB-LAN selbst, vergibt dessen Firmware die Namen der Entitäten.
     Ändern lässt sich das nur dort, wo der Name herkommt: in der
@@ -454,6 +461,8 @@ def namen_durchsetzen() -> list:
     namen = config.get("namen") or {}
     if config["einstellungen"].get("melder") != "bsblan":
         return []
+    praefix = str(config["einstellungen"].get("bsblan_praefix") or "").strip("/")
+    verfuegbar = f"{praefix}/status" if praefix else ""  
     state = store.load_state()
     urspruenglich = dict(state.get("namen_original") or {})
     geaendert = []
@@ -467,6 +476,12 @@ def namen_durchsetzen() -> list:
         nr = kennung.split("-")[0]
         if not nr:
             continue
+        aendern = False
+        # Das Verfügbarkeitsthema fehlt in jeder Anmeldung von BSB-LAN.
+        if verfuegbar and anmeldung.get("avty_t") != verfuegbar:
+            anmeldung["avty_t"] = verfuegbar
+            aendern = True
+
         jetzt = str(anmeldung.get("name") or "")
         gewuenscht = namen.get(nr)
         if gewuenscht:
@@ -474,20 +489,21 @@ def namen_durchsetzen() -> list:
             # sonst gäbe es kein Zurück, wenn jemand den eigenen Namen löscht.
             if nr not in urspruenglich and jetzt != gewuenscht:
                 urspruenglich[nr] = jetzt
-            if jetzt == gewuenscht:
-                continue
-            anmeldung["name"] = gewuenscht
-        else:
-            if nr not in urspruenglich or jetzt == urspruenglich[nr]:
-                continue
+            if jetzt != gewuenscht:
+                anmeldung["name"] = gewuenscht
+                aendern = True
+        elif nr in urspruenglich and jetzt != urspruenglich[nr]:
             anmeldung["name"] = urspruenglich.pop(nr)
+            aendern = True
+        if not aendern:
+            continue
         _publisher.discovery_erneuern(topic, anmeldung)
         geaendert.append(nr)
 
     if geaendert or urspruenglich != (state.get("namen_original") or {}):
         store.merke_state(namen_original=urspruenglich)
     if geaendert:
-        _LOGGER.info("Namen in Home Assistant angepasst: %s", ", ".join(geaendert))
+        _LOGGER.info("Anmeldungen aufgebessert: %s", ", ".join(geaendert))
     return geaendert
 
 
@@ -933,9 +949,9 @@ def api_namen():
     # Sofort, nicht erst beim nächsten Takt: Wer einen Namen vergibt, will ihn
     # sehen.
     try:
-        namen_durchsetzen()
+        discovery_aufbessern()
     except Exception as err:                      # noqa: BLE001
-        _LOGGER.warning("Namen nicht durchgesetzt: %s", err)
+        _LOGGER.warning("Anmeldungen nicht aufgebessert: %s", err)
     return jsonify({"namen": namen})
 
 
