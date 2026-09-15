@@ -1063,6 +1063,17 @@ store.save_config(dict(store.load_config(), namen={}))
 anwendung.discovery_aufbessern()
 zurueck = json.loads(melder3._client.gesendet[-1][1])
 pruefe(zurueck["name"].startswith("00-07"), "geloescht heisst: wieder wie vorher")
+
+# Seit BSB-LAN 5.1.19 schickt die Firmware das Verfuegbarkeitsthema selbst
+# mit - dann darf der Manager nicht die Kurzform danebenschreiben, das waere
+# nach der Abkuerzungsaufloesung derselbe Schluessel zweimal.
+melder3.fremde_discovery = {
+    "homeassistant/sensor/BSB-LAN/115-50-252-2120/config":
+        json.dumps({"unique_id": "115-50-252-2120", "name": "Kessel",
+                    "availability_topic": f"{praefix}/status"})}
+melder3._client.gesendet.clear()
+pruefe(anwendung.discovery_aufbessern() == [],
+       "was die Firmware selbst mitschickt, wird nicht doppelt gesetzt")
 anwendung._publisher = None
 
 # Die Legionellenaufheizung: hochsetzen, warten, zurueckstellen - und der

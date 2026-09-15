@@ -477,8 +477,14 @@ def discovery_aufbessern() -> list:
         if not nr:
             continue
         aendern = False
-        # Das Verfügbarkeitsthema fehlt in jeder Anmeldung von BSB-LAN.
-        if verfuegbar and anmeldung.get("avty_t") != verfuegbar:
+        # Das Verfügbarkeitsthema hat zwei erlaubte Schreibweisen: die kurze
+        # ``avty_t`` und die lange ``availability_topic``. Home Assistant löst
+        # die Abkürzung auf – stünden beide da, wäre es derselbe Schlüssel
+        # zweimal. Seit BSB-LAN 5.1.19 schickt die Firmware die lange Form
+        # selbst mit; dann ist hier nichts mehr zu tun.
+        schon_da = (anmeldung.get("avty_t")
+                    or anmeldung.get("availability_topic"))
+        if verfuegbar and not schon_da:
             anmeldung["avty_t"] = verfuegbar
             aendern = True
 

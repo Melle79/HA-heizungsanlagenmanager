@@ -1,5 +1,13 @@
 # Änderungen
 
+## 1.33.2
+
+- **Vorbereitet auf BSB-LAN 5.1.19.** Dessen Anmeldungen bringen das
+  Verfügbarkeitsthema jetzt selbst mit – als `availability_topic`. Der Manager
+  trug bisher zusätzlich die Kurzform `avty_t` ein; Home Assistant löst die
+  Abkürzung auf, es stünde also derselbe Schlüssel zweimal da. Jetzt wird
+  nachgetragen, was fehlt, und sonst nichts.
+
 ## 1.33.1
 
 - **Nachgetragene Unterparameter landen bei ihrem Hauptparameter.** 0.1 bis
