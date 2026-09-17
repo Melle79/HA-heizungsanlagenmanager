@@ -257,6 +257,18 @@
       <button class="leise" id="btn-kachel-bau">Übersicht anpassen</button>
     </div>
   </div>
+  <!-- Kurz halten: Wer etwas gestellt hat, was schiefging und was die
+       Aufheizung tat. Kein Abfragetakt, keine Lesevorgänge – ein Protokoll,
+       in dem alles steht, liest niemand. -->
+  <div class="tafel">
+    <h2>Protokoll</h2>
+    <div class="rollbar"><table><tbody id="protokoll"></tbody></table></div>
+    <div class="zeile-aktionen">
+      <button class="leise" id="btn-protokoll">Neu laden</button>
+      <span class="notiz" id="protokoll-stand"></span>
+    </div>
+  </div>
+
   <div class="tafel">
     <h2>Am Bus</h2>
     <div class="rollbar"><table><tbody id="geraete"></tbody></table></div>
@@ -835,6 +847,32 @@ $('btn-kachel-speichern').onclick = async () => {
   } catch (err) { meldung('m-kachel', err.message); }
 };
 
+const PROTOKOLL_ART = {stellen: 'gestellt', fehler: 'Fehler',
+                       stoerung: 'Störung', entwarnung: 'Entwarnung',
+                       legionellen: 'Aufheizung', katalog: 'Katalog'};
+
+async function protokollZeichnen() {
+  const koerper = $('protokoll'); if (!koerper) return;
+  let eintraege = [];
+  try { eintraege = (await hole('protokoll')).eintraege || []; }
+  catch (err) { $('protokoll-stand').textContent = err.message; return; }
+  koerper.innerHTML = '';
+  eintraege.slice(0, 25).forEach(e => {
+    const zeile = document.createElement('tr');
+    if (e.art === 'fehler' || e.art === 'stoerung') zeile.className = 'gefuehrt';
+    zeile.innerHTML = `<td class="kat" style="width:120px">${zeit(e.zeit)}</td>
+      <td class="kat" style="width:110px">${PROTOKOLL_ART[e.art] || e.art}</td>
+      <td>${e.text}</td>`;
+    koerper.appendChild(zeile);
+  });
+  if (!eintraege.length) {
+    koerper.innerHTML = '<tr><td class="kat">Noch nichts passiert.</td></tr>';
+  }
+  $('protokoll-stand').textContent = `${eintraege.length} Einträge`;
+}
+
+$('btn-protokoll').onclick = () => protokollZeichnen();
+
 function uebersichtZeichnen() {
   const lage = $('lage');
   if (!status.verbunden) {
@@ -845,6 +883,17 @@ function uebersichtZeichnen() {
       ausgewählt. Unter <b>Auswahl</b> bestimmst du, welche Werte nach Home
       Assistant gehen.</div>`;
   } else { lage.innerHTML = ''; }
+
+  // Eine Reihe gescheiterter Schreibversuche gehört nach vorn: Sie sieht man
+  // sonst nur im Protokoll, und die Anlage behält derweil stillschweigend,
+  // was zuletzt gesetzt wurde.
+  const haengt = status.schreibfehler || {};
+  if (haengt.anzahl) {
+    lage.innerHTML += `<div class="hinweis warn"><b>Stellen kommt nicht an.</b>
+      <div>${haengt.anzahl} Schreibversuche hintereinander sind ohne Wirkung
+      geblieben. Die Anlage behält, was zuletzt gesetzt wurde.</div>
+      <div class="notiz">${haengt.letzter || ''}</div></div>`;
+  }
 
   const k = $('kacheln'); k.innerHTML = '';
   if (!KACHELN.length && status.verbunden) {
@@ -2224,6 +2273,7 @@ async function statusLaden() {
   $('zustand-mqtt').textContent = status.mqtt ? 'MQTT verbunden' : 'kein MQTT';
   uebersichtZeichnen();
   legLageZeigen();
+  if ($('uebersicht') && $('uebersicht').classList.contains('an')) protokollZeichnen();
 }
 
 async function werteLaden() {

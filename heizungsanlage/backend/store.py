@@ -16,6 +16,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+from datetime import datetime
 import threading
 
 _LOGGER = logging.getLogger(__name__)
@@ -24,6 +25,12 @@ DATA_DIR = os.environ.get("DATA_DIR", "/data")
 CONFIG_FILE = os.path.join(DATA_DIR, "config.json")
 KATALOG_FILE = os.path.join(DATA_DIR, "katalog.json")
 STATE_FILE = os.path.join(DATA_DIR, "state.json")
+# Eigene Datei, nicht im Zustand: Der wird im Takt neu geschrieben, das
+# Protokoll soll das nicht jedes Mal mitmachen.
+PROTOKOLL_FILE = os.path.join(DATA_DIR, "protokoll.json")
+# So viele Einträge bleiben stehen. Genug, um einen Tag zurückzublicken, wenig
+# genug, dass niemand darin sucht statt liest.
+PROTOKOLL_LAENGE = 200
 
 _lock = threading.Lock()
 
@@ -397,6 +404,34 @@ def validate_auswahl(roh) -> list:
 
 
 # ----------------------------------------------------------------- Katalog ----
+
+def protokoll_lesen(anzahl: int = 0) -> list:
+    """Das Protokoll, das jüngste zuerst."""
+    with _lock:
+        eintraege = _read(PROTOKOLL_FILE, [])
+    if not isinstance(eintraege, list):
+        return []
+    eintraege = list(reversed(eintraege))
+    return eintraege[:anzahl] if anzahl else eintraege
+
+
+def protokoll_eintragen(art: str, text: str) -> dict:
+    """Etwas festhalten, das man später wissen will.
+
+    Nicht jeder Takt und nicht jede Abfrage – nur das, was jemand getan hat
+    oder was schiefgegangen ist. Ein Protokoll, in dem alles steht, liest
+    niemand; eines mit den fünf Ereignissen des Tages schon.
+    """
+    eintrag = {"zeit": datetime.now().isoformat(timespec="seconds"),
+               "art": str(art or "")[:20], "text": str(text or "")[:300]}
+    with _lock:
+        eintraege = _read(PROTOKOLL_FILE, [])
+        if not isinstance(eintraege, list):
+            eintraege = []
+        eintraege.append(eintrag)
+        _write(PROTOKOLL_FILE, eintraege[-PROTOKOLL_LAENGE:])
+    return eintrag
+
 
 def load_katalog() -> dict:
     with _lock:

@@ -351,6 +351,17 @@ Welche Parameter dafür verwendet werden, leitet der Manager aus dem Katalog
 ab – Sollwert, Obergrenze und Istwert des Trinkwassers. Führt eine Anlage
 nicht alle drei, sagt er das und bietet die Funktion nicht an.
 
+### Das Protokoll
+
+Auf der Übersicht steht unter den Kacheln ein kurzes Protokoll: was gestellt
+wurde und von wem, was dabei schiefging, wann die Aufheizung lief, wann der
+Katalog eingelesen wurde, und jede Störungsmeldung samt Entwarnung. Kein
+Abfragetakt, keine Lesevorgänge – ein Protokoll, in dem alles steht, liest
+niemand.
+
+Es hält die letzten 200 Einträge und liegt in einer eigenen Datei, damit der
+Zustand, der im Takt neu geschrieben wird, es nicht jedes Mal mitschleppt.
+
 ### Melden, wenn etwas ausfällt
 
 Unter *Einstellungen → Melden* steht, wohin eine Störung geht: ein
@@ -358,11 +369,16 @@ Unter *Einstellungen → Melden* steht, wohin eine Störung geht: ein
 anbietet – das Handy, ein Lautsprecher, eine dauerhafte Benachrichtigung. Ohne
 Meldeweg steht eine Störung nur in dieser Oberfläche.
 
-Zwei Fälle werden gemeldet:
+Drei Fälle werden gemeldet:
 
 * **Der Adapter antwortet nicht.** Kein Netz, kein Strom, abgestürzt.
 * **Er antwortet, meldet aber nichts.** Der Zustand nach einem Funkabriss, in
   dem BSB-LAN erreichbar bleibt und MQTT trotzdem ausgelassen hat.
+* **Das Stellen kommt nicht an.** Zwei Schreibversuche hintereinander ohne
+  Wirkung: Die Anlage behält dann stillschweigend, was zuletzt gesetzt wurde,
+  und ein Planer, der ihr etwas sagen will, redet ins Leere. Ein *abgelehnter*
+  Wert zählt dabei nicht – die Regelung hat geantwortet, sie wollte nur
+  nicht.
 
 Beides erst, wenn es die eingestellte **Wartezeit** übersteht – ab Werk zehn
 Minuten. Kurze Funklöcher sind bei WLAN normal, und wer bei jedem Ruckler eine

@@ -1193,6 +1193,39 @@ pruefe(kat_test["parameter"]["6224"]["kategorie"] != "1",
 pruefe(kat_test["parameter"]["6224"]["schreibbar"] is False,
        "nachgetragene Auskuenfte sind nur lesbar")
 
+# Ein abgelehnter Wert ist keine Stoerung - die Regelung hat ja geantwortet.
+# Gezaehlt wird nur, was gar nicht ankommt, und erst der zweite Fehlversuch
+# zeigt, dass der Weg selbst nicht funktioniert.
+store.merke_state(schreibfehler={})
+anwendung.schreiben_vermerken("50", "BSB-LAN hat nicht geantwortet")
+pruefe(anwendung.schreiben_haengt() == {}, "ein einzelner Fehlversuch meldet nichts")
+anwendung.schreiben_vermerken("50", "BSB-LAN hat nicht geantwortet")
+haengt = anwendung.schreiben_haengt()
+pruefe(haengt.get("anzahl") == 2 and "Parameter 50" in haengt.get("letzter", ""),
+       f"der zweite schon: {haengt.get('letzter')}")
+anwendung.schreiben_vermerken("50")
+pruefe(anwendung.schreiben_haengt() == {},
+       "und ein gelungener Schreibvorgang raeumt die Reihe ab")
+
+# Die Unterscheidung steckt in der Ausnahme selbst.
+try:
+    client.setzen("39", "x")   # Antwort kommt vom Geraet, Status 0
+except bsb.BsbFehler as err:
+    pruefe(getattr(err, "stoerung", False) is False,
+           "ein abgelehnter Wert ist keine Stoerung")
+
+# Das Protokoll haelt fest, was jemand getan hat - und nicht jeden Takt.
+store.protokoll_eintragen("stellen", "50 Komfortsollwert auf 23 gestellt")
+store.protokoll_eintragen("fehler", "50 nicht gestellt: Zeitueberschreitung")
+eintraege = store.protokoll_lesen(5)
+pruefe(eintraege[0]["art"] == "fehler" and eintraege[1]["art"] == "stellen",
+       "das juengste steht oben")
+pruefe(all(e.get("zeit") for e in eintraege), "jeder Eintrag traegt eine Zeit")
+for i in range(store.PROTOKOLL_LAENGE + 20):
+    store.protokoll_eintragen("stellen", f"Eintrag {i}")
+pruefe(len(store.protokoll_lesen()) == store.PROTOKOLL_LAENGE,
+       f"das Protokoll waechst nicht ueber {store.PROTOKOLL_LAENGE} Eintraege")
+
 # Neustart geht ueber /N. /NE waere ein Buchstabe mehr und das EEPROM leer.
 GERAET["befehle"].clear()
 kunde.post("/api/bsblan/neustart")

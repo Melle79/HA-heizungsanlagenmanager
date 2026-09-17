@@ -1,5 +1,20 @@
 # Änderungen
 
+## 1.34.0
+
+- **Meldung, wenn das Stellen nicht mehr ankommt.** Bisher kannte der Meldeweg
+  nur „Adapter weg“ und „meldet nichts mehr“. Ein Schreibbefehl, der ins Leere
+  geht, war nur im Protokoll zu sehen – und die Anlage behält derweil
+  stillschweigend, was zuletzt gesetzt wurde. Gemeldet wird ab dem zweiten
+  Fehlversuch; ein *abgelehnter* Wert zählt nicht, denn da hat die Regelung
+  geantwortet.
+- **Ein Protokoll auf der Übersicht.** Was gestellt wurde und von wem, was
+  schiefging, wann die Aufheizung lief, wann der Katalog eingelesen wurde,
+  jede Störung und jede Entwarnung. Die letzten 200 Einträge, in einer eigenen
+  Datei.
+- Auf der Übersicht steht außerdem ein Hinweis, solange Schreibversuche
+  hintereinander wirkungslos bleiben.
+
 ## 1.33.2
 
 - **Vorbereitet auf BSB-LAN 5.1.19.** Dessen Anmeldungen bringen das

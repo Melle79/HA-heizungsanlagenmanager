@@ -42,7 +42,19 @@ PAUSE_S = 0.4
 
 
 class BsbFehler(RuntimeError):
-    """Etwas ging schief – verbunden mit einem Satz, den man anzeigen kann."""
+    """Etwas ging schief – verbunden mit einem Satz, den man anzeigen kann.
+
+    ``stoerung`` unterscheidet zwei Arten von Nein: Die Regelung, die einen
+    Wert ablehnt, weil er außerhalb der Grenzen liegt oder der Parameter nur
+    gelesen werden darf – das ist eine Auskunft, kein Fehler. Und der Weg
+    dorthin, der nicht funktioniert: keine Antwort, keine Verbindung, eine
+    Antwort für die falsche Nummer. Nur das Zweite ist eine Störung, über die
+    jemand Bescheid wissen will.
+    """
+
+    def __init__(self, *args, stoerung: bool = False):
+        super().__init__(*args)
+        self.stoerung = stoerung
 
 
 class Bsb:
@@ -247,9 +259,10 @@ class Bsb:
             antwort.raise_for_status()
             ergebnis = antwort.json()
         except requests.RequestException as err:
-            raise BsbFehler(f"Schreiben fehlgeschlagen: {err}") from err
+            raise BsbFehler(f"Schreiben fehlgeschlagen: {err}", stoerung=True) from err
         except ValueError as err:
-            raise BsbFehler("BSB-LAN antwortet beim Schreiben nicht mit JSON") from err
+            raise BsbFehler("BSB-LAN antwortet beim Schreiben nicht mit JSON",
+                            stoerung=True) from err
 
         # BSB-LAN meldet je Parameter einen Status. Die Zahlen stammen aus
         # dem Rückgabewert von set() und sind nicht selbsterklärend:
@@ -282,9 +295,9 @@ class Bsb:
                     f"BSB-LAN hat für Parameter {', '.join(map(str, ergebnis))} "
                     f"geantwortet, gefragt war {parameter}. Geschrieben wurde "
                     "womöglich am falschen Parameter – bitte in der Regelung "
-                    "nachsehen.")
+                    "nachsehen.", stoerung=True)
             raise BsbFehler(f"BSB-LAN hat auf das Stellen von Parameter "
-                            f"{parameter} nicht geantwortet")
+                            f"{parameter} nicht geantwortet", stoerung=True)
         status = eintrag.get("status") if isinstance(eintrag, dict) else None
         try:
             status = int(status)

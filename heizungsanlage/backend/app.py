@@ -194,11 +194,17 @@ def _erreichbarkeit_pruefen() -> None:
                 _publisher.sendet_abmelden()
     store.merke_state(meldet=meldet)
 
-    # „Weg“ wiegt schwerer als „stumm“: Wer nicht antwortet, meldet auch nicht.
+    # Die Reihenfolge ist die der Ursachen: Wer nicht antwortet, meldet auch
+    # nicht und lässt sich erst recht nicht stellen. Gemeldet wird das, was
+    # am weitesten unten liegt.
+    haengt = schreiben_haengt()
     if not jetzt_erreichbar:
         _stoerung_melden("weg", jetzt_erreichbar, meldet)
     elif durch_bsblan and meldet is False:
         _stoerung_melden("stumm", jetzt_erreichbar, meldet)
+    elif haengt:
+        _stoerung_melden("schreiben", jetzt_erreichbar, meldet,
+                         zusatz=haengt.get("letzter") or "")
     else:
         _stoerung_melden("", jetzt_erreichbar, meldet)
 
@@ -631,6 +637,10 @@ def legionellen_starten(von_hand: bool = False) -> dict:
     _client().setzen(teile["sollwert"]["nr"], f"{ziel:.1f}")
     _LOGGER.info("Legionellenaufheizung gestartet: Ziel %.1f °C, zurück auf %s",
                  ziel, zurueck)
+    store.protokoll_eintragen(
+        "legionellen",
+        f"Aufheizung gestartet, Ziel {ziel:.1f} °C"
+        + (" (von Hand)" if von_hand else ""))
     return legionellen_lage()
 
 
@@ -664,6 +674,11 @@ def legionellen_beenden(grund: str) -> dict:
     store.merke_state(legionellen_lauf={}, legionellen_letzter=letzter)
     _LOGGER.info("Legionellenaufheizung beendet: %s (höchstens %s °C)",
                  letzter["ergebnis"], letzter["hoechster"])
+    store.protokoll_eintragen(
+        "legionellen",
+        f"Aufheizung beendet: {letzter['ergebnis']}"
+        + (f", höchstens {letzter['hoechster']} °C"
+           if letzter.get("hoechster") is not None else ""))
     if fehler:
         for dienst in (store.load_config()["einstellungen"].get("melden_an") or []):
             ha_notify(dienst, "Heizung: Aufheizung nicht zurückgestellt",
@@ -982,6 +997,11 @@ def api_legionellen_stop():
         return jsonify({"fehler": str(err)}), 502
 
 
+@app.route("/api/protokoll")
+def api_protokoll():
+    return jsonify({"eintraege": store.protokoll_lesen(60)})
+
+
 @app.route("/api/notify-dienste")
 def api_notify_dienste():
     return jsonify({"dienste": ha_notify_dienste()})
@@ -1156,6 +1176,11 @@ STOERUNGEN = {
             "Home Assistant stehen still – die Heizung selbst läuft weiter.",
             "Heizung: BSB-LAN ist zurück",
             "Der Adapter antwortet wieder."),
+    "schreiben": ("Heizung: Stellen schlägt fehl",
+                  "Seit {dauer} Minuten kommt kein Schreibbefehl mehr durch – "
+                  "die Anlage behält, was zuletzt gesetzt wurde. {zusatz}",
+                  "Heizung: Stellen geht wieder",
+                  "Der letzte Schreibbefehl ist angekommen."),
     "stumm": ("Heizung: BSB-LAN meldet nichts mehr",
               "Der Adapter antwortet, hat sich beim Broker aber seit {dauer} "
               "Minuten nicht angemeldet. Meist hilft „Adapter neu starten“ im "
@@ -1165,7 +1190,36 @@ STOERUNGEN = {
 }
 
 
-def _stoerung_melden(art: str, erreichbar: bool, meldet) -> None:
+def schreiben_vermerken(parameter, fehler=None) -> None:
+    """Buch über Schreibversuche führen – nur über die, die nichts erreichen.
+
+    Ein abgelehnter Wert ist keine Störung: Die Regelung hat geantwortet, sie
+    wollte nur nicht. Gezählt wird, was gar nicht ankommt.
+    """
+    state = store.load_state()
+    lage = dict(state.get("schreibfehler") or {})
+    if fehler is None:
+        if lage:
+            store.merke_state(schreibfehler={})
+        return
+    if not lage.get("seit"):
+        lage = {"seit": time.time(), "anzahl": 0}
+    lage["anzahl"] = int(lage.get("anzahl") or 0) + 1
+    lage["letzter"] = f"Zuletzt: Parameter {parameter} – {fehler}"
+    store.merke_state(schreibfehler=lage)
+
+
+def schreiben_haengt() -> dict:
+    """Steht eine Reihe gescheiterter Schreibversuche?
+
+    Einer allein sagt nichts – ein Funkloch, ein ungünstiger Moment. Erst der
+    zweite zeigt, dass der Weg selbst nicht funktioniert.
+    """
+    lage = store.load_state().get("schreibfehler") or {}
+    return lage if int(lage.get("anzahl") or 0) >= 2 else {}
+
+
+def _stoerung_melden(art: str, erreichbar: bool, meldet, zusatz: str = "") -> None:
     """Aus dem Zustand eine Meldung machen – oder eine Entwarnung.
 
     Gemeldet wird erst, wenn die Störung die eingestellte Wartezeit übersteht.
@@ -1186,12 +1240,15 @@ def _stoerung_melden(art: str, erreichbar: bool, meldet) -> None:
         dauer = jetzt - float(lage.get("seit") or jetzt)
         if not lage.get("gemeldet") and dauer >= wartezeit:
             titel, text, _, _ = STOERUNGEN[art]
+            satz = text.format(dauer=int(dauer // 60), zusatz=zusatz).strip()
+            store.protokoll_eintragen("stoerung", f"{titel}: {satz}")
             for dienst in dienste:
-                ha_notify(dienst, titel, text.format(dauer=int(dauer // 60)))
+                ha_notify(dienst, titel, satz)
             lage["gemeldet"] = True
     else:
         if lage.get("gemeldet"):
             _, _, titel, text = STOERUNGEN[lage["art"]]
+            store.protokoll_eintragen("entwarnung", f"{titel}: {text}")
             for dienst in dienste:
                 ha_notify(dienst, titel, text)
         lage = {"art": "", "seit": 0.0, "gemeldet": False}
@@ -1233,6 +1290,7 @@ def api_status():
         "mqtt": _publisher is not None and _publisher.connected.is_set(),
         "pflicht": sorted(pflicht_nummern()),
         "legionellen": legionellen_lage(),
+        "schreibfehler": schreiben_haengt(),
         "mindesttakt_s": MINDESTTAKT_S,
         "schreiben_erlaubt": config["einstellungen"]["schreiben_erlaubt"],
     }
@@ -1671,6 +1729,10 @@ def _katalog_bauen() -> None:
         katalog = katalog_modul.aufbauen(_client(), fortschritt)
         store.save_katalog(katalog)
         _katalog_lauf["fehler"] = ""
+        store.protokoll_eintragen(
+            "katalog",
+            f"Katalog eingelesen: {len(katalog.get('parameter') or {})} Parameter "
+            f"in {len(katalog.get('kategorien') or {})} Kategorien")
     except bsb_modul.BsbFehler as err:
         _katalog_lauf["fehler"] = str(err)
         _LOGGER.warning("Katalogaufbau fehlgeschlagen: %s", err)
@@ -1802,7 +1864,19 @@ def api_setzen():
         }), 409
     try:
         antwort = _client().setzen(nr, wert)
+        schreiben_vermerken(nr)                  # es ging – die Reihe ist aus
+        # Wer geschrieben hat, steht nicht in der Anfrage – aber wer den
+        # Parameter führt, steht in der Übernahme. Das ist nah genug dran und
+        # die Auskunft, die später jemand sucht.
+        fuehrer = store.uebernommen_von(store.load_uebernahme()).get(str(nr)) or {}
+        store.protokoll_eintragen(
+            "stellen", f"{nr} {eintrag.get('name') or ''} auf {wert} gestellt"
+            + (f" – geführt vom {fuehrer['name']}" if fuehrer.get("name") else ""))
     except bsb_modul.BsbFehler as err:
+        if getattr(err, "stoerung", False):
+            schreiben_vermerken(nr, str(err))
+            _LOGGER.warning("Stellen von Parameter %s kam nicht an: %s", nr, err)
+        store.protokoll_eintragen("fehler", f"{nr} nicht gestellt: {err}")
         return jsonify({"fehler": str(err)}), 400
 
     _LOGGER.info("Parameter %s auf %s gestellt", nr, wert)

@@ -229,6 +229,13 @@ puts everything back even if the target is never reached. After reaching the
 target the temperature is held for another quarter of an hour, so the part of
 the tank the sensor does not sit in gets warm too.
 
+### The journal
+
+Below the tiles the overview keeps a short journal: what was set and by whom,
+what failed, when the heat-up ran, when the catalogue was read, and every
+fault and all-clear. No polling cycles, no reads – a journal containing
+everything is one nobody reads. It holds the last 200 entries.
+
 ### Alerts when something fails
 
 Under *Settings → Alerts* you choose where a fault goes: a **notify service of
