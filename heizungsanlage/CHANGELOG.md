@@ -1,5 +1,11 @@
 # Änderungen
 
+## 1.34.1
+
+- Das Protokoll steht jetzt unter *Am Bus* statt darüber. Die Geräte am Bus
+  gehören zur Anlage, das Protokoll erzählt, was mit ihr geschehen ist – erst
+  das Bild, dann die Geschichte.
+
 ## 1.34.0
 
 - **Meldung, wenn das Stellen nicht mehr ankommt.** Bisher kannte der Meldeweg
