@@ -1,5 +1,10 @@
 # Änderungen
 
+## 1.34.2
+
+- README nachgezogen: das Protokoll und die dritte Meldung („das Stellen kommt
+  nicht an“) standen bisher nur im Handbuch.
+
 ## 1.34.1
 
 - Das Protokoll steht jetzt unter *Am Bus* statt darüber. Die Geräte am Bus

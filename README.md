@@ -45,12 +45,18 @@ instead of fetching the same parameters over the bus again. Each parameter may
 run at **its own rate** — boiler temperature every minute, operating hours once
 an hour — with the estimated bus load shown next to the selection.
 
-**It tells you when something is stuck.** Two states go unnoticed until they
+**It tells you when something is stuck.** Three states go unnoticed until they
 hurt: the adapter does not answer — or it answers and still publishes nothing,
-because a Wi-Fi dropout left it in its own access point. The add-on spots both,
+because a Wi-Fi dropout left it in its own access point — or writing no longer
+gets through, and the system quietly keeps whatever was set last. The add-on spots both,
 reports them through a notify service of your choice and provides two entities
 for automations. Home Assistant would not notice otherwise: BSB-LAN's discovery
 carries no availability topic.
+
+**A journal that stays short.** What was set and by whom, what failed, when the
+legionella heat-up ran, when the catalogue was read – the last 200 entries on
+the overview. No polling cycles: a journal containing everything is one nobody
+reads.
 
 **Names of your own.** Where the parameter list gets a label wrong — parameter
 70 is called *Brauchwassertemperatur-Reduziertsollwert* there and is the

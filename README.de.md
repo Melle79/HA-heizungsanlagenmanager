@@ -47,12 +47,18 @@ Parameter darf dabei seinen **eigenen Takt** bekommen – die Kesseltemperatur
 jede Minute, die Betriebsstunden einmal in der Stunde. Daneben steht, was das
 an Buszeit kostet.
 
-**Es sagt Bescheid, wenn es hakt.** Zwei Zustände kennt kaum jemand, bis sie
+**Es sagt Bescheid, wenn es hakt.** Drei Zustände kennt kaum jemand, bis sie
 weh tun: Der Adapter antwortet nicht – oder er antwortet und meldet trotzdem
 nichts mehr, weil er nach einem Funkabriss in seinem eigenen Zugangspunkt
-hängt. Das Add-on erkennt beides, meldet es über einen notify-Dienst deiner
+hängt – oder das Stellen kommt nicht an, und die Anlage behält still, was
+zuletzt gesetzt wurde. Das Add-on erkennt beides, meldet es über einen notify-Dienst deiner
 Wahl und legt für Automationen zwei Entitäten an. Home Assistant selbst merkt
 davon sonst nichts: BSB-LANs Anmeldung kennt kein Verfügbarkeitsthema.
+
+**Ein Protokoll, das kurz bleibt.** Was gestellt wurde und von wem, was
+schiefging, wann die Legionellenaufheizung lief, wann der Katalog eingelesen
+wurde – die letzten 200 Einträge auf der Übersicht. Keine Abfragetakte: Ein
+Protokoll, in dem alles steht, liest niemand.
 
 **Eigene Namen.** Was die Parameterliste falsch benennt – Parameter 70 heißt
 dort *Brauchwassertemperatur-Reduziertsollwert* und ist die Betriebsart –,
