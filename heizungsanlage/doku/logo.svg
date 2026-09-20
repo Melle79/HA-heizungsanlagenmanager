@@ -13,8 +13,6 @@
     </linearGradient>
   </defs>
 
-  <rect width="560" height="200" fill="#171b22"/>
-
   <!-- Dasselbe Motiv wie im Icon, auf 120 px gebracht. Die Verläufe stehen in
        festen Koordinaten – deshalb muss die Gruppe skaliert werden und nicht
        die einzelnen Pfade. -->
@@ -33,8 +31,8 @@
   </g>
 
   <text x="172" y="102" font-family="Avenir Next, Nunito, -apple-system, Segoe UI, sans-serif"
-        font-size="40" font-weight="600" fill="#e9edf2">Heizungsanlagen</text>
+        font-size="40" font-weight="600" fill="#1b2430">Heizungsanlagen</text>
   <text x="172" y="142" font-family="Avenir Next, Nunito, -apple-system, Segoe UI, sans-serif"
-        font-size="40" font-weight="600" fill="#e9edf2">manager<tspan font-size="26"
+        font-size="40" font-weight="600" fill="#1b2430">manager<tspan font-size="26"
         font-weight="400" fill="#e6a34a" dx="12">via BSB-LAN</tspan></text>
 </svg>
