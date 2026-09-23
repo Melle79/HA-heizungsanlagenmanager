@@ -76,7 +76,7 @@ wurde.
 ## Voraussetzungen
 
 * Ein laufendes [BSB-LAN](https://github.com/fredlcore/BSB-LAN) im selben Netz
-  (entwickelt und geprüft mit 5.1.18)
+  (entwickelt mit 5.1.18, zuletzt geprüft mit 5.1.21)
 * Ein MQTT-Broker in Home Assistant
 
 ## Installation
@@ -106,8 +106,12 @@ damit der nächste sie nicht noch einmal suchen muss:
   stillschweigend weg.
 * Auto-Discovery widerrufen (`/M0!<ziel>`) wirkt nur auf das, was gerade in
   der Liste steht. Reihenfolge also: abmelden, Liste ändern, anmelden.
-* `/JL` liefert in 5.1.18 kaputtes JSON, wenn keine One-Wire- oder DHT-Pins
-  gesetzt sind.
+* `/JL` lieferte in 5.1.18 kaputtes JSON, wenn keine One-Wire- oder DHT-Pins
+  gesetzt sind. In 5.1.21 ist das behoben – mit abgeschalteten Pins
+  nachgeprüft.
+* Während eines Parameter-Dumps nimmt BSB-LAN ab 5.1.21 nur noch `/dumpstate`
+  an und weist jede andere Verbindung ab. Dauert der Dump lange genug, meldet
+  der Manager „Adapter antwortet nicht“ – zu Recht, aber es ist kein Ausfall.
 
 ## Selber daran arbeiten
 

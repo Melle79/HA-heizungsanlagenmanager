@@ -271,7 +271,7 @@ umbenennt, behält also seine Historie.
 ## Die Fassung von BSB-LAN
 
 Oben rechts, neben den Anzeigen für BSB-LAN und MQTT, steht die geflashte
-Fassung des Adapters – etwa **BSB-LAN 5.1.18**. Gibt es eine neuere,
+Fassung des Adapters – etwa **BSB-LAN 5.1.21**. Gibt es eine neuere,
 erscheint daneben ein Hinweis, der auf die Veröffentlichungen verlinkt.
 Verglichen wird mit `bsb-lan.de/bsb-version.h`, derselben Quelle, die auch
 BSB-LAN selbst befragt; abgefragt wird das höchstens einmal am Tag.
@@ -495,12 +495,19 @@ angekommen ist. Das ist keine Vorsicht, sondern Erfahrung:
   vollständigen Eintrag aus `/JL` zurück – mit `type`, `format`, `category`
   und `name` –, antwortet das Gerät mit einer leeren Struktur und ändert
   nichts. Nur `parameter` und `value` werden angenommen.
-* **`/JL` liefert in 5.1.18 kaputtes JSON**, wenn keine One-Wire- oder
-  DHT-Pins gesetzt sind.
+* **`/JL` lieferte in 5.1.18 kaputtes JSON**, wenn keine One-Wire- oder
+  DHT-Pins gesetzt sind. Seit 5.1.21 nicht mehr; der Manager kommt mit beiden
+  Fassungen zurecht.
 * **BSB-LAN widerruft nur, was es gerade führt.** Ändert man erst die Liste
   und meldet dann ab, bleibt für jeden entfernten Parameter eine Entität
   zurück – „retained“ im Broker und damit für immer in Home Assistant. Der
   Manager hält deshalb die Reihenfolge ein: abmelden, Liste ändern, anmelden.
+* **Ein laufender Parameter-Dump sperrt alles andere aus.** Seit 5.1.21 nimmt
+  BSB-LAN, während es die Anlage nach gerätespezifischen Parametern absucht,
+  nur noch `/dumpstate` an und weist jede andere Verbindung ab. Ein Dump
+  dauert lange; hält er über die eingestellte Wartezeit an, meldet der Manager
+  folgerichtig „Adapter antwortet nicht“. Das ist kein Ausfall – nach dem Dump
+  läuft alles weiter.
 
 ## Gemerkte Werte
 

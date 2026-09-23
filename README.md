@@ -73,7 +73,7 @@ afterwards counts, not what it was sent.
 ## Requirements
 
 * A running [BSB-LAN](https://github.com/fredlcore/BSB-LAN) on the same
-  network (developed and tested against 5.1.18)
+  network (developed against 5.1.18, last tested against 5.1.21)
 * An MQTT broker in Home Assistant
 
 ## Installation
@@ -102,7 +102,12 @@ does not have to look for them:
   dropped silently.
 * Revoking auto-discovery (`/M0!<target>`) only affects what is currently in
   the list. So the order is: revoke, change the list, announce.
-* `/JL` returns malformed JSON in 5.1.18 when no One-Wire or DHT pins are set.
+* `/JL` returned malformed JSON in 5.1.18 when no One-Wire or DHT pins are
+  set. Fixed in 5.1.21 – verified with the pins switched off.
+* While a parameter dump runs, BSB-LAN 5.1.21 and later accept only
+  `/dumpstate` and reject every other connection. If the dump lasts long
+  enough, the manager reports “adapter does not answer” – rightly so, but it
+  is not a failure.
 
 ## Working on it
 

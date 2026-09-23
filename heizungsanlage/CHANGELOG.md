@@ -1,5 +1,15 @@
 # Änderungen
 
+## 1.35.1
+
+- Handbuch und README auf die geprüfte Adapterfassung gezogen: **BSB-LAN
+  5.1.21**. Das kaputte JSON von `/JL` ohne One-Wire- und DHT-Pins gibt es
+  dort nicht mehr – mit abgeschalteten Pins nachgeprüft.
+- Neu aufgeschrieben: Während eines Parameter-Dumps nimmt BSB-LAN ab 5.1.21
+  nur noch `/dumpstate` an. Zieht sich das über die eingestellte Wartezeit,
+  meldet der Manager „Adapter antwortet nicht“ – richtig gemeldet, aber kein
+  Ausfall.
+
 ## 1.35.0
 
 - **Behoben: Die Legionellenaufheizung blieb nachts auf halbem Weg stehen.**
