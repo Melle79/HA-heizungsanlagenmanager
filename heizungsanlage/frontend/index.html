@@ -2307,7 +2307,9 @@ function legLageZeigen() {
     feld.innerHTML = `<b>Die Aufheizung läuft seit ${seit}.</b>
       <div>Höchster Wert bisher: ${l.hoechster != null ? l.hoechster + ' °C'
         : 'noch keiner'}. Danach stellt der Manager auf
-        ${(l.letzter && l.letzter.zurueck && l.letzter.zurueck.sollwert) || 'den vorherigen Wert'}
+        ${(l.zurueck && l.zurueck.sollwert)
+          || (l.letzter && l.letzter.zurueck && l.letzter.zurueck.sollwert)
+          || 'den vorherigen Wert'}
         zurück.</div>`;
     knopfStop.hidden = false;
     return;
@@ -2315,10 +2317,18 @@ function legLageZeigen() {
   knopfStop.hidden = true;
   const letzter = l.letzter || {};
   feld.className = 'hinweis';
-  feld.textContent = letzter.start
+  // Ohne Reduziertsollwert kommt eine Aufheizung in der Absenkphase nicht
+  // über dessen Wert hinaus – das soll man vorher wissen, nicht hinterher am
+  // lauwarmen Wasser merken.
+  const ohneReduziert = !teile.reduziert ? ' Achtung: Der Reduziertsollwert '
+    + 'dieser Anlage ist nicht stellbar. Außerhalb der Freigabezeit kommt die '
+    + 'Aufheizung deshalb nicht über ihn hinaus – dann besser eine Uhrzeit '
+    + 'innerhalb der Warmwasser-Freigabe wählen.' : '';
+  feld.textContent = (letzter.start
     ? `Zuletzt am ${zeit(letzter.start)}: ${letzter.ergebnis}`
       + (letzter.hoechster != null ? `, höchstens ${letzter.hoechster} °C` : '')
-    : 'Noch nicht gelaufen.';
+    : 'Noch nicht gelaufen.') + ohneReduziert;
+  if (ohneReduziert) feld.className = 'hinweis warn';
 }
 
 $('btn-leg-start').onclick = async () => {

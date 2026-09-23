@@ -219,6 +219,8 @@ window.SPRACHEN.en = {
   "Noch nicht gelaufen.": "Has not run yet.",
   "Diese Anlage führt nicht alle drei Werte, die dafür nötig sind: Sollwert, Obergrenze und Istwert des Trinkwassers.":
     "This system does not provide all three values needed: setpoint, upper limit and actual temperature of the hot water.",
+  " Achtung: Der Reduziertsollwert dieser Anlage ist nicht stellbar. Außerhalb der Freigabezeit kommt die Aufheizung deshalb nicht über ihn hinaus – dann besser eine Uhrzeit innerhalb der Warmwasser-Freigabe wählen.":
+    " Note: this system's reduced setpoint cannot be set. Outside the release times a heat-up therefore cannot rise above it – better pick a time within the hot water release.",
   "Schreibzugriff": "Write access",
   "Stellen von Parametern erlauben": "Allow setting parameters",
   "Zwei Schalter müssen dafür stehen: dieser und der in BSB-LAN selbst. Beide sind ab Werk aus, und das mit Absicht – ein falscher Sollwert lässt im Winter eine Wohnung auskühlen.":

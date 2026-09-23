@@ -1,5 +1,21 @@
 # Änderungen
 
+## 1.35.0
+
+- **Behoben: Die Legionellenaufheizung blieb nachts auf halbem Weg stehen.**
+  Sie hob Nennsollwert und Obergrenze an – in der Absenkphase gilt aber
+  einzig der *Reduziertsollwert*, bei Svens Anlage 40 °C. Der Lauf am
+  20.09. kam deshalb auf 39,6 °C und endete mit „Zeit abgelaufen“. Jetzt
+  wird der Reduziertsollwert mitgehoben und hinterher als Erstes wieder
+  gesenkt: hin Obergrenze, Nennsollwert, Reduziertsollwert – zurück in
+  umgekehrter Reihenfolge, damit keiner an der Grenze des anderen hängen
+  bleibt.
+- Führt eine Anlage keinen stellbaren Reduziertsollwert, läuft die Aufheizung
+  wie bisher – die Kachel sagt aber jetzt, dass sie außerhalb der
+  Freigabezeit nicht über ihn hinauskommt.
+- Während eines Laufs zeigt die Kachel den Rückweg *dieses* Laufs statt den
+  des vorherigen.
+
 ## 1.34.2
 
 - README nachgezogen: das Protokoll und die dritte Meldung („das Stellen kommt

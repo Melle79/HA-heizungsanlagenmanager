@@ -274,15 +274,23 @@ TRINKWASSER_MUSTER = {
                           "trinkwassertemperatur-istwert",
                           "warmwassertemperatur istwert"],
                 "weg": ["2", "soll"]},
+    # Der Reduziertsollwert gilt in der Absenkphase – und nur er. Wer nachts
+    # aufheizen will, muss ihn mitheben, sonst hält die Regelung stur ihre
+    # 40 Grad, ganz gleich, was im Nennsollwert steht.
+    "reduziert": {"worte": ["trinkwassertemperatur-reduziertsollwert",
+                            "warmwassertemperatur-reduziertsollwert",
+                            "warmwassertemperatur reduziertsollwert"],
+                  "weg": []},
 }
 
 
 def trinkwasser_regelung(katalog: dict) -> dict:
-    """Sollwert, Obergrenze und Istwert des Trinkwassers – falls vorhanden.
+    """Sollwert, Obergrenze, Istwert und Reduziertsollwert des Trinkwassers.
 
     Fehlt eines davon, fehlt es: Eine Aufheizung, die den Istwert nicht sieht,
     wüsste nicht, wann sie fertig ist, und eine ohne Obergrenze käme nicht
-    über sie hinaus.
+    über sie hinaus. Der Reduziertsollwert ist die Ausnahme – ohne ihn heizt
+    eine Anlage auch auf, nur eben nicht in der Absenkphase.
     """
     parameter = list((katalog.get("parameter") or {}).values())
     parameter.sort(key=lambda e: _nummer(e.get("nr")))

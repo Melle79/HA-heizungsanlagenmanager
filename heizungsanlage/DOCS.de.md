@@ -326,15 +326,26 @@ Sache: 60 °C im Speicher heißen 60 °C am Wasserhahn.
 
 Deshalb kann der Manager die Aufheizung selbst fahren, unter *Einstellungen →
 Legionellenaufheizung*: Rhythmus in Tagen, Wochentag, Uhrzeit, Zieltemperatur
-und eine Höchstdauer. Er hebt dann Sollwert **und** Obergrenze des
-Trinkwassers an und stellt beide danach auf die vorherigen Werte zurück.
+und eine Höchstdauer. Er hebt dann Obergrenze, Nennsollwert **und**
+Reduziertsollwert des Trinkwassers an und stellt alle danach auf die
+vorherigen Werte zurück.
+
+Der Reduziertsollwert gehört dazu, auch wenn es zunächst nicht so aussieht:
+Außerhalb der Warmwasser-Freigabe – und nachts um zwei ist außerhalb – hält
+die Regelung einzig ihn. Ein Lauf, der nur den Nennsollwert anhebt, endet
+dann bei dessen 40 °C und meldet „Zeit abgelaufen“. Führt eine Anlage keinen
+stellbaren Reduziertsollwert, läuft die Aufheizung trotzdem; die Kachel weist
+dann darauf hin, dass sie außerhalb der Freigabezeit nicht über ihn
+hinauskommt, und eine Uhrzeit innerhalb der Freigabe ist die bessere Wahl.
 
 Drei Dinge sind dabei bewusst so gebaut:
 
 * **Der Rückweg steht fest, bevor der Hinweg beginnt.** Die aktuellen Werte
   werden frisch gelesen und im Zustand hinterlegt. Stirbt das Add-on mitten
   im Lauf, stellt es beim nächsten Start zurück – nicht der Speicher bleibt
-  heiß, sondern das Programm merkt sich, was es schuldet.
+  heiß, sondern das Programm merkt sich, was es schuldet. Zurück geht es in
+  umgekehrter Reihenfolge: erst der Reduziertsollwert, dann der Nennsollwert,
+  dann die Obergrenze – sonst hinge einer an der Grenze des anderen.
 * **Ohne Freigabe zum Stellen passiert nichts.** Diese Funktion schreibt von
   sich aus; sie ist ab Werk aus und braucht denselben Schalter wie jedes
   andere Schreiben.
@@ -348,8 +359,9 @@ aufheizen* lässt sich ein Lauf von Hand auslösen, mit *Abbrechen* jederzeit
 beenden.
 
 Welche Parameter dafür verwendet werden, leitet der Manager aus dem Katalog
-ab – Sollwert, Obergrenze und Istwert des Trinkwassers. Führt eine Anlage
-nicht alle drei, sagt er das und bietet die Funktion nicht an.
+ab – Sollwert, Obergrenze und Istwert des Trinkwassers, dazu den
+Reduziertsollwert, wenn es ihn gibt. Führt eine Anlage die ersten drei nicht,
+sagt er das und bietet die Funktion nicht an.
 
 ### Das Protokoll
 

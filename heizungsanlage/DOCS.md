@@ -219,8 +219,16 @@ means 60 °C at the tap.
 
 The manager can therefore run the heat-up itself, under *Settings → Legionella
 heat-up*: rhythm in days, weekday, hour, target temperature and a maximum
-duration. It raises the hot-water setpoint **and** its upper limit, then puts
-both back.
+duration. It raises the upper limit, the nominal setpoint **and** the reduced
+setpoint of the hot water, then puts all three back.
+
+The reduced setpoint belongs in that list even though it does not look like
+it: outside the hot-water release times – and two in the morning is outside –
+the controller holds that one and nothing else. A run that only raises the
+nominal setpoint therefore stops at its 40 °C and reports “time is up”. If a
+system has no settable reduced setpoint the heat-up still runs; the tile then
+says it cannot rise above it outside the release times, and a time inside them
+is the better choice.
 
 Three things are deliberate: the way back is recorded *before* the way up, so
 an add-on that dies mid-run restores on its next start; nothing happens without

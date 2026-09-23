@@ -1096,6 +1096,9 @@ pruefe(tw["sollwert"]["nr"] == "55" and tw["maximum"]["nr"] == "164"
        and tw["istwert"]["nr"] == "118",
        f"Sollwert, Obergrenze und Istwert werden aus dem Katalog erkannt: "
        f"{ {r: t['nr'] for r, t in tw.items()} }")
+pruefe("reduziert" not in tw,
+       "eine Anlage ohne Reduziertsollwert fuehrt keinen - und das ist kein "
+       "Grund, die Aufheizung zu verweigern")
 
 config = store.load_config()
 config["einstellungen"] = dict(config["einstellungen"], schreiben_erlaubt=True)
@@ -1121,6 +1124,56 @@ pruefe(gesetzt == [("55", "42"), ("164", "42")],
 pruefe(store.load_state()["legionellen_letzter"]["ergebnis"] == "von Hand beendet",
        "der Lauf wird im Zustand vermerkt")
 pruefe(not store.load_state()["legionellen_lauf"], "und der Lauf ist beendet")
+
+# Mit Reduziertsollwert: Er gilt in der Absenkphase, und nur er. Wer ihn
+# stehen laesst, heizt nachts vergeblich - die Regelung haelt seine 40 Grad,
+# egal welcher Nennsollwert darueber steht.
+TW_RED = {"162": {"name": "Warmwassertemperatur-Reduziertsollwert",
+                  "unit": "°C", "dataType_name": "TEMP", "readwrite": 0,
+                  "possibleValues": []}}
+PARAMETER["5"].update(TW_RED)
+store.save_katalog({"kategorien": {}, "parameter": {
+    nr: dict(e, nr=nr, schreibbar=(e["readwrite"] == 0))
+    for nr, e in {**TW, **TW_RED}.items()}})
+tw = katalog.trinkwasser_regelung(store.load_katalog())
+pruefe(tw.get("reduziert", {}).get("nr") == "162",
+       f"der Reduziertsollwert wird erkannt: {tw.get('reduziert')}")
+pruefe(tw["sollwert"]["nr"] == "55",
+       "und er wird nicht mit dem Nennsollwert verwechselt")
+
+store.merke_state(legionellen_lauf={}, legionellen_letzter={})
+ANLAGE["gesetzt"].clear()
+anwendung.legionellen_starten(von_hand=True)
+zurueck = store.load_state()["legionellen_lauf"]["zurueck"]
+pruefe(zurueck == {"sollwert": "42", "maximum": "42", "reduziert": "42"},
+       f"auch fuer den Reduziertsollwert steht der Rueckweg fest: {zurueck}")
+gesetzt = [(g["Parameter"], g["Value"]) for g in ANLAGE["gesetzt"]]
+pruefe(gesetzt == [("164", f"{ziel:.1f}"), ("55", f"{ziel:.1f}"),
+                   ("162", f"{ziel:.1f}")],
+       f"Grenze, Nennsollwert, Reduziertsollwert - in dieser Reihenfolge: "
+       f"{gesetzt}")
+
+ANLAGE["gesetzt"].clear()
+anwendung.legionellen_beenden("von Hand beendet")
+gesetzt = [(g["Parameter"], g["Value"]) for g in ANLAGE["gesetzt"]]
+pruefe(gesetzt == [("162", "42"), ("55", "42"), ("164", "42")],
+       f"und zurueck in umgekehrter Reihenfolge: {gesetzt}")
+
+# Ein Reduziertsollwert, den die Anlage nur lesen laesst, wird nicht
+# angefasst - und haelt die Aufheizung trotzdem nicht auf.
+store.save_katalog({"kategorien": {}, "parameter": {
+    nr: dict(e, nr=nr, schreibbar=(nr != "162" and e["readwrite"] == 0))
+    for nr, e in {**TW, **TW_RED}.items()}})
+store.merke_state(legionellen_lauf={}, legionellen_letzter={})
+ANLAGE["gesetzt"].clear()
+anwendung.legionellen_starten(von_hand=True)
+gesetzt = [g["Parameter"] for g in ANLAGE["gesetzt"]]
+pruefe(gesetzt == ["164", "55"],
+       f"ein nur lesbarer Reduziertsollwert wird uebergangen: {gesetzt}")
+anwendung.legionellen_beenden("von Hand beendet")
+store.save_katalog({"kategorien": {}, "parameter": {
+    nr: dict(e, nr=nr, schreibbar=(e["readwrite"] == 0)) for nr, e in TW.items()}})
+PARAMETER["5"].pop("162", None)
 
 # Ein abgebrochener Lauf - etwa durch einen Neustart des Add-ons - wird beim
 # naechsten Takt zurueckgestellt. Sonst bliebe der Speicher heiss.

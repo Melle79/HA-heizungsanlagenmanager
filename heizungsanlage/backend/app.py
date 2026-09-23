@@ -597,6 +597,7 @@ def legionellen_lage() -> dict:
     lauf = dict(state.get("legionellen_lauf") or {})
     return {"phase": lauf.get("phase") or "",
             "seit": lauf.get("seit") or 0,
+            "zurueck": lauf.get("zurueck") or {},
             "hoechster": lauf.get("hoechster"),
             "erreicht_seit": lauf.get("erreicht_seit") or 0,
             "letzter": state.get("legionellen_letzter") or {},
@@ -618,13 +619,29 @@ def legionellen_starten(von_hand: bool = False) -> dict:
     ziel = float(config["einstellungen"]["legionellen"]["ziel"])
 
     # Frisch lesen, nicht aus dem Zwischenspeicher: Der Rückweg muss stimmen.
-    roh = _client().werte([teile["sollwert"]["nr"], teile["maximum"]["nr"],
-                           teile["istwert"]["nr"]])
+    # Der Reduziertsollwert kommt mit, wenn die Anlage einen führt – ohne ihn
+    # bliebe eine Aufheizung in der Absenkphase bei dessen 40 Grad stehen.
+    gefragt = [teile["sollwert"]["nr"], teile["maximum"]["nr"],
+               teile["istwert"]["nr"]]
+    mit_reduziert = "reduziert" in teile and teile["reduziert"]["schreibbar"]
+    if mit_reduziert:
+        gefragt.append(teile["reduziert"]["nr"])
+    roh = _client().werte(gefragt)
     zurueck = {rolle: str((roh.get(teile[rolle]["nr"]) or {}).get("value") or "")
                for rolle in ("sollwert", "maximum")}
     if not all(zurueck.values()):
         raise bsb_modul.BsbFehler("Die jetzigen Sollwerte ließen sich nicht "
                                   "lesen – ohne sie gibt es keinen Rückweg")
+    if mit_reduziert:
+        vorher = str((roh.get(teile["reduziert"]["nr"]) or {}).get("value") or "")
+        if vorher:
+            zurueck["reduziert"] = vorher
+        else:
+            # Gelesen haben wir ihn nicht, also fassen wir ihn nicht an.
+            mit_reduziert = False
+            _LOGGER.warning("Reduziertsollwert nicht lesbar – die Aufheizung "
+                            "läuft ohne ihn und kann in der Absenkphase "
+                            "steckenbleiben")
 
     store.merke_state(legionellen_lauf={
         "phase": "laeuft", "seit": time.time(), "zurueck": zurueck,
@@ -632,9 +649,12 @@ def legionellen_starten(von_hand: bool = False) -> dict:
         "erreicht_seit": 0, "von_hand": bool(von_hand)})
 
     # Erst die Obergrenze, dann der Sollwert: andersherum bliebe der Sollwert
-    # an der alten Grenze hängen.
+    # an der alten Grenze hängen. Der Reduziertsollwert zuletzt – die Regelung
+    # lässt ihn nicht über den Nennsollwert steigen.
     _client().setzen(teile["maximum"]["nr"], f"{ziel:.1f}")
     _client().setzen(teile["sollwert"]["nr"], f"{ziel:.1f}")
+    if mit_reduziert:
+        _client().setzen(teile["reduziert"]["nr"], f"{ziel:.1f}")
     _LOGGER.info("Legionellenaufheizung gestartet: Ziel %.1f °C, zurück auf %s",
                  ziel, zurueck)
     store.protokoll_eintragen(
@@ -654,7 +674,10 @@ def legionellen_beenden(grund: str) -> dict:
     zurueck = lauf.get("zurueck") or {}
     fehler = ""
     try:
-        # Erst der Sollwert, dann die Grenze – sonst hinge er wieder oben.
+        # Rückwärts wie hin: erst der Reduziertsollwert herunter, dann der
+        # Nennsollwert, dann die Grenze – sonst hinge einer wieder oben.
+        if zurueck.get("reduziert") and "reduziert" in teile:
+            _client().setzen(teile["reduziert"]["nr"], zurueck["reduziert"])
         if zurueck.get("sollwert") and "sollwert" in teile:
             _client().setzen(teile["sollwert"]["nr"], zurueck["sollwert"])
         if zurueck.get("maximum") and "maximum" in teile:
